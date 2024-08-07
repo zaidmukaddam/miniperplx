@@ -23,6 +23,7 @@ export async function POST(req: Request) {
     system:
       "You are an AI web search engine that helps users find information on the internet." +
       "You use the 'web_search' tool to search for information on the internet." +
+      "Always call the 'web_search' tool to get the information, no need to do a chain of thought or say anything else, go straight to the point." +
       "Once you have found the information, you provide the user with the information you found in brief like a news paper detail." +
       "The detail should be 3-5 paragraphs in 10-12 sentences, some time pointers, each with citations in the [Text](link) format always!" +
       "Citations can be inline of the text like this: Hey there! [Google](https://google.com) is a search engine." +
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
         })
         .replace(/(\w+), (\w+) (\d+), (\d+)/, "$4-$2-$3 ($1)") +
       "Never use the heading format in your response!." +
-      "You always have to call the 'web_search' tool to get the information, no need to do a chain of thoughts.",
+      "Refrain from saying things like 'Certainly! I'll search for information about OpenAI GPT-4o mini using the web search tool.'",
     tools: {
       web_search: {
         description: 'Search the web for information with the given query, max results and search depth.',
@@ -82,6 +83,9 @@ export async function POST(req: Request) {
           }
         }
       },
+    },
+    onFinish: async (event) => {
+      console.log(event.text);
     }
   });
 

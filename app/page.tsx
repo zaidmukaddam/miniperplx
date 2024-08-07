@@ -32,6 +32,7 @@ export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [lastSubmittedQuery, setLastSubmittedQuery] = useState("");
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [showToolResults, setShowToolResults] = useState<{ [key: number]: boolean }>({});
   const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
@@ -54,8 +55,6 @@ export default function Home() {
     { name: 'Quality (GPT)', description: 'Speed and quality, balanced.', details: '(OpenAI/GPT | Optimized)', icon: Sparkles },
     { name: 'Quality (Claude)', description: 'High quality generation.', details: '(Anthropic/Claude-3.5-Sonnet)', icon: Sparkles },
   ];
-
-
 
   const renderToolInvocation = (toolInvocation: ToolInvocation, index: number) => {
     const args = JSON.parse(JSON.stringify(toolInvocation.args));
@@ -148,6 +147,9 @@ export default function Home() {
       .replace(boldRegex, '<strong>$1</strong>')
       .replace(italicRegex, '<em>$1</em>');
 
+    // Remove double new lines
+    content = content.replace("\n\n", "")
+
     // Replace unordered and ordered lists
     content = content
       .replace(unorderedListRegex, '<li class="list-disc ml-6">$1</li>')
@@ -227,6 +229,7 @@ export default function Home() {
       setLastSubmittedQuery(input.trim());
       handleSubmit(e);
       setHasSubmitted(true);
+      setIsAnimating(true);
       setShowToolResults({});
     } else {
       toast.error("Please enter a search query.");
@@ -355,28 +358,54 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 50 }}
               transition={{ duration: 0.5 }}
-              className="flex items-center space-x-2 mb-4"
+              onAnimationComplete={() => setIsAnimating(false)}
             >
-              <p className="text-lg sm:text-2xl font-medium font-serif">{lastSubmittedQuery}</p>
-              <Badge
-                variant="secondary"
-                className={`text-xs sm:text-sm ${selectedModel.includes('Quality') ? 'bg-purple-500 hover:bg-purple-500' : 'bg-green-500 hover:bg-green-500'} text-white`}
-              >
-                {selectedModel === 'Speed' && <FastForward className="w-4 h-4 mr-1" />}
-                {selectedModel === 'Quality (GPT)' && <Sparkles className="w-4 h-4 mr-1" />}
-                {selectedModel === 'Quality (Claude)' && <Sparkles className="w-4 h-4 mr-1" />}
-                {selectedModel}
-              </Badge>
+              <div className="flex items-center space-x-2 mb-4">
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                  className="text-lg sm:text-2xl font-medium font-serif"
+                >
+                  {lastSubmittedQuery}
+                </motion.p>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                >
+                  <Badge
+                    variant="secondary"
+                    className={`text-xs sm:text-sm ${selectedModel.includes('Quality') ? 'bg-purple-500 hover:bg-purple-500' : 'bg-green-500 hover:bg-green-500'} text-white`}
+                  >
+                    {selectedModel === 'Speed' && <FastForward className="w-4 h-4 mr-1" />}
+                    {selectedModel === 'Quality (GPT)' && <Sparkles className="w-4 h-4 mr-1" />}
+                    {selectedModel === 'Quality (Claude)' && <Sparkles className="w-4 h-4 mr-1" />}
+                    {selectedModel}
+                  </Badge>
+                </motion.div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {messages.length > 0 && (
-          <div className="space-y-4 sm:space-y-6">
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
+            className="space-y-4 sm:space-y-6"
+          >
             {messages.map((message, index) => (
-              <React.Fragment key={index}>
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+              >
                 {message.role === 'assistant' && message.content && (
-                  <Card className="bg-card text-card-foreground border border-muted !mb-20 sm:!mb-16">
+                  <Card className="bg-card text-card-foreground border border-muted !mb-8 sm:!mb-16">
                     <CardContent className="p-3 sm:p-4">
                       <h2 className="text-lg sm:text-xl font-semibold mb-2">Answer</h2>
                       <div className="text-sm sm:text-base">
@@ -386,19 +415,24 @@ export default function Home() {
                   </Card>
                 )}
                 {message.toolInvocations?.map((toolInvocation: ToolInvocation, toolIndex: number) => (
-                  <React.Fragment key={toolIndex}>
+                  <motion.div
+                    key={`tool-${toolIndex}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: (index + toolIndex) * 0.1 + 0.2 }}
+                  >
                     {renderToolInvocation(toolInvocation, toolIndex)}
-                  </React.Fragment>
+                  </motion.div>
                 ))}
-              </React.Fragment>
+              </motion.div>
             ))}
             <div ref={bottomRef} />
-          </div>
-        )}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       <AnimatePresence>
-        {hasSubmitted && (
+        {hasSubmitted && !isAnimating && (
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
