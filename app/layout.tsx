@@ -5,9 +5,13 @@ import { Inter, Instrument_Serif } from 'next/font/google';
 import { Analytics } from "@vercel/analytics/react";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://miniperplx.za16.co"),
+  metadataBase: new URL("https://miniperplx.vercel.app"),
   title: "MiniPerplx",
   description: "MiniPerplx is a minimalistic AI-powered search engine that helps you find information on the internet.",
+  openGraph : {
+    url: "https://miniperplx.vercel.app",
+    siteName: "MiniPerplx",
+  }
 };
 
 const inter = Inter({
