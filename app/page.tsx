@@ -147,9 +147,6 @@ export default function Home() {
       .replace(boldRegex, '<strong>$1</strong>')
       .replace(italicRegex, '<em>$1</em>');
 
-    // Remove double new lines
-    content = content.replace("\n\n", "")
-
     // Replace unordered and ordered lists
     content = content
       .replace(unorderedListRegex, '<li class="list-disc ml-6">$1</li>')
