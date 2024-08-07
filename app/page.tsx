@@ -394,7 +394,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.5, delay: 0.6 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
             className="space-y-4 sm:space-y-6"
           >
             {messages.map((message, index) => (
@@ -415,14 +415,9 @@ export default function Home() {
                   </Card>
                 )}
                 {message.toolInvocations?.map((toolInvocation: ToolInvocation, toolIndex: number) => (
-                  <motion.div
-                    key={`tool-${toolIndex}`}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: (index + toolIndex) * 0.1 + 0.2 }}
-                  >
+                  <div key={`tool-${toolIndex}`}>
                     {renderToolInvocation(toolInvocation, toolIndex)}
-                  </motion.div>
+                  </div>
                 ))}
               </motion.div>
             ))}
