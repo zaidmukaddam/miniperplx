@@ -386,41 +386,28 @@ export default function Home() {
           )}
         </AnimatePresence>
 
-        <AnimatePresence>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="space-y-4 sm:space-y-6"
-          >
-            {messages.map((message, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-              >
-                {message.role === 'assistant' && message.content && (
-                  <Card className="bg-card text-card-foreground border border-muted !mb-8 sm:!mb-16">
-                    <CardContent className="p-3 sm:p-4">
-                      <h2 className="text-lg sm:text-xl font-semibold mb-2">Answer</h2>
-                      <div className="text-sm sm:text-base">
-                        {renderMarkdown(message.content)}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-                {message.toolInvocations?.map((toolInvocation: ToolInvocation, toolIndex: number) => (
-                  <div key={`tool-${toolIndex}`}>
-                    {renderToolInvocation(toolInvocation, toolIndex)}
-                  </div>
-                ))}
-              </motion.div>
-            ))}
-            <div ref={bottomRef} />
-          </motion.div>
-        </AnimatePresence>
+        <div className="space-y-4 sm:space-y-6">
+          {messages.map((message, index) => (
+            <div key={index}>
+              {message.role === 'assistant' && message.content && (
+                <Card className="bg-card text-card-foreground border border-muted !mb-8 sm:!mb-16">
+                  <CardContent className="p-3 sm:p-4">
+                    <h2 className="text-lg sm:text-xl font-semibold mb-2">Answer</h2>
+                    <div className="text-sm sm:text-base">
+                      {renderMarkdown(message.content)}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              {message.toolInvocations?.map((toolInvocation: ToolInvocation, toolIndex: number) => (
+                <div key={`tool-${toolIndex}`}>
+                  {renderToolInvocation(toolInvocation, toolIndex)}
+                </div>
+              ))}
+            </div>
+          ))}
+          <div ref={bottomRef} />
+        </div>
       </div>
 
       <AnimatePresence>
