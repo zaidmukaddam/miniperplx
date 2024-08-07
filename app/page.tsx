@@ -37,6 +37,7 @@ export default function Home() {
   const [showToolResults, setShowToolResults] = useState<{ [key: number]: boolean }>({});
   const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState('Speed');
+  const [showExamples, setShowExamples] = useState(false)
 
   const { isLoading, input, messages, setInput, append, handleSubmit, setMessages } = useChat({
     api: '/api/chat',
@@ -315,33 +316,39 @@ export default function Home() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     disabled={isLoading}
-                    className="w-full h-10 py-3 px-4 bg-gray-100 rounded-full pr-12 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm sm:text-base"
+                    className="w-full min-h-12 py-3 px-4 bg-muted border border-input rounded-full pr-12 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 text-sm sm:text-base"
+                    onFocus={() => setShowExamples(true)}
+                    onBlur={() => setShowExamples(false)}
                   />
                   <Button
-                    size="icon"
                     type="submit"
-                    variant="ghost"
-                    disabled={isLoading}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-transparent hover:bg-transparent"
+                    size={'icon'}
+                    variant={'ghost'}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                    disabled={input.length === 0}
                   >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                    <ArrowRight size={20} />
                   </Button>
                 </div>
               </form>
 
-              <div className="flex flex-col gap-2 text-left items-start justify-start">
-                {exampleQueries.map((query, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleExampleClick(query)}
-                    className="mb-1 hover:underline flex flex-row"
-                  >
-                    <ArrowRight className="w-5 h-5 mr-1" />
-                    {query}
-                  </button>
-                ))}
+              <div className={`mx-auto w-full transition-all ${showExamples ? 'visible' : 'invisible'}`}>
+                <div className="bg-background p-2">
+                  <div className="flex flex-col items-start space-y-2">
+                    {exampleQueries.map((message, index) => (
+                      <Button
+                        key={index}
+                        variant="link"
+                        className="h-auto p-0 text-base"
+                        name={message}
+                        onClick={() => handleExampleClick(message)}
+                      >
+                        <ArrowRight size={16} className="mr-2 text-muted-foreground" />
+                        {message}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}
@@ -362,7 +369,7 @@ export default function Home() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.2 }}
-                  className="text-lg sm:text-2xl font-medium font-serif"
+                  className="text-2xl font-medium font-serif"
                 >
                   {lastSubmittedQuery}
                 </motion.p>
@@ -390,7 +397,7 @@ export default function Home() {
           {messages.map((message, index) => (
             <div key={index}>
               {message.role === 'assistant' && message.content && (
-                <Card className="bg-card text-card-foreground border border-muted !mb-8 sm:!mb-16">
+                <Card className="bg-card text-card-foreground border border-muted !mb-20 sm:!mb-16">
                   <CardContent className="p-3 sm:p-4">
                     <h2 className="text-lg sm:text-xl font-semibold mb-2">Answer</h2>
                     <div className="text-sm sm:text-base">
@@ -428,18 +435,16 @@ export default function Home() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   disabled={isLoading}
-                  className="w-full h-10 py-3 px-4 bg-gray-100 rounded-full pr-12 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                  className="w-full min-h-12 py-3 px-4 bg-muted border border-input rounded-full pr-12 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 text-sm sm:text-base"
                 />
                 <Button
-                  size="icon"
                   type="submit"
-                  variant="ghost"
-                  disabled={isLoading}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-transparent hover:bg-transparent"
+                  size={'icon'}
+                  variant={'ghost'}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                  disabled={input.length === 0}
                 >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <ArrowRight size={20} />
                 </Button>
               </div>
             </form>

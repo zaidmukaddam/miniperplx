@@ -1,6 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { anthropic } from '@ai-sdk/anthropic'
-import { convertToCoreMessages, streamText } from "ai";
+import { convertToCoreMessages, streamText, tool } from "ai";
 import { z } from "zod";
 
 // Allow streaming responses up to 30 seconds
@@ -27,6 +27,7 @@ export async function POST(req: Request) {
       "Once you have found the information, you provide the user with the information you found in brief like a news paper detail." +
       "The detail should be 3-5 paragraphs in 10-12 sentences, some time pointers, each with citations in the [Text](link) format always!" +
       "Citations can be inline of the text like this: Hey there! [Google](https://google.com) is a search engine." +
+      "Do not start the responses with newline characters, always start with the first sentence." +
       "The current date is: " +
       new Date()
         .toLocaleDateString("en-US", {
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
       "Never use the heading format in your response!." +
       "Refrain from saying things like 'Certainly! I'll search for information about OpenAI GPT-4o mini using the web search tool.'",
     tools: {
-      web_search: {
+      web_search: tool({
         description: 'Search the web for information with the given query, max results and search depth.',
         parameters: z.object({
           query: z.string()
@@ -82,7 +83,7 @@ export async function POST(req: Request) {
             results: context
           }
         }
-      },
+      }),
     },
     onFinish: async (event) => {
       console.log(event.text);
