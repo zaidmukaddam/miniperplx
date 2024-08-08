@@ -2,6 +2,8 @@
 "use client";
 
 import React, { useRef, useCallback, useState, useEffect, ReactNode } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useChat } from 'ai/react';
 import { ToolInvocation } from 'ai';
 import { toast } from 'sonner';
@@ -15,7 +17,8 @@ import {
   ChevronUp,
   FastForward,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  BookCheck
 } from 'lucide-react';
 import {
   HoverCard,
@@ -117,14 +120,13 @@ export default function Home() {
     return (
       <HoverCard key={index}>
         <HoverCardTrigger asChild>
-          <span className="cursor-help text-blue-500 hover:underline">
-            {citationText}
-            <sup>[{index + 1}]</sup>
+          <span className="cursor-help text-primary py-0.5 px-2 m-0 bg-secondary rounded-full">
+            {index + 1}
           </span>
         </HoverCardTrigger>
-        <HoverCardContent className="flex items-center gap-2 p-2 max-w-xs bg-card text-card-foreground">
-          <img src={faviconUrl} alt="Favicon" className="w-4 h-4 flex-shrink-0" />
-          <a href={citationLink} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline truncate">
+        <HoverCardContent className="flex items-center gap-1 !p-0 !px-0.5 max-w-xs bg-card text-card-foreground !m-0 h-6 rounded-xl">
+          <img src={faviconUrl} alt="Favicon" className="w-4 h-4 flex-shrink-0 rounded-full" />
+          <a href={citationLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary no-underline truncate">
             {citationLink}
           </a>
         </HoverCardContent>
@@ -132,78 +134,41 @@ export default function Home() {
     );
   };
 
-  const renderMarkdown = (content: string) => {
-    const citationRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-    const boldRegex = /\*\*(.*?)\*\*/g; // Bold
-    const italicRegex = /\*(.*?)\*/g; // Italic
-    const unorderedListRegex = /^-\s+(.*)$/gm; // Unordered list
-    const orderedListRegex = /^\d+\.\s+(.*)$/gm; // Ordered list
-    const headingRegex = /^(#{1,6})\s+(.*)$/gm; // Headings
-    const parts: (string | ReactNode)[] = [];
-    let lastIndex = 0;
-    let match;
+  const CitationComponent: React.FC<{ href: string; children: ReactNode; index: number }> = ({ href, children, index }) => {
+    const citationText = Array.isArray(children) ? children[0] : children;
 
-    // Replace bold and italic
-    content = content
-      .replace(boldRegex, '<strong>$1</strong>')
-      .replace(italicRegex, '<em>$1</em>');
-
-    // Replace unordered and ordered lists
-    content = content
-      .replace(unorderedListRegex, '<li class="list-disc ml-6">$1</li>')
-      .replace(orderedListRegex, '<li class="list-decimal ml-6">$1</li>');
-
-    // Replace headings
-    content = content.replace(headingRegex, (match, hashes, headingText) => {
-      const level = hashes.length; // Determine heading level
-      return `<h${level} class="text-${level === 1 ? '3xl' : level === 2 ? '2xl' : 'xl'} font-bold mb-1">${headingText}</h${level}>`;
-    });
-
-    // Add list wrapping
-    const wrappedContent = content.split(/(<li.*?<\/li>)/g).map((item, index) => {
-      if (item.startsWith('<li')) {
-        return `<ul>${item}</ul>`;
-      }
-      return item;
-    }).join('');
-
-    // Parse citations and add to parts
-    while ((match = citationRegex.exec(wrappedContent)) !== null) {
-      // Add text before the citation
-      if (match.index > lastIndex) {
-        parts.push(wrappedContent.slice(lastIndex, match.index));
-      }
-
-      const citationText = match[1];
-      const citationLink = match[2];
-      parts.push(renderCitation(citationText, citationLink, parts.length)); // Adjusting index for key
-
-      lastIndex = match.index + match[0].length;
-    }
-
-    // Add any remaining text after the last citation
-    if (lastIndex < wrappedContent.length) {
-      parts.push(wrappedContent.slice(lastIndex));
-    }
-
-    return (
-      <span>
-        {parts.map((part, index) => {
-          if (typeof part === 'string') {
-            const lines = part.split('\n');
-            return lines.map((line, lineIndex) => (
-              <React.Fragment key={`${index}-${lineIndex}`}>
-                <span dangerouslySetInnerHTML={{ __html: line }} />
-                {lineIndex < lines.length - 1 && <br />}
-              </React.Fragment>
-            ));
-          }
-          return <React.Fragment key={index}>{part}</React.Fragment>; // Render citations
-        })}
-      </span>
-    );
+    return renderCitation(citationText as string, href, index);
   };
 
+  const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
+    const citationLinks = [...content.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map(([_, text, link]) => ({
+      text,
+      link,
+    }));
+
+    return (
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        className="prose text-sm sm:text-base"
+        components={{
+          a: ({ href, children }) => {
+            const index = citationLinks.findIndex(link => link.link === href);
+            return index !== -1 ? (
+              <CitationComponent href={href as string} index={index} >
+                {children}
+              </CitationComponent>
+            ) : (
+              <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                {children}
+              </a>
+            );
+          },
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    );
+  };
 
   useEffect(() => {
     if (bottomRef.current) {
@@ -399,9 +364,14 @@ export default function Home() {
               {message.role === 'assistant' && message.content && (
                 <Card className="bg-card text-card-foreground border border-muted !mb-20 sm:!mb-16">
                   <CardContent className="p-3 sm:p-4">
-                    <h2 className="text-lg sm:text-xl font-semibold mb-2">Answer</h2>
+                    <div
+                      className='flex items-center gap-2 mb-2'
+                    >
+                      <BookCheck className="size-4 sm:size-5 text-primary" />
+                      <h2 className="text-lg sm:text-xl font-semibold">Answer</h2>
+                    </div>
                     <div className="text-sm sm:text-base">
-                      {renderMarkdown(message.content)}
+                      <MarkdownRenderer content={message.content} />
                     </div>
                   </CardContent>
                 </Card>
