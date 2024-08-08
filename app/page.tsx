@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { useRef, useCallback, useState, useEffect, ReactNode } from 'react';
+import React, { useRef, useCallback, useState, useEffect, ReactNode, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useChat } from 'ai/react';
@@ -134,17 +134,21 @@ export default function Home() {
     );
   };
 
-  const CitationComponent: React.FC<{ href: string; children: ReactNode; index: number }> = ({ href, children, index }) => {
+  const CitationComponent: React.FC<{ href: string; children: ReactNode; index: number }> = React.memo(({ href, children, index }) => {
     const citationText = Array.isArray(children) ? children[0] : children;
 
     return renderCitation(citationText as string, href, index);
-  };
+  });
 
-  const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
-    const citationLinks = [...content.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map(([_, text, link]) => ({
-      text,
-      link,
-    }));
+  CitationComponent.displayName = "CitationComponent";
+
+  const MarkdownRenderer: React.FC<{ content: string }> = React.memo(({ content }) => {
+    const citationLinks = useMemo(() => {
+      return [...content.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map(([_, text, link]) => ({
+        text,
+        link,
+      }));
+    }, [content]); // Recompute only if content changes
 
     return (
       <ReactMarkdown
@@ -152,9 +156,9 @@ export default function Home() {
         className="prose text-sm sm:text-base"
         components={{
           a: ({ href, children }) => {
-            const index = citationLinks.findIndex(link => link.link === href);
+            const index = citationLinks.findIndex((link: { link: string | undefined; }) => link.link === href);
             return index !== -1 ? (
-              <CitationComponent href={href as string} index={index} >
+              <CitationComponent href={href as string} index={index}>
                 {children}
               </CitationComponent>
             ) : (
@@ -168,7 +172,9 @@ export default function Home() {
         {content}
       </ReactMarkdown>
     );
-  };
+  });
+
+  MarkdownRenderer.displayName = "MarkdownRenderer";
 
   useEffect(() => {
     if (bottomRef.current) {
