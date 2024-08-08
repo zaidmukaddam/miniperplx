@@ -16,3 +16,6 @@ To run the example locally you need to:
 4. `pnpm install` to install the required dependencies.
 5. `pnpm dev` to launch the development server.
 
+# License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
