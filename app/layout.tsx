@@ -1,5 +1,5 @@
 import "./globals.css";
-import { Metadata } from "next";
+import { Metadata, Viewport } from "next";
 import { Toaster } from "sonner";
 import { Inter, Instrument_Serif } from 'next/font/google';
 import { Analytics } from "@vercel/analytics/react";
@@ -18,6 +18,14 @@ const inter = Inter({
   weight: "variable",
   subsets: ["latin"],
 })
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  minimumScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+}
 
 const instrumentSerif = Instrument_Serif({
   weight: "400",
