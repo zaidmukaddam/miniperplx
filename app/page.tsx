@@ -11,20 +11,24 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   SearchIcon,
   LinkIcon,
-  Check,
   Loader2,
   ChevronDown,
-  ChevronUp,
   FastForward,
   Sparkles,
   ArrowRight,
-  BookCheck
+  Globe
 } from 'lucide-react';
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -63,54 +67,66 @@ export default function Home() {
   const renderToolInvocation = (toolInvocation: ToolInvocation, index: number) => {
     const args = JSON.parse(JSON.stringify(toolInvocation.args));
     const result = 'result' in toolInvocation ? JSON.parse(JSON.stringify(toolInvocation.result)) : null;
-
+  
     return (
-      <Card key={index} className="mb-4 border border-muted">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between gap-2 flex-wrap">
-            <div className='flex items-center gap-2'>
-              {result ? <Check className="h-5 w-5 text-green-500" /> : <Loader2 className="h-5 w-5 text-primary animate-spin" />}
-              <span className="text-sm sm:text-base">{result ? 'Used' : 'Using'} {toolInvocation.toolName === 'web_search' ? 'Web Search' : toolInvocation.toolName}</span>
-            </div>
-            <Button
-              onClick={() => setShowToolResults(prev => ({ ...prev, [index]: !prev[index] }))}
-              className='ml-2 text-xs sm:text-sm'
-              variant="secondary"
-            >
-              {showToolResults[index] ? 'Hide Results' : 'Show Results'}
-              {showToolResults[index] ? <ChevronUp className="ml-2 h-4 w-4" /> : <ChevronDown className="ml-2 h-4 w-4" />}
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {args?.query && (
-            <Badge variant="secondary" className="mb-2 text-xs sm:text-sm">
-              <SearchIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-              {args.query}
-            </Badge>
-          )}
-
-          {showToolResults[index] && result && (
-            <ScrollArea className="h-[200px] sm:h-[300px] w-full rounded-md border border-muted p-2 sm:p-4 mt-2">
-              {result.results.map((item: any, itemIndex: number) => (
-                <div key={itemIndex} className="mb-4 pb-4 border-b last:border-b-0">
-                  <h3 className="text-sm sm:text-lg font-semibold mb-1 text-secondary-foreground">{item.title}</h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">{item.content}</p>
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-500 hover:underline flex items-center"
-                  >
-                    <LinkIcon className="h-3 w-3 mr-1" />
-                    <span className="truncate">{item.url}</span>
-                  </a>
+      <Accordion type="single" collapsible className="w-full mt-4">
+        <AccordionItem value={`item-${index}`}>
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2 text-sm sm:text-base">
+                <Globe className="h-5 w-5 text-primary" />
+                <span>Web Search</span>
+              </div>
+              {!result && (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                  <span className="text-sm text-muted-foreground">Searching the web...</span>
                 </div>
-              ))}
-            </ScrollArea>
-          )}
-        </CardContent>
-      </Card>
+              )}
+              {result && (
+                <Badge variant="secondary" className='mr-1'>{result.results.length} results</Badge>
+              )}
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+            {args?.query && (
+              <Badge variant="secondary" className="mb-2 text-xs sm:text-sm">
+                <SearchIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                {args.query}
+              </Badge>
+            )}
+            {result && (
+              <ScrollArea className="h-[300px] w-full rounded-md">
+                <div className="grid grid-cols-2 gap-4">
+                  {result.results.map((item: any, itemIndex: number) => (
+                    <Card key={itemIndex} className="flex flex-col h-full shadow-none">
+                      <CardHeader className="pb-2">
+                        {/* favicon here */}
+                        <img src={`https://www.google.com/s2/favicons?domain=${new URL(item.url).hostname}`} alt="Favicon" className="w-5 h-5 flex-shrink-0 rounded-full" />
+                        <CardTitle className="text-sm font-semibold line-clamp-2">{item.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex-grow">
+                        <p className="text-xs text-muted-foreground line-clamp-3">{item.content}</p>
+                      </CardContent>
+                      <div className="px-6 py-2 bg-muted rounded-b-xl">
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary hover:underline flex items-center"
+                        >
+                          ↪
+                          <span className="truncate">{item.url}</span>
+                        </a>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     );
   };
 
@@ -153,7 +169,7 @@ export default function Home() {
     return (
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        className="prose text-sm sm:text-base"
+        className="prose text-sm sm:text-base text-pretty text-left"
         components={{
           a: ({ href, children }) => {
             const index = citationLinks.findIndex((link: { link: string | undefined; }) => link.link === href);
@@ -214,7 +230,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col font-sans items-center min-h-screen p-2 sm:p-4 bg-background text-foreground transition-all duration-500">
-      <div className={`w-full max-w-xl sm:max-w-2xl space-y-4 sm:space-y-6 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[15vh] sm:mt-[20vh]'}`}>
+      <div className={`w-full max-w-xl sm:max-w-2xl space-y-4 sm:space-y-6 p-1 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[15vh] sm:mt-[20vh]'}`}>
         <motion.div
           initial={false}
           animate={hasSubmitted ? { scale: 1.2 } : { scale: 1 }}
@@ -236,7 +252,7 @@ export default function Home() {
               exit={{ opacity: 0, y: 20 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="relative mb-4">
+              <div className="relative px-2 mb-4">
                 <button
                   onClick={() => setIsModelSelectorOpen(!isModelSelectorOpen)}
                   className={`flex items-center font-semibold ${models.find((model) => model.name === selectedModel)?.name.includes('Quality') ? 'text-purple-500' : 'text-green-500'} focus:outline-none focus:ring-0 `}
@@ -278,7 +294,7 @@ export default function Home() {
                 )}
               </div>
 
-              <form onSubmit={handleFormSubmit} className="flex items-center space-x-2 mb-4 sm:mb-6">
+              <form onSubmit={handleFormSubmit} className="flex items-center space-x-2 px-2 mb-4 sm:mb-6">
                 <div className="relative flex-1">
                   <Input
                     ref={inputRef}
@@ -368,19 +384,19 @@ export default function Home() {
           {messages.map((message, index) => (
             <div key={index}>
               {message.role === 'assistant' && message.content && (
-                <Card className="bg-card text-card-foreground border border-muted !mb-20 sm:!mb-16">
-                  <CardContent className="p-3 sm:p-4">
-                    <div
-                      className='flex items-center gap-2 mb-2'
-                    >
-                      <BookCheck className="size-4 sm:size-5 text-primary" />
-                      <h2 className="text-lg sm:text-xl font-semibold">Answer</h2>
-                    </div>
-                    <div className="text-sm sm:text-base">
-                      <MarkdownRenderer content={message.content} />
-                    </div>
-                  </CardContent>
-                </Card>
+                <div
+                  className='!mb-20 sm:!mb-18'
+                >
+                  <div
+                    className='flex items-center gap-2 mb-2'
+                  >
+                    <Sparkles className="size-4 sm:size-5 text-primary" />
+                    <h2 className="text-lg font-semibold">Answer</h2>
+                  </div>
+                  <div className="text-sm">
+                    <MarkdownRenderer content={message.content} />
+                  </div>
+                </div>
               )}
               {message.toolInvocations?.map((toolInvocation: ToolInvocation, toolIndex: number) => (
                 <div key={`tool-${toolIndex}`}>

@@ -87,6 +87,7 @@ export async function POST(req: Request) {
     },
     onFinish: async (event) => {
       console.log(event.text);
+      console.log("Called " + event.toolCalls?.map((toolCall) => toolCall.toolName));
     }
   });
 
