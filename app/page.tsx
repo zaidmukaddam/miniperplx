@@ -1,22 +1,32 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { useRef, useCallback, useState, useEffect, ReactNode, useMemo } from 'react';
+import
+React,
+{
+  useRef,
+  useCallback,
+  useState,
+  useEffect,
+  ReactNode,
+  useMemo
+} from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useChat } from 'ai/react';
 import { ToolInvocation } from 'ai';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
+import { suggestQuestions, Message } from './actions';
 import {
   SearchIcon,
-  LinkIcon,
-  Loader2,
   ChevronDown,
   FastForward,
   Sparkles,
   ArrowRight,
-  Globe
+  Globe,
+  AlignLeft
 } from 'lucide-react';
 import {
   HoverCard,
@@ -33,7 +43,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -41,7 +50,7 @@ export default function Home() {
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const [showToolResults, setShowToolResults] = useState<{ [key: number]: boolean }>({});
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
   const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState('Speed');
   const [showExamples, setShowExamples] = useState(false)
@@ -52,6 +61,14 @@ export default function Home() {
       model: selectedModel === 'Speed' ? 'gpt-4o-mini' : selectedModel === 'Quality (GPT)' ? 'gpt-4o' : 'claude-3-5-sonnet-20240620',
     },
     maxToolRoundtrips: 1,
+    onFinish: async (message, { finishReason }) => {
+      if (finishReason === 'stop') {
+        const newHistory: Message[] = [{ role: "user", content: lastSubmittedQuery, }, { role: "assistant", content: message.content }];
+        const { questions } = await suggestQuestions(newHistory);
+        setSuggestedQuestions(questions);
+      }
+      setIsAnimating(false);
+    },
     onError: (error) => {
       console.error("Chat error:", error);
       toast.error("An error occurred. Please try again.");
@@ -67,66 +84,93 @@ export default function Home() {
   const renderToolInvocation = (toolInvocation: ToolInvocation, index: number) => {
     const args = JSON.parse(JSON.stringify(toolInvocation.args));
     const result = 'result' in toolInvocation ? JSON.parse(JSON.stringify(toolInvocation.result)) : null;
-  
+
     return (
-      <Accordion type="single" collapsible className="w-full mt-4">
-        <AccordionItem value={`item-${index}`}>
-          <AccordionTrigger className="hover:no-underline">
-            <div className="flex items-center justify-between w-full">
-              <div className="flex items-center gap-2 text-sm sm:text-base">
-                <Globe className="h-5 w-5 text-primary" />
-                <span>Web Search</span>
-              </div>
-              {!result && (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-5 w-5 text-primary animate-spin" />
-                  <span className="text-sm text-muted-foreground">Searching the web...</span>
-                </div>
-              )}
-              {result && (
-                <Badge variant="secondary" className='mr-1'>{result.results.length} results</Badge>
-              )}
+      <div>
+        {!result ? (
+          <div className="flex items-center justify-between w-full">
+            <div
+              className='flex items-center gap-2'
+            >
+              <Globe className="h-5 w-5 text-neutral-700 animate-spin" />
+              <span className="text-neutral-700 text-lg">Searching the web...</span>
             </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            {args?.query && (
-              <Badge variant="secondary" className="mb-2 text-xs sm:text-sm">
-                <SearchIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                {args.query}
-              </Badge>
-            )}
-            {result && (
-              <ScrollArea className="h-[300px] w-full rounded-md">
-                <div className="grid grid-cols-2 gap-4">
-                  {result.results.map((item: any, itemIndex: number) => (
-                    <Card key={itemIndex} className="flex flex-col h-full shadow-none">
-                      <CardHeader className="pb-2">
-                        {/* favicon here */}
-                        <img src={`https://www.google.com/s2/favicons?domain=${new URL(item.url).hostname}`} alt="Favicon" className="w-5 h-5 flex-shrink-0 rounded-full" />
-                        <CardTitle className="text-sm font-semibold line-clamp-2">{item.title}</CardTitle>
-                      </CardHeader>
-                      <CardContent className="flex-grow">
-                        <p className="text-xs text-muted-foreground line-clamp-3">{item.content}</p>
-                      </CardContent>
-                      <div className="px-6 py-2 bg-muted rounded-b-xl">
-                        <a
-                          href={item.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-primary hover:underline flex items-center"
-                        >
-                          ↪
-                          <span className="truncate">{item.url}</span>
-                        </a>
-                      </div>
-                    </Card>
-                  ))}
+            <div className="flex space-x-1">
+              {[0, 1, 2].map((index) => (
+                <motion.div
+                  key={index}
+                  className="w-2 h-2 bg-muted-foreground rounded-full"
+                  initial={{ opacity: 0.3 }}
+                  animate={{ opacity: 1 }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 0.8,
+                    delay: index * 0.2,
+                    repeatType: "reverse",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        ) :
+          <Accordion type="single" collapsible className="w-full mt-4">
+            <AccordionItem value={`item-${index}`} className='border-none'>
+              <AccordionTrigger className="hover:no-underline">
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-2 ">
+                    <Globe className="h-5 w-5 text-primary" />
+                    <h2 className='text-base font-semibold'>Web Search Results Found</h2>
+                  </div>
+                  {result && (
+                    <Badge variant="secondary" className='mr-1 rounded-full'>{result.results.length} results</Badge>
+                  )}
                 </div>
-              </ScrollArea>
-            )}
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+              </AccordionTrigger>
+              <AccordionContent>
+                {args?.query && (
+                  <Badge variant="secondary" className="mb-2 text-xs sm:text-sm font-light rounded-full">
+                    <SearchIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                    {args.query}
+                  </Badge>
+                )}
+                {result && (
+                  <div className="flex flex-row gap-4 overflow-x-scroll">
+                    {result.results.map((item: any, itemIndex: number) => (
+                      <Card key={itemIndex} className="flex flex-col !size-40 shadow-none !p-0 !m-0">
+                        <CardHeader className="pb-2 p-1">
+                          <Image
+                            width={48}
+                            height={48}
+                            unoptimized
+                            quality={100}
+                            src={`https://www.google.com/s2/favicons?domain=${new URL(item.url).hostname}`}
+                            alt="Favicon"
+                            className="w-5 h-5 flex-shrink-0 rounded-full"
+                          />
+                          <CardTitle className="text-sm font-semibold line-clamp-2">{item.title}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex-grow p-1 pb-0">
+                          <p className="text-xs text-muted-foreground line-clamp-3">{item.content}</p>
+                        </CardContent>
+                        <div className="px-1 py-2 bg-muted rounded-b-xl">
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary flex items-center"
+                          >
+                            ↪
+                            <span className="ml-1 truncate hover:underline">{item.url}</span>
+                          </a>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>}
+      </div>
     );
   };
 
@@ -136,12 +180,12 @@ export default function Home() {
     return (
       <HoverCard key={index}>
         <HoverCardTrigger asChild>
-          <span className="cursor-help text-primary py-0.5 px-2 m-0 bg-secondary rounded-full">
+          <span className="cursor-help text-sm text-primary py-0.5 px-1.5 m-0 bg-secondary rounded-full">
             {index + 1}
           </span>
         </HoverCardTrigger>
         <HoverCardContent className="flex items-center gap-1 !p-0 !px-0.5 max-w-xs bg-card text-card-foreground !m-0 h-6 rounded-xl">
-          <img src={faviconUrl} alt="Favicon" className="w-4 h-4 flex-shrink-0 rounded-full" />
+          <Image src={faviconUrl} alt="Favicon" width={16} height={16} className="w-4 h-4 flex-shrink-0 rounded-full" />
           <a href={citationLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary no-underline truncate">
             {citationLink}
           </a>
@@ -164,7 +208,7 @@ export default function Home() {
         text,
         link,
       }));
-    }, [content]); // Recompute only if content changes
+    }, [content]);
 
     return (
       <ReactMarkdown
@@ -196,11 +240,13 @@ export default function Home() {
     if (bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
+  }, [messages, suggestedQuestions]);
 
   const handleExampleClick = useCallback(async (query: string) => {
     setLastSubmittedQuery(query.trim());
     setHasSubmitted(true);
+    setSuggestedQuestions([]);
+    setIsAnimating(true);
     await append({
       content: query.trim(),
       role: 'user'
@@ -212,19 +258,31 @@ export default function Home() {
     if (input.trim()) {
       setMessages([]);
       setLastSubmittedQuery(input.trim());
-      handleSubmit(e);
       setHasSubmitted(true);
       setIsAnimating(true);
-      setShowToolResults({});
+      setSuggestedQuestions([]);
+      handleSubmit(e);
     } else {
       toast.error("Please enter a search query.");
     }
   }, [input, setMessages, handleSubmit]);
 
+  const handleSuggestedQuestionClick = useCallback(async (question: string) => {
+    setMessages([]);
+    setLastSubmittedQuery(question.trim());
+    setHasSubmitted(true);
+    setSuggestedQuestions([]);
+    setIsAnimating(true);
+    await append({
+      content: question.trim(),
+      role: 'user'
+    });
+  }, [append, setMessages]);
+
   const exampleQueries = [
-    "Best programming languages in 2024",
-    "How to build a responsive website",
-    "Latest trends in AI technology",
+    "Meta Llama 3.1 405B",
+    "Latest on Paris Olympics",
+    "What is Github Models?",
     "OpenAI GPT-4o mini"
   ];
 
@@ -271,7 +329,7 @@ export default function Home() {
                           setSelectedModel(model.name);
                           setIsModelSelectorOpen(false);
                         }}
-                        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center"
+                        className={`w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center ${models.indexOf(model) === 0 ? 'rounded-t-md' : models.indexOf(model) === models.length - 1 ? 'rounded-b-md' : ''}`}
                       >
                         <model.icon className={`w-5 h-5 mr-3 ${model.name.includes('Quality') ? 'text-purple-500' : 'text-green-500'}`} />
                         <div>
@@ -303,7 +361,7 @@ export default function Home() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     disabled={isLoading}
-                    className="w-full min-h-12 py-3 px-4 bg-muted border border-input rounded-full pr-12 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 text-sm sm:text-base"
+                    className="w-full min-h-12 py-3 px-4 bg-muted border border-input rounded-full pr-12 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-200 focus-visible:ring-offset-2 text-sm sm:text-base"
                     onFocus={() => setShowExamples(true)}
                     onBlur={() => setShowExamples(false)}
                   />
@@ -385,15 +443,15 @@ export default function Home() {
             <div key={index}>
               {message.role === 'assistant' && message.content && (
                 <div
-                  className='!mb-20 sm:!mb-18'
+                  className={`${suggestedQuestions.length === 0 ? '!mb-20 sm:!mb-18' : ''}`}
                 >
                   <div
                     className='flex items-center gap-2 mb-2'
                   >
-                    <Sparkles className="size-4 sm:size-5 text-primary" />
-                    <h2 className="text-lg font-semibold">Answer</h2>
+                    <Sparkles className="size-5 text-primary" />
+                    <h2 className="text-base font-semibold">Answer</h2>
                   </div>
-                  <div className="text-sm">
+                  <div className="">
                     <MarkdownRenderer content={message.content} />
                   </div>
                 </div>
@@ -405,8 +463,34 @@ export default function Home() {
               ))}
             </div>
           ))}
-          <div ref={bottomRef} />
+          {suggestedQuestions.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.5 }}
+              className="w-full max-w-xl sm:max-w-2xl !mb-20 !sm:mb-18"
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <AlignLeft className="w-5 h-5 text-primary" />
+                <h2 className="font-semibold text-base">Suggested questions</h2>
+              </div>
+              <div className="space-y-2 flex flex-col">
+                {suggestedQuestions.map((question, index) => (
+                  <Button
+                    key={index}
+                    variant="ghost"
+                    className="w-fit font-light rounded-2xl p-1 justify-start text-left h-auto py-2 px-4 bg-neutral-100 text-neutral-950 hover:bg-muted-foreground/10 whitespace-normal"
+                    onClick={() => handleSuggestedQuestionClick(question)}
+                  >
+                    {question}
+                  </Button>
+                ))}
+              </div>
+            </motion.div>
+          )}
         </div>
+        <div ref={bottomRef} />
       </div>
 
       <AnimatePresence>
@@ -416,7 +500,7 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
             transition={{ duration: 0.5 }}
-            className="fixed bottom-4 transform -translate-x-1/2 w-full max-w-[90%] sm:max-w-md md:max-w-2xl mt-3"
+            className="fixed bottom-4 transform -translate-x-1/2 w-full max-w-xl md:max-w-2xl mt-3"
           >
             <form onSubmit={handleFormSubmit} className="flex items-center space-x-2">
               <div className="relative flex-1">
@@ -427,7 +511,7 @@ export default function Home() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   disabled={isLoading}
-                  className="w-full min-h-12 py-3 px-4 bg-muted border border-input rounded-full pr-12 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 text-sm sm:text-base"
+                  className="w-full min-h-12 py-3 px-4 bg-muted border border-input rounded-full pr-12 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-200 focus-visible:ring-offset-2 text-sm sm:text-base"
                 />
                 <Button
                   type="submit"
