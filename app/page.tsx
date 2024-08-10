@@ -8,7 +8,6 @@ React,
   useCallback,
   useState,
   useEffect,
-  ReactNode,
   useMemo
 } from 'react';
 import ReactMarkdown, { Components } from 'react-markdown';
@@ -26,7 +25,8 @@ import {
   Sparkles,
   ArrowRight,
   Globe,
-  AlignLeft
+  AlignLeft,
+  Newspaper
 } from 'lucide-react';
 import {
   HoverCard,
@@ -39,6 +39,20 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -54,8 +68,10 @@ export default function Home() {
   const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState('Speed');
   const [showExamples, setShowExamples] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [newSelectedModel, setNewSelectedModel] = useState('');
 
-  const { isLoading, input, messages, setInput, append, handleSubmit, setMessages } = useChat({
+  const { isLoading, input, messages, setInput, append, reload, handleSubmit, setMessages } = useChat({
     api: '/api/chat',
     body: {
       model: selectedModel === 'Speed' ? 'gpt-4o-mini' : selectedModel === 'Quality (GPT)' ? 'gpt-4o' : 'claude-3-5-sonnet-20240620',
@@ -81,6 +97,68 @@ export default function Home() {
     { name: 'Quality (Claude)', description: 'High quality generation.', details: '(Anthropic/Claude-3.5-Sonnet)', icon: Sparkles },
   ];
 
+  const handleModelChange = (value: string) => {
+    if (hasSubmitted) {
+      setNewSelectedModel(value);
+      setShowConfirmModal(true);
+    } else {
+      setSelectedModel(value);
+    }
+  };
+
+  const handleConfirmModelChange = () => {
+    setSelectedModel(newSelectedModel);
+    setShowConfirmModal(false);
+    setSuggestedQuestions([]);
+    reload({
+      body: {
+        model: newSelectedModel === 'Speed' ? 'gpt-4o-mini' : newSelectedModel === 'Quality (GPT)' ? 'gpt-4o' : 'claude-3-5-sonnet-20240620',
+      },
+    });
+  };
+
+  interface ModelSelectorProps {
+    selectedModel: string;
+    onModelSelect: (model: string) => void;
+  }
+
+  function ModelSelector({ selectedModel, onModelSelect }: ModelSelectorProps) {
+    const [isOpen, setIsOpen] = useState(false);
+
+    return (
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            className={`flex items-center p-0 px-2 rounded-full ${selectedModel.includes('Quality') ? 'bg-purple-500 hover:bg-purple-400 !disabled:bg-purple-600 disabled:!opacity-85' : 'bg-green-500 hover:bg-green-400 disabled:!bg-green-600 disabled:!opacity-85'} text-white hover:text-white`}
+            disabled={isLoading}
+          >
+            {selectedModel === 'Speed' && <FastForward className="w-5 h-5 mr-2" />}
+            {selectedModel.includes('Quality') && <Sparkles className="w-5 h-5 mr-2" />}
+            {selectedModel}
+            <ChevronDown className={`w-5 h-5 ml-2 transform transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className='mr-2'>
+          {models.map((model) => (
+            <DropdownMenuItem
+              key={model.name}
+              onSelect={() => onModelSelect(model.name)}
+              className="flex items-center p-2 !font-sans"
+            >
+              <model.icon className={`w-5 h-5 mr-3 ${model.name.includes('Quality') ? 'text-purple-500' : 'text-green-500'}`} />
+              <div>
+                <div className="font-semibold">{model.name}</div>
+                <div className="text-sm text-gray-500">{model.description}</div>
+                <div className="text-xs text-gray-400">{model.details}</div>
+              </div>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
   const renderToolInvocation = (toolInvocation: ToolInvocation, index: number) => {
     const args = JSON.parse(JSON.stringify(toolInvocation.args));
     const result = 'result' in toolInvocation ? JSON.parse(JSON.stringify(toolInvocation.result)) : null;
@@ -93,7 +171,7 @@ export default function Home() {
               className='flex items-center gap-2'
             >
               <Globe className="h-5 w-5 text-neutral-700 animate-spin" />
-              <span className="text-neutral-700 text-lg">Searching the web...</span>
+              <span className="text-neutral-700 text-lg">Running a search...</span>
             </div>
             <div className="flex space-x-1">
               {[0, 1, 2].map((index) => (
@@ -113,20 +191,20 @@ export default function Home() {
             </div>
           </div>
         ) :
-          <Accordion type="single" collapsible className="w-full mt-4">
+          <Accordion type="single" collapsible className="w-full mt-4 !m-0">
             <AccordionItem value={`item-${index}`} className='border-none'>
-              <AccordionTrigger className="hover:no-underline">
+              <AccordionTrigger className="hover:no-underline py-2">
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-2 ">
-                    <Globe className="h-5 w-5 text-primary" />
-                    <h2 className='text-base font-semibold'>Web Search Results Found</h2>
+                    <Newspaper className="h-5 w-5 text-primary" />
+                    <h2 className='text-base font-semibold'>Sources Found</h2>
                   </div>
                   {result && (
                     <Badge variant="secondary" className='mr-1 rounded-full'>{result.results.length} results</Badge>
                   )}
                 </div>
               </AccordionTrigger>
-              <AccordionContent>
+              <AccordionContent className='pb-2'>
                 {args?.query && (
                   <Badge variant="secondary" className="mb-2 text-xs sm:text-sm font-light rounded-full">
                     <SearchIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
@@ -143,7 +221,7 @@ export default function Home() {
                             height={48}
                             unoptimized
                             quality={100}
-                            src={`https://www.google.com/s2/favicons?domain=${new URL(item.url).hostname}`}
+                            src={`https://www.google.com/s2/favicons?sz=128&domain=${new URL(item.url).hostname}`}
                             alt="Favicon"
                             className="w-5 h-5 flex-shrink-0 rounded-full"
                           />
@@ -182,14 +260,19 @@ export default function Home() {
 
   const CitationComponent: React.FC<CitationComponentProps> = React.memo(({ href, children, index }) => {
     const citationText = Array.isArray(children) ? children[0] : children;
-    const faviconUrl = `https://www.google.com/s2/favicons?domain=${new URL(href).hostname}`;
+    const faviconUrl = `https://www.google.com/s2/favicons?sz=128&domain=${new URL(href).hostname}`;
 
     return (
       <HoverCard key={index}>
         <HoverCardTrigger asChild>
-          <span className="cursor-help text-sm text-primary py-0.5 px-1.5 m-0 bg-secondary rounded-full">
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="cursor-help text-sm text-primary py-0.5 px-1.5 m-0 bg-secondary rounded-full no-underline"
+          >
             {index + 1}
-          </span>
+          </a>
         </HoverCardTrigger>
         <HoverCardContent className="flex items-center gap-1 !p-0 !px-0.5 max-w-xs bg-card text-card-foreground !m-0 h-6 rounded-xl">
           <Image src={faviconUrl} alt="Favicon" width={16} height={16} className="w-4 h-4 flex-shrink-0 rounded-full" />
@@ -432,15 +515,7 @@ export default function Home() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.5, delay: 0.4 }}
                 >
-                  <Badge
-                    variant="secondary"
-                    className={`text-xs sm:text-sm ${selectedModel.includes('Quality') ? 'bg-purple-500 hover:bg-purple-500' : 'bg-green-500 hover:bg-green-500'} text-white`}
-                  >
-                    {selectedModel === 'Speed' && <FastForward className="w-4 h-4 mr-1" />}
-                    {selectedModel === 'Quality (GPT)' && <Sparkles className="w-4 h-4 mr-1" />}
-                    {selectedModel === 'Quality (Claude)' && <Sparkles className="w-4 h-4 mr-1" />}
-                    {selectedModel}
-                  </Badge>
+                  <ModelSelector selectedModel={selectedModel} onModelSelect={handleModelChange} />
                 </motion.div>
               </div>
             </motion.div>
@@ -536,6 +611,20 @@ export default function Home() {
           </motion.div>
         )}
       </AnimatePresence>
+      <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
+        <DialogContent className='!font-sans'>
+          <DialogHeader>
+            <DialogTitle>Confirm Model Change</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to change the model? This will change the quality of the responses and cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConfirmModal(false)}>Cancel</Button>
+            <Button onClick={handleConfirmModelChange}>Confirm</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
