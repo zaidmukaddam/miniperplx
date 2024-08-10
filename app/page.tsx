@@ -297,7 +297,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col font-sans items-center min-h-screen p-2 sm:p-4 bg-background text-foreground transition-all duration-500">
-      <div className={`w-full max-w-[90%]c sm:max-w-2xl space-y-4 sm:space-y-6 p-1 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[15vh] sm:mt-[20vh]'}`}>
+      <div className={`w-full max-w-[90%] sm:max-w-2xl space-y-4 sm:space-y-6 p-1 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[15vh] sm:mt-[20vh]'}`}>
         <motion.div
           initial={false}
           animate={hasSubmitted ? { scale: 1.2 } : { scale: 1 }}
