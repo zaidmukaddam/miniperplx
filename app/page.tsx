@@ -98,40 +98,61 @@ export default function Home() {
   ];
 
   const handleModelChange = (value: string) => {
-    if (hasSubmitted) {
-      setNewSelectedModel(value);
-      setShowConfirmModal(true);
-    } else {
-      setSelectedModel(value);
+    if (value !== selectedModel) {
+      if (hasSubmitted) {
+        setNewSelectedModel(value);
+        setShowConfirmModal(true);
+      } else {
+        setSelectedModel(value);
+        reload({
+          body: {
+            model: value === 'Speed' ? 'gpt-4o-mini' : value === 'Quality (GPT)' ? 'gpt-4o' : 'claude-3-5-sonnet-20240620',
+          },
+        });
+      }
     }
+    setIsModelSelectorOpen(false);
   };
 
   const handleConfirmModelChange = () => {
-    setSelectedModel(newSelectedModel);
-    setShowConfirmModal(false);
-    setSuggestedQuestions([]);
-    reload({
-      body: {
-        model: newSelectedModel === 'Speed' ? 'gpt-4o-mini' : newSelectedModel === 'Quality (GPT)' ? 'gpt-4o' : 'claude-3-5-sonnet-20240620',
-      },
-    });
+    if (newSelectedModel !== selectedModel) {
+      setSelectedModel(newSelectedModel);
+      setShowConfirmModal(false);
+      setSuggestedQuestions([]);
+      reload({
+        body: {
+          model: newSelectedModel === 'Speed' ? 'gpt-4o-mini' : newSelectedModel === 'Quality (GPT)' ? 'gpt-4o' : 'claude-3-5-sonnet-20240620',
+        },
+      });
+    } else {
+      setShowConfirmModal(false);
+    }
   };
 
   interface ModelSelectorProps {
     selectedModel: string;
     onModelSelect: (model: string) => void;
+    isDisabled: boolean;
   }
 
-  function ModelSelector({ selectedModel, onModelSelect }: ModelSelectorProps) {
+  function ModelSelector({ selectedModel, onModelSelect, isDisabled }: ModelSelectorProps) {
     const [isOpen, setIsOpen] = useState(false);
+
+    const handleToggle = () => {
+      if (!isDisabled) {
+        setIsOpen(!isOpen);
+      }
+    };
 
     return (
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className={`flex items-center p-0 px-2 rounded-full ${selectedModel.includes('Quality') ? 'bg-purple-500 hover:bg-purple-400 !disabled:bg-purple-600 disabled:!opacity-85' : 'bg-green-500 hover:bg-green-400 disabled:!bg-green-600 disabled:!opacity-85'} text-white hover:text-white`}
-            disabled={isLoading}
+            className={`flex items-center p-0 px-2 rounded-full ${selectedModel.includes('Quality') ? 'bg-purple-500 hover:bg-purple-400 !disabled:bg-purple-600 disabled:!opacity-85' : 'bg-green-500 hover:bg-green-400 disabled:!bg-green-600 disabled:!opacity-85'
+              } text-white hover:text-white`}
+            disabled={isDisabled}
+            onClick={handleToggle}
           >
             {selectedModel === 'Speed' && <FastForward className="w-5 h-5 mr-2" />}
             {selectedModel.includes('Quality') && <Sparkles className="w-5 h-5 mr-2" />}
@@ -139,18 +160,25 @@ export default function Home() {
             <ChevronDown className={`w-5 h-5 ml-2 transform transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className='mr-2'>
+        <DropdownMenuContent className="w-64 p-1">
           {models.map((model) => (
             <DropdownMenuItem
               key={model.name}
               onSelect={() => onModelSelect(model.name)}
-              className="flex items-center p-2 !font-sans"
+              className={`flex items-start p-3 !font-sans rounded-md ${selectedModel === model.name ? 'bg-muted' : ''}`}
             >
-              <model.icon className={`w-5 h-5 mr-3 ${model.name.includes('Quality') ? 'text-purple-500' : 'text-green-500'}`} />
-              <div>
-                <div className="font-semibold">{model.name}</div>
-                <div className="text-sm text-gray-500">{model.description}</div>
-                <div className="text-xs text-gray-400">{model.details}</div>
+              <model.icon className={`w-5 h-5 mr-3 mt-0.5 flex-shrink-0 ${model.name.includes('Quality') ? 'text-purple-500' : 'text-green-500'}`} />
+              <div className="flex-grow">
+                <div className="font-semibold flex items-center justify-between">
+                  {model.name}
+                  {selectedModel === model.name && (
+                    <span className="text-xs text-white px-2 py-0.5 rounded-full bg-black">
+                      Active
+                    </span>
+                  )}
+                </div>
+                <div className="text-sm text-gray-500 mt-0.5">{model.description}</div>
+                <div className="text-xs text-gray-400 mt-0.5">{model.details}</div>
               </div>
             </DropdownMenuItem>
           ))}
@@ -158,6 +186,7 @@ export default function Home() {
       </DropdownMenu>
     );
   }
+
 
   const renderToolInvocation = (toolInvocation: ToolInvocation, index: number) => {
     const args = JSON.parse(JSON.stringify(toolInvocation.args));
@@ -515,7 +544,11 @@ export default function Home() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.5, delay: 0.4 }}
                 >
-                  <ModelSelector selectedModel={selectedModel} onModelSelect={handleModelChange} />
+                  <ModelSelector
+                    selectedModel={selectedModel}
+                    onModelSelect={handleModelChange}
+                    isDisabled={isLoading}
+                  />
                 </motion.div>
               </div>
             </motion.div>
