@@ -11,7 +11,7 @@ React,
   ReactNode,
   useMemo
 } from 'react';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useChat } from 'ai/react';
 import { ToolInvocation } from 'ai';
@@ -174,8 +174,15 @@ export default function Home() {
     );
   };
 
-  const renderCitation = (citationText: string, citationLink: string, index: number) => {
-    const faviconUrl = `https://www.google.com/s2/favicons?domain=${new URL(citationLink).hostname}`;
+  interface CitationComponentProps {
+    href: string;
+    children: React.ReactNode;
+    index: number;
+  }
+
+  const CitationComponent: React.FC<CitationComponentProps> = React.memo(({ href, children, index }) => {
+    const citationText = Array.isArray(children) ? children[0] : children;
+    const faviconUrl = `https://www.google.com/s2/favicons?domain=${new URL(href).hostname}`;
 
     return (
       <HoverCard key={index}>
@@ -186,23 +193,21 @@ export default function Home() {
         </HoverCardTrigger>
         <HoverCardContent className="flex items-center gap-1 !p-0 !px-0.5 max-w-xs bg-card text-card-foreground !m-0 h-6 rounded-xl">
           <Image src={faviconUrl} alt="Favicon" width={16} height={16} className="w-4 h-4 flex-shrink-0 rounded-full" />
-          <a href={citationLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary no-underline truncate">
-            {citationLink}
+          <a href={href} target="_blank" rel="noopener noreferrer" className="text-sm text-primary no-underline truncate">
+            {href}
           </a>
         </HoverCardContent>
       </HoverCard>
     );
-  };
-
-  const CitationComponent: React.FC<{ href: string; children: ReactNode; index: number }> = React.memo(({ href, children, index }) => {
-    const citationText = Array.isArray(children) ? children[0] : children;
-
-    return renderCitation(citationText as string, href, index);
   });
 
   CitationComponent.displayName = "CitationComponent";
 
-  const MarkdownRenderer: React.FC<{ content: string }> = React.memo(({ content }) => {
+  interface MarkdownRendererProps {
+    content: string;
+  }
+
+  const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ content }) => {
     const citationLinks = useMemo(() => {
       return [...content.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map(([_, text, link]) => ({
         text,
@@ -210,24 +215,27 @@ export default function Home() {
       }));
     }, [content]);
 
+    const components: Partial<Components> = useMemo(() => ({
+      a: ({ href, children }) => {
+        if (!href) return null;
+        const index = citationLinks.findIndex((link) => link.link === href);
+        return index !== -1 ? (
+          <CitationComponent href={href} index={index}>
+            {children}
+          </CitationComponent>
+        ) : (
+          <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+            {children}
+          </a>
+        );
+      },
+    }), [citationLinks]);
+
     return (
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        components={components}
         className="prose text-sm sm:text-base text-pretty text-left"
-        components={{
-          a: ({ href, children }) => {
-            const index = citationLinks.findIndex((link: { link: string | undefined; }) => link.link === href);
-            return index !== -1 ? (
-              <CitationComponent href={href as string} index={index}>
-                {children}
-              </CitationComponent>
-            ) : (
-              <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                {children}
-              </a>
-            );
-          },
-        }}
       >
         {content}
       </ReactMarkdown>
@@ -235,6 +243,7 @@ export default function Home() {
   });
 
   MarkdownRenderer.displayName = "MarkdownRenderer";
+
 
   useEffect(() => {
     if (bottomRef.current) {
@@ -288,7 +297,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col font-sans items-center min-h-screen p-2 sm:p-4 bg-background text-foreground transition-all duration-500">
-      <div className={`w-full max-w-xl sm:max-w-2xl space-y-4 sm:space-y-6 p-1 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[15vh] sm:mt-[20vh]'}`}>
+      <div className={`w-full max-w-[90%]c sm:max-w-2xl space-y-4 sm:space-y-6 p-1 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[15vh] sm:mt-[20vh]'}`}>
         <motion.div
           initial={false}
           animate={hasSubmitted ? { scale: 1.2 } : { scale: 1 }}
@@ -500,7 +509,7 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
             transition={{ duration: 0.5 }}
-            className="fixed bottom-4 transform -translate-x-1/2 w-full max-w-xl md:max-w-2xl mt-3"
+            className="fixed bottom-4 transform -translate-x-1/2 w-full max-w-[90%] md:max-w-2xl mt-3"
           >
             <form onSubmit={handleFormSubmit} className="flex items-center space-x-2">
               <div className="relative flex-1">
