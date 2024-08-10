@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { suggestQuestions, Message } from './actions';
+import { copyToClipboard } from '@/lib/utils'
 import {
   SearchIcon,
   ChevronDown,
@@ -26,7 +27,8 @@ import {
   ArrowRight,
   Globe,
   AlignLeft,
-  Newspaper
+  Newspaper,
+  Copy,
 } from 'lucide-react';
 import {
   HoverCard,
@@ -559,16 +561,36 @@ export default function Home() {
           {messages.map((message, index) => (
             <div key={index}>
               {message.role === 'assistant' && message.content && (
-                <div
-                  className={`${suggestedQuestions.length === 0 ? '!mb-20 sm:!mb-18' : ''}`}
-                >
-                  <div
-                    className='flex items-center gap-2 mb-2'
-                  >
-                    <Sparkles className="size-5 text-primary" />
-                    <h2 className="text-base font-semibold">Answer</h2>
+                <div className={`${suggestedQuestions.length === 0 ? '!mb-20 sm:!mb-18' : ''}`}>
+                  <div className='flex items-center justify-between mb-2'>
+                    <div className='flex items-center gap-2'>
+                      <Sparkles className="size-5 text-primary" />
+                      <h2 className="text-base font-semibold">Answer</h2>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className={`flex items-center gap-2 ${isLoading ? 'hidden' : ''}`}
+                      onClick={() => {
+                        copyToClipboard(message.content)
+                          .then(() => {
+                            toast.success("Copied to clipboard", {
+                              description: "The answer has been copied to your clipboard.",
+                            });
+                          })
+                          .catch((error) => {
+                            console.error('Failed to copy:', error);
+                            toast.error("Failed to copy", {
+                              description: "There was an error copying the answer to your clipboard.",
+                            });
+                          });
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                      <span className="sr-only">Copy Answer</span>
+                    </Button>
                   </div>
-                  <div className="">
+                  <div>
                     <MarkdownRenderer content={message.content} />
                   </div>
                 </div>
