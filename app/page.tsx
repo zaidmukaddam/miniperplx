@@ -29,6 +29,8 @@ import {
   AlignLeft,
   Newspaper,
   Copy,
+  TrendingUp,
+  Cloud,
 } from 'lucide-react';
 import {
   HoverCard,
@@ -57,8 +59,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import StockChart from '@/components/stock-chart';
+import { Line, LineChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 
 export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -78,7 +95,7 @@ export default function Home() {
     body: {
       model: selectedModel === 'Speed' ? 'gpt-4o-mini' : selectedModel === 'Quality (GPT)' ? 'gpt-4o' : 'claude-3-5-sonnet-20240620',
     },
-    maxToolRoundtrips: 1,
+    maxToolRoundtrips: 2,
     onFinish: async (message, { finishReason }) => {
       if (finishReason === 'stop') {
         const newHistory: Message[] = [{ role: "user", content: lastSubmittedQuery, }, { role: "assistant", content: message.content }];
@@ -86,6 +103,11 @@ export default function Home() {
         setSuggestedQuestions(questions);
       }
       setIsAnimating(false);
+    },
+    onToolCall({ toolCall, }) {
+      if (toolCall.toolName === 'stock_chart_ui') {
+        return 'Stock chart was shown to the user.';
+      }
     },
     onError: (error) => {
       console.error("Chat error:", error);
@@ -189,10 +211,179 @@ export default function Home() {
     );
   }
 
+  interface WeatherDataPoint {
+    date: string;
+    minTemp: number;
+    maxTemp: number;
+  }
+
+  const WeatherChart: React.FC<{ result: any }> = React.memo(({ result }) => {
+    const { chartData, minTemp, maxTemp } = useMemo(() => {
+      const weatherData: WeatherDataPoint[] = result.list.map((item: any) => ({
+        date: new Date(item.dt * 1000).toLocaleDateString(),
+        minTemp: Number((item.main.temp_min - 273.15).toFixed(1)),
+        maxTemp: Number((item.main.temp_max - 273.15).toFixed(1)),
+      }));
+
+      // Group data by date and calculate min and max temperatures
+      const groupedData: { [key: string]: WeatherDataPoint } = weatherData.reduce((acc, curr) => {
+        if (!acc[curr.date]) {
+          acc[curr.date] = { ...curr };
+        } else {
+          acc[curr.date].minTemp = Math.min(acc[curr.date].minTemp, curr.minTemp);
+          acc[curr.date].maxTemp = Math.max(acc[curr.date].maxTemp, curr.maxTemp);
+        }
+        return acc;
+      }, {} as { [key: string]: WeatherDataPoint });
+
+      const chartData = Object.values(groupedData);
+
+      // Calculate overall min and max temperatures
+      const minTemp = Math.min(...chartData.map(d => d.minTemp));
+      const maxTemp = Math.max(...chartData.map(d => d.maxTemp));
+
+      return { chartData, minTemp, maxTemp };
+    }, [result]);
+
+    const chartConfig: ChartConfig = useMemo(() => ({
+      minTemp: {
+        label: "Min Temp.",
+        color: "hsl(var(--chart-1))",
+      },
+      maxTemp: {
+        label: "Max Temp.",
+        color: "hsl(var(--chart-2))",
+      },
+    }), []);
+
+    return (
+      <Card className="my-4 shadow-none">
+        <CardHeader>
+          <CardTitle>Weather Forecast for {result.city.name}</CardTitle>
+          <CardDescription>
+            Showing min and max temperatures for the next 5 days
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer config={chartConfig}>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart
+                data={chartData}
+                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={(value) => new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                />
+                <YAxis
+                  domain={[Math.floor(minTemp) - 2, Math.ceil(maxTemp) + 2]}
+                  tickFormatter={(value) => `${value}°C`}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Line
+                  type="monotone"
+                  dataKey="minTemp"
+                  stroke="var(--color-minTemp)"
+                  strokeWidth={2}
+                  dot={false}
+                  name="Min Temp."
+                />
+                <Line
+                  type="monotone"
+                  dataKey="maxTemp"
+                  stroke="var(--color-maxTemp)"
+                  strokeWidth={2}
+                  dot={false}
+                  name="Max Temp."
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        </CardContent>
+        <CardFooter>
+          <div className="flex w-full items-start gap-2 text-sm">
+            <div className="grid gap-2">
+              <div className="flex items-center gap-2 font-medium leading-none">
+                {result.city.name}, {result.city.country}
+              </div>
+              <div className="flex items-center gap-2 leading-none text-muted-foreground">
+                Next 5 days forecast
+              </div>
+            </div>
+          </div>
+        </CardFooter>
+      </Card>
+    );
+  });
+
+
+  WeatherChart.displayName = 'WeatherChart';
+
 
   const renderToolInvocation = (toolInvocation: ToolInvocation, index: number) => {
     const args = JSON.parse(JSON.stringify(toolInvocation.args));
     const result = 'result' in toolInvocation ? JSON.parse(JSON.stringify(toolInvocation.result)) : null;
+
+    if (toolInvocation.toolName === 'stock_chart_ui') {
+      return (
+        <div className="my-4">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            <h2 className="font-semibold text-base">{args.symbol}</h2>
+          </div>
+          <Card className='!border-none !shadow-none !bg-none'>
+            <CardContent className="p-0">
+              <StockChart props={args.symbol} />
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
+    if (toolInvocation.toolName === 'get_weather_data') {
+      if (!result) {
+        return (
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <Cloud className="h-5 w-5 text-neutral-700 animate-pulse" />
+              <span className="text-neutral-700 text-lg">Fetching weather data...</span>
+            </div>
+            <div className="flex space-x-1">
+              {[0, 1, 2].map((index) => (
+                <motion.div
+                  key={index}
+                  className="w-2 h-2 bg-muted-foreground rounded-full"
+                  initial={{ opacity: 0.3 }}
+                  animate={{ opacity: 1 }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 0.8,
+                    delay: index * 0.2,
+                    repeatType: "reverse",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      if (isLoading) {
+        return (
+          <Card className="my-4 shadow-none">
+            <CardHeader>
+              <CardTitle className="h-6 w-3/4 bg-gray-200 rounded animate-pulse" />
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px] bg-gray-200 rounded animate-pulse" />
+            </CardContent>
+          </Card>
+        );
+      }
+
+      return <WeatherChart result={result} />;
+    }
 
     return (
       <div>
@@ -403,9 +594,9 @@ export default function Home() {
   }, [append, setMessages]);
 
   const exampleQueries = [
-    "Meta Llama 3.1 405B",
+    "Weather in Doha",
     "Latest on Paris Olympics",
-    "What is Github Models?",
+    "Summary: https://openai.com/index/gpt-4o-system-card/",
     "OpenAI GPT-4o mini"
   ];
 
