@@ -6,7 +6,7 @@ A minimalistic AI-powered search engine that helps you find information on the i
 
 ### Deploy your own
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fzaidmukaddam%2Fminiperplx&env=OPENAI_API_KEY,ANTHROPIC_API_KEY,TAVILY_API_KEY&envDescription=API%20keys%20needed%20for%20application)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fzaidmukaddam%2Fminiperplx&env=OPENAI_API_KEY,ANTHROPIC_API_KEY,TAVILY_API_KEY,OPENWEATHER_API_KEY,E2B_API_KEY&envDescription=API%20keys%20needed%20for%20application)
 
 To run the example locally you need to:
 
