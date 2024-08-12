@@ -1,6 +1,7 @@
 import { openai } from "@ai-sdk/openai";
 import { anthropic } from '@ai-sdk/anthropic'
 import { convertToCoreMessages, streamText, tool } from "ai";
+import { CodeInterpreter } from '@e2b/code-interpreter'
 import { z } from "zod";
 import { geolocation } from '@vercel/functions'
 
@@ -24,8 +25,12 @@ export async function POST(req: Request) {
     messages: convertToCoreMessages(messages),
     system:
       "You are an AI web search engine that helps users find information on the internet." +
+      "Always start with running the tool(s) and then and then only write your response AT ALL COSTS!" +
+      "Never write a response without running the tool(s) first!\n\n" +
+      "Do not announce that your going to run a tool, just run it and then write your response AT ALL COSTS!!!!!." +
+      "Tool Usage Instructions:\n" +
       "The user is located in " + city + " at latitude " + latitude + " and longitude " + longitude + "." +
-      "Use this geolocation data for weather tool." +
+      "Use this geolocation data for weather tool, when the user doesn't provide a specific location." +
       "You use the 'web_search' tool to search for information on the internet." +
       "Always call the 'web_search' tool to get the information, no need to do a chain of thought or say anything else, go straight to the point." +
       "Once you have found the information, you provide the user with the information you found in brief like a news paper detail." +
@@ -34,7 +39,9 @@ export async function POST(req: Request) {
       "Do not start the responses with newline characters, always start with the first sentence." +
       "When the user asks about a Stock, you should 'always' first gather news about it with web search tool, then show the chart and then write your response. Follow these steps in this order only!" +
       "Never use the retrieve tool for general search. Always use it when the user provides an url! " +
-      "For weather related questions, use get_weather_data tool and write your response. No need to call any other tool. Put citation to OpenWeatherMaps API everytime." +
+      "For weather related questions, use get_weather_data tool and write your response. No need to call any other tool. Put citation to OpenWeatherMaps API everytime." + 
+      "Use the 'programming' tool to execute Python code for cases like calculating, sorting, etc. that require computation. " + 
+      "The environment is like a jupyter notebook so don't write or use print statements at all costs!, just the variables.\n\n" +
       "The current date is: " +
       new Date()
         .toLocaleDateString("en-US", {
@@ -44,8 +51,10 @@ export async function POST(req: Request) {
           weekday: "short",
         })
         .replace(/(\w+), (\w+) (\d+), (\d+)/, "$4-$2-$3 ($1)") +
+      "." +
+      "Rules for the response:\n" +
       "Never use the heading format in your response!." +
-      "Refrain from saying things like 'Certainly! I'll search for information about OpenAI GPT-4o mini using the web search tool.'",
+      "IMPORTANT!!!: Refrain from saying things like that mention that your going to perform a certain action, example: 'Certainly! I'll search for information about OpenAI GPT-4o mini using the web search tool.'",
     tools: {
       web_search: tool({
         description: 'Search the web for information with the given query, max results and search depth.',
@@ -54,7 +63,7 @@ export async function POST(req: Request) {
             .describe('The search query to look up on the web.'),
           maxResults: z.number()
             .describe('The maximum number of results to return. Default to be used is 10.'),
-          searchDepth: // use basic | advanced 
+          searchDepth:
             z.enum(['basic', 'advanced'])
               .describe('The search depth to use for the search. Default is basic.')
         }),
@@ -92,7 +101,7 @@ export async function POST(req: Request) {
         }
       }),
       retrieve: tool({
-        description: 'Retrieve the information from the web search tool.',
+        description: 'Retrieve the information from a URL.',
         parameters: z.object({
           url: z.string().describe('The URL to retrieve the information from.')
         }),
@@ -159,11 +168,49 @@ export async function POST(req: Request) {
           symbol: z.string().describe('The stock symbol to display the chart for.')
         }),
       }),
+      programming: tool({
+        description: 'Write and execute Python code.',
+        parameters: z.object({
+          code: z.string().describe('The Python code to execute.')
+        }),
+        execute: async ({ code }: { code: string }) => {
+          const sandbox = await CodeInterpreter.create()
+          const execution = await sandbox.notebook.execCell(code)
+          if (execution.results.length > 0) {
+            let message: string = '';
+            for (const result of execution.results) {
+              if (result.isMainResult) {
+                message += `${result.text}\n`
+              } else {
+                message += `${result.text}\n`
+              }
+              if (result.formats().length > 0) {
+                message += `It has following formats: ${result.formats()}\n`
+              }
+            }
+
+            return message
+          }
+
+          if (
+            execution.logs.stdout.length > 0 ||
+            execution.logs.stderr.length > 0
+          ) {
+            let message = ''
+            if (execution.logs.stdout.length > 0) {
+              message += `${execution.logs.stdout.join('\n')}\n`
+            }
+            if (execution.logs.stderr.length > 0) {
+              message += `${execution.logs.stderr.join('\n')}\n`
+            }
+
+            return message
+          }
+
+          return 'There was no output of the execution.'
+        }
+      }),
     },
-    onFinish: async (event) => {
-      console.log(event.text);
-      console.log("Called " + event.toolCalls?.map((toolCall) => toolCall.toolName));
-    }
   });
 
   return result.toAIStreamResponse();

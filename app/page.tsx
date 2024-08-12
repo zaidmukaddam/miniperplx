@@ -31,6 +31,10 @@ import {
   Copy,
   TrendingUp,
   Cloud,
+  Code,
+  Check,
+  Loader2,
+  User2,
 } from 'lucide-react';
 import {
   HoverCard,
@@ -57,6 +61,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -104,7 +115,7 @@ export default function Home() {
       }
       setIsAnimating(false);
     },
-    onToolCall({ toolCall, }) {
+    onToolCall({ toolCall }) {
       if (toolCall.toolName === 'stock_chart_ui') {
         return 'Stock chart was shown to the user.';
       }
@@ -191,7 +202,7 @@ export default function Home() {
               onSelect={() => onModelSelect(model.name)}
               className={`flex items-start p-3 !font-sans rounded-md ${selectedModel === model.name ? 'bg-muted' : ''}`}
             >
-              <model.icon className={`w-5 h-5 mr-3 mt-0.5 flex-shrink-0 ${model.name.includes('Quality') ? 'text-purple-500' : 'text-green-500'}`} />
+              <model.icon className={`w-5 h-5 mr-1 mt-0.5 flex-shrink-0 ${model.name.includes('Quality') ? 'text-purple-500' : 'text-green-500'}`} />
               <div className="flex-grow">
                 <div className="font-semibold flex items-center justify-between">
                   {model.name}
@@ -317,9 +328,7 @@ export default function Home() {
     );
   });
 
-
   WeatherChart.displayName = 'WeatherChart';
-
 
   const renderToolInvocation = (toolInvocation: ToolInvocation, index: number) => {
     const args = JSON.parse(JSON.stringify(toolInvocation.args));
@@ -383,6 +392,75 @@ export default function Home() {
       }
 
       return <WeatherChart result={result} />;
+    }
+
+    if (toolInvocation.toolName === 'programming') {
+      return (
+        <Accordion type="single" collapsible className="w-full my-4">
+          <AccordionItem value="programming" className="border-none">
+            <AccordionTrigger className="hover:no-underline">
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-2 text-left">
+                  <Code className="h-5 w-5 text-primary" />
+                  <span className="font-semibold">Programming</span>
+                </div>
+                {result ? (
+                  <Badge variant="secondary" className="ml-auto mr-2 rounded-full">
+                    <Check className="h-3 w-3 mr-1" />
+                    Run Complete
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="ml-auto mr-2 rounded-full">
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    Running
+                  </Badge>
+                )}
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="pt-4 pb-2 space-y-4">
+              {args?.code && (
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Code</h3>
+                  <pre className="bg-muted p-3 rounded-md overflow-x-auto text-sm">
+                    <code className='font-mono'>{args.code}</code>
+                  </pre>
+                </div>
+              )}
+              <div>
+                <h3 className="text-sm font-medium mb-2">Result</h3>
+                {result ? (
+                  <pre className="bg-muted p-3 rounded-md overflow-x-auto text-sm">
+                    <code>{result}</code>
+                  </pre>
+                ) : (
+                  <div className="flex items-center justify-between w-full bg-muted p-3 rounded-md">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
+                      <span className="text-muted-foreground text-sm">Executing code...</span>
+                    </div>
+                    <div className="flex space-x-1">
+                      {[0, 1, 2].map((index) => (
+                        <motion.div
+                          key={index}
+                          className="w-1.5 h-1.5 bg-muted-foreground rounded-full"
+                          initial={{ opacity: 0.3 }}
+                          animate={{ opacity: 1 }}
+                          transition={{
+                            repeat: Infinity,
+                            duration: 0.8,
+                            delay: index * 0.2,
+                            repeatType: "reverse",
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      );
     }
 
     return (
@@ -596,7 +674,7 @@ export default function Home() {
   const exampleQueries = [
     "Weather in Doha",
     "Latest on Paris Olympics",
-    "Summary: https://openai.com/index/gpt-4o-system-card/",
+    "Count the number of r's in strawberry",
     "OpenAI GPT-4o mini"
   ];
 
@@ -724,18 +802,37 @@ export default function Home() {
               onAnimationComplete={() => setIsAnimating(false)}
             >
               <div className="flex items-center space-x-2 mb-4">
-                <motion.p
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                >
+                  <User2 className="w-6 h-6 text-primary flex-shrink-0" />
+                </motion.div>
+                <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.2 }}
-                  className="text-2xl font-medium font-serif"
+                  className="flex-grow min-w-0"
                 >
-                  {lastSubmittedQuery}
-                </motion.p>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <p className="text-xl sm:text-2xl font-medium font-serif truncate">
+                          {lastSubmittedQuery}
+                        </p>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{lastSubmittedQuery}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </motion.div>
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.5, delay: 0.4 }}
+                  className="flex-shrink-0"
                 >
                   <ModelSelector
                     selectedModel={selectedModel}
@@ -759,15 +856,13 @@ export default function Home() {
                       <h2 className="text-base font-semibold">Answer</h2>
                     </div>
                     <Button
-                      variant="secondary"
+                      variant="ghost"
                       size="sm"
                       className={`flex items-center gap-2 ${isLoading ? 'hidden' : ''}`}
                       onClick={() => {
                         copyToClipboard(message.content)
                           .then(() => {
-                            toast.success("Copied to clipboard", {
-                              description: "The answer has been copied to your clipboard.",
-                            });
+                            toast.success("Copied to clipboard");
                           })
                           .catch((error) => {
                             console.error('Failed to copy:', error);

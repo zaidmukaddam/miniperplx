@@ -21,6 +21,7 @@ const config = {
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
         serif: ['var(--font-serif)', 'serif'],
+        mono: ['var(--font-mono)', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",

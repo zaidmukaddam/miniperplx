@@ -1,23 +1,18 @@
 import "./globals.css";
 import { Metadata, Viewport } from "next";
 import { Toaster } from "sonner";
-import { Inter, Instrument_Serif } from 'next/font/google';
+import { Inter, Instrument_Serif, IBM_Plex_Mono } from 'next/font/google';
 import { Analytics } from "@vercel/analytics/react";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://miniperplx.vercel.app"),
+  metadataBase: new URL("https://mplx.za16.co"),
   title: "MiniPerplx",
   description: "MiniPerplx is a minimalistic AI-powered search engine that helps you find information on the internet.",
   openGraph : {
-    url: "https://miniperplx.vercel.app",
+    url: "https://mplx.za16.co",
     siteName: "MiniPerplx",
   }
 };
-
-const inter = Inter({
-  weight: "variable",
-  subsets: ["latin"],
-})
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -26,6 +21,17 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
 }
+
+const inter = Inter({
+  weight: "variable",
+  subsets: ["latin"],
+})
+
+const plexMono = IBM_Plex_Mono({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-mono"
+})
 
 const instrumentSerif = Instrument_Serif({
   weight: "400",
@@ -39,7 +45,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} ${instrumentSerif.className}`}>
+      <body className={`${inter.className} ${instrumentSerif.className} ${plexMono.className}`}>
         <Toaster position="top-center" richColors />
         {children}
         <Analytics />

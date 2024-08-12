@@ -6,6 +6,7 @@
 :root {
   --font-serif: "Instrument Serif", serif;
   --font-sans: "Inter", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
 }
 
 body {
