@@ -18,7 +18,8 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { suggestQuestions, Message } from './actions';
-import { copyToClipboard } from '@/lib/utils'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {
   SearchIcon,
   ChevronDown,
@@ -125,6 +126,46 @@ export default function Home() {
       toast.error("An error occurred. Please try again.");
     },
   });
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Copied to clipboard");
+      return true;
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      toast.error("Failed to copy");
+      return false;
+    }
+  };
+
+  const CopyButton = ({ text }: { text: string }) => {
+    const [isCopied, setIsCopied] = useState(false);
+
+    const handleCopy = async () => {
+      const success = await copyToClipboard(text);
+      if (success) {
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+      }
+    };
+
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleCopy}
+        className="h-8 px-2 text-xs"
+      >
+        {isCopied ? (
+          <Check className="h-3 w-3 mr-1" />
+        ) : (
+          <Copy className="h-3 w-3 mr-1" />
+        )}
+        {isCopied ? "Copied" : "Copy"}
+      </Button>
+    );
+  };
 
   const models = [
     { name: 'Speed', description: 'High speed, but lower quality.', details: '(OpenAI/GPT-4o-mini)', icon: FastForward },
@@ -420,20 +461,42 @@ export default function Home() {
             <AccordionContent className="pt-4 pb-2 space-y-4">
               {args?.code && (
                 <div>
-                  <h3 className="text-sm font-medium mb-2">Code</h3>
-                  <pre className="bg-muted p-3 rounded-md overflow-x-auto text-sm">
-                    <code className='font-mono'>{args.code}</code>
-                  </pre>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-medium">Code</h3>
+                    <CopyButton text={args.code} />
+                  </div>
+                  <div className="relative">
+                    <SyntaxHighlighter
+                      language="python"
+                      style={oneLight}
+                      customStyle={{
+                        margin: 0,
+                        padding: '1rem',
+                        borderRadius: '0.5rem',
+                        fontSize: '0.875rem',
+                      }}
+                    >
+                      {args.code}
+                    </SyntaxHighlighter>
+                    <div className="absolute top-2 right-2">
+                      <Badge variant="outline" className="text-xs">
+                        Python
+                      </Badge>
+                    </div>
+                  </div>
                 </div>
               )}
               <div>
-                <h3 className="text-sm font-medium mb-2">Result</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium">Result</h3>
+                  {result && <CopyButton text={result} />}
+                </div>
                 {result ? (
-                  <pre className="bg-muted p-3 rounded-md overflow-x-auto text-sm">
+                  <pre className="bg-neutral-50 p-3 rounded-md overflow-x-auto text-sm">
                     <code>{result}</code>
                   </pre>
                 ) : (
-                  <div className="flex items-center justify-between w-full bg-muted p-3 rounded-md">
+                  <div className="flex items-center justify-between w-full !bg-neutral-100 p-3 rounded-md">
                     <div className="flex items-center gap-2">
                       <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
                       <span className="text-muted-foreground text-sm">Executing code...</span>
@@ -855,26 +918,7 @@ export default function Home() {
                       <Sparkles className="size-5 text-primary" />
                       <h2 className="text-base font-semibold">Answer</h2>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`flex items-center gap-2 ${isLoading ? 'hidden' : ''}`}
-                      onClick={() => {
-                        copyToClipboard(message.content)
-                          .then(() => {
-                            toast.success("Copied to clipboard");
-                          })
-                          .catch((error) => {
-                            console.error('Failed to copy:', error);
-                            toast.error("Failed to copy", {
-                              description: "There was an error copying the answer to your clipboard.",
-                            });
-                          });
-                      }}
-                    >
-                      <Copy className="h-4 w-4" />
-                      <span className="sr-only">Copy Answer</span>
-                    </Button>
+                    <CopyButton text={message.content} />
                   </div>
                   <div>
                     <MarkdownRenderer content={message.content} />
