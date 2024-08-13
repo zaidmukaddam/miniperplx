@@ -125,7 +125,13 @@ export default function Home() {
     },
     onError: (error) => {
       console.error("Chat error:", error);
-      toast.error("An error occurred. Please try again.");
+      toast.error("An error occurred.", {
+        description: " We must have ran out of credits. Sponsor us on GitHub to keep this service running.",
+        action: {
+          label: "Sponsor",
+          onClick: () => window.open("https://git.new/mplx", "_blank"),
+        },
+      });
     },
   });
 
