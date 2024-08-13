@@ -89,6 +89,8 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 
+export const maxDuration = 60;
+
 export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [lastSubmittedQuery, setLastSubmittedQuery] = useState("");
