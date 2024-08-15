@@ -239,13 +239,13 @@ export default function Home() {
             disabled={isDisabled}
             onClick={handleToggle}
           >
-            {selectedModel === 'Speed' && <FastForward className="w-5 h-5 mr-2" />}
-            {selectedModel.includes('Quality') && <Sparkles className="w-5 h-5 mr-2" />}
-            {selectedModel}
+            {selectedModel === 'Speed' && <FastForward className="w-5 h-5 sm:mr-2" />}
+            {selectedModel.includes('Quality') && <Sparkles className="w-5 h-5 sm:mr-2" />}
+            <span className="hidden sm:inline">{selectedModel}</span>
             <ChevronDown className={`w-5 h-5 ml-2 transform transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-64 p-1">
+        <DropdownMenuContent className="w-64 p-1 mr-2 sm:mr-0">
           {models.map((model) => (
             <DropdownMenuItem
               key={model.name}
@@ -899,7 +899,7 @@ export default function Home() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.5, delay: 0.2 }}
                 >
-                  <User2 className="w-6 h-6 text-primary flex-shrink-0" />
+                  <User2 className="size-5 sm:size-6 text-primary flex-shrink-0" />
                 </motion.div>
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
