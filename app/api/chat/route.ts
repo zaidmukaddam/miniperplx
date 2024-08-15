@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     model: ansmodel,
     messages: convertToCoreMessages(messages),
     temperature: 0,
-    maxTokens: 500,
+    maxTokens: 800,
     system:
       "You are an AI web search engine that helps users find information on the internet.\n" +
       "Always start with running the tool(s) and then and then only write your response AT ALL COSTS!!\n" +
