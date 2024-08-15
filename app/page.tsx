@@ -11,6 +11,7 @@ React,
   useMemo
 } from 'react';
 import ReactMarkdown, { Components } from 'react-markdown';
+import { useRouter } from 'next/navigation';
 import remarkGfm from 'remark-gfm';
 import { useChat } from 'ai/react';
 import { ToolInvocation } from 'ai';
@@ -37,6 +38,8 @@ import {
   Loader2,
   User2,
   Edit2,
+  RefreshCw,
+  Heart,
 } from 'lucide-react';
 import {
   HoverCard,
@@ -93,6 +96,7 @@ import {
 export const maxDuration = 60;
 
 export default function Home() {
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [lastSubmittedQuery, setLastSubmittedQuery] = useState("");
   const [hasSubmitted, setHasSubmitted] = useState(false);
@@ -139,9 +143,13 @@ export default function Home() {
 
   const copyToClipboard = async (text: string) => {
     try {
-      await navigator.clipboard.writeText(text);
-      toast.success("Copied to clipboard");
-      return true;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        toast.success("Copied to clipboard");
+        return true;
+      } else { 
+        throw new Error("Clipboard API not available");
+      }
     } catch (error) {
       console.error('Failed to copy:', error);
       toast.error("Failed to copy");
@@ -770,8 +778,41 @@ export default function Home() {
     "Explain Claude 3.5 Sonnet"
   ];
 
+  const Navbar = () => (
+    <div className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center p-4 bg-background">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => router.push('/')}
+        className="flex items-center space-x-2"
+      >
+        <RefreshCw className="h-4 w-4" />
+        <span>New</span>
+      </Button>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              onClick={() => window.open("https://github.com/sponsors/zaidmukaddam", "_blank")}
+              className="flex items-center space-x-2"
+            >
+              <Heart className="h-4 w-4 text-red-500" />
+              <span>Sponsor</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Sponsor this project on GitHub</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
+  );
+
   return (
     <div className="flex flex-col font-sans items-center min-h-screen p-2 sm:p-4 bg-background text-foreground transition-all duration-500">
+      <Navbar />
+
       <div className={`w-full max-w-[90%] sm:max-w-2xl space-y-4 sm:space-y-6 p-1 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[15vh] sm:mt-[20vh]'}`}>
         <motion.div
           initial={false}

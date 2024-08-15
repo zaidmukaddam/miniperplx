@@ -50,6 +50,7 @@ export async function POST(req: Request) {
         .replace(/(\w+), (\w+) (\d+), (\d+)/, "$4-$2-$3 ($1)") +
       "." +
       "Rules for the response:\n" +
+      "Never use tags like <response>, <result> or <answer> in the response." +
       "Use a story telling format in your response, like a news article ALWAYS! This is for all tools except programming!" +
       "Never start with 'based on the search results,...' EVER! Always start with the information you found like an article!" +
       "Never use the heading format in your response!." +
