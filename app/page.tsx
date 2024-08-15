@@ -92,6 +92,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { GitHubLogoIcon } from '@radix-ui/react-icons';
 
 export const maxDuration = 60;
 
@@ -147,7 +148,7 @@ export default function Home() {
         await navigator.clipboard.writeText(text);
         toast.success("Copied to clipboard");
         return true;
-      } else { 
+      } else {
         throw new Error("Clipboard API not available");
       }
     } catch (error) {
@@ -789,23 +790,36 @@ export default function Home() {
         <RefreshCw className="h-4 w-4" />
         <span>New</span>
       </Button>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              size="sm"
-              onClick={() => window.open("https://github.com/sponsors/zaidmukaddam", "_blank")}
-              className="flex items-center space-x-2"
-            >
-              <Heart className="h-4 w-4 text-red-500" />
-              <span>Sponsor</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Sponsor this project on GitHub</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <div
+        className='flex items-center space-x-2'
+      >
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => window.open("https://git.new/mplx", "_blank")}
+          className="flex items-center space-x-2"
+        >
+          <GitHubLogoIcon className="h-4 w-4 text-primary" />
+          <span>GitHub</span>
+        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="sm"
+                onClick={() => window.open("https://github.com/sponsors/zaidmukaddam", "_blank")}
+                className="flex items-center space-x-2"
+              >
+                <Heart className="h-4 w-4 text-red-500" />
+                <span>Sponsor</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Sponsor this project on GitHub</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
     </div>
   );
 
