@@ -4,9 +4,29 @@
 
 A minimalistic AI-powered search engine that helps you find information on the internet.
 
+## Features
+
+- **AI-powered search**: Get answers to your questions using Anthropic's Models.
+- **Web search**: Search the web using Tavily's API.
+- **URL Specific search**: Get information from a specific URL.
+- **Weather**: Get the current weather for any location using OpenWeather's API.
+- **Programming**: Run code snippets in multiple languages using E2B's API.
+
+## Built with
+- [Next.js](https://nextjs.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Vercel AI SDK](https://sdk.vercel.ai/docs)
+- [Shadcn/UI](https://ui.shadcn.com/)
+- [Anthropic](https://www.anthropic.com/)
+- [Tavily](https://tavily.com/)
+- [OpenWeather](https://openweathermap.org/)
+- [E2B](https://e2b.dev/)
+
 ### Deploy your own
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fzaidmukaddam%2Fminiperplx&env=OPENAI_API_KEY,ANTHROPIC_API_KEY,TAVILY_API_KEY,OPENWEATHER_API_KEY,E2B_API_KEY&envDescription=API%20keys%20needed%20for%20application)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fzaidmukaddam%2Fminiperplx&env=ANTHROPIC_API_KEY,GROQ_API_KEY,TAVILY_API_KEY,OPENWEATHER_API_KEY,E2B_API_KEY&envDescription=API%20keys%20needed%20for%20application)
+
+### Local development
 
 To run the example locally you need to:
 

@@ -36,6 +36,7 @@ import {
   Check,
   Loader2,
   User2,
+  Edit2,
 } from 'lucide-react';
 import {
   HoverCard,
@@ -103,11 +104,12 @@ export default function Home() {
   const [showExamples, setShowExamples] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [newSelectedModel, setNewSelectedModel] = useState('');
+  const [isEditingQuery, setIsEditingQuery] = useState(false);
 
   const { isLoading, input, messages, setInput, append, reload, handleSubmit, setMessages } = useChat({
     api: '/api/chat',
     body: {
-      model: selectedModel === 'Speed' ? 'gpt-4o-mini' : selectedModel === 'Quality (GPT)' ? 'gpt-4o' : 'claude-3-5-sonnet-20240620',
+      model: selectedModel === 'Speed' ? 'claude-3-haiku-20240307' : 'claude-3-5-sonnet-20240620',
     },
     maxToolRoundtrips: 2,
     onFinish: async (message, { finishReason }) => {
@@ -165,19 +167,18 @@ export default function Home() {
         onClick={handleCopy}
         className="h-8 px-2 text-xs"
       >
+        {isCopied ? "copied" : "copy"}
         {isCopied ? (
-          <Check className="h-3 w-3 mr-1" />
+          <Check className="h-3 w-3 ml-2" />
         ) : (
-          <Copy className="h-3 w-3 mr-1" />
+          <Copy className="h-3 w-3 ml-2" />
         )}
-        {isCopied ? "Copied" : "Copy"}
       </Button>
     );
   };
 
   const models = [
-    { name: 'Speed', description: 'High speed, but lower quality.', details: '(OpenAI/GPT-4o-mini)', icon: FastForward },
-    { name: 'Quality (GPT)', description: 'Speed and quality, balanced.', details: '(OpenAI/GPT | Optimized)', icon: Sparkles },
+    { name: 'Speed', description: 'High speed, but lower quality.', details: '(Anthropic/Claude-3-Haiku)', icon: FastForward },
     { name: 'Quality (Claude)', description: 'High quality generation.', details: '(Anthropic/Claude-3.5-Sonnet)', icon: Sparkles },
   ];
 
@@ -190,7 +191,7 @@ export default function Home() {
         setSelectedModel(value);
         reload({
           body: {
-            model: value === 'Speed' ? 'gpt-4o-mini' : value === 'Quality (GPT)' ? 'gpt-4o' : 'claude-3-5-sonnet-20240620',
+            model: value === 'Speed' ? 'claude-3-haiku-20240307' : 'claude-3-5-sonnet-20240620',
           },
         });
       }
@@ -205,7 +206,7 @@ export default function Home() {
       setSuggestedQuestions([]);
       reload({
         body: {
-          model: newSelectedModel === 'Speed' ? 'gpt-4o-mini' : newSelectedModel === 'Quality (GPT)' ? 'gpt-4o' : 'claude-3-5-sonnet-20240620',
+          model: newSelectedModel === 'Speed' ? 'claude-3-haiku-20240307' : 'claude-3-5-sonnet-20240620',
         },
       });
     } else {
@@ -742,11 +743,31 @@ export default function Home() {
     });
   }, [append, setMessages]);
 
+  const handleQueryEdit = useCallback(() => {
+    setIsEditingQuery(true);
+    setInput(lastSubmittedQuery);
+  }, [lastSubmittedQuery, setInput]);
+
+  const handleQuerySubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (input.trim()) {
+      setLastSubmittedQuery(input.trim());
+      setIsEditingQuery(false);
+      setMessages([]);
+      setHasSubmitted(true);
+      setIsAnimating(true);
+      setSuggestedQuestions([]);
+      handleSubmit(e);
+    } else {
+      toast.error("Please enter a search query.");
+    }
+  }, [input, setMessages, handleSubmit]);
+
   const exampleQueries = [
     "Weather in Doha",
     "Latest on Paris Olympics",
     "Count the number of r's in strawberry",
-    "OpenAI GPT-4o mini"
+    "Explain Claude 3.5 Sonnet"
   ];
 
   return (
@@ -779,7 +800,7 @@ export default function Home() {
                   className={`flex items-center font-semibold ${models.find((model) => model.name === selectedModel)?.name.includes('Quality') ? 'text-purple-500' : 'text-green-500'} focus:outline-none focus:ring-0 `}
                 >
                   {selectedModel === 'Speed' && <FastForward className="w-5 h-5 mr-2" />}
-                  {(selectedModel === 'Quality (GPT)' || selectedModel === 'Quality (Claude)') && <Sparkles className="w-5 h-5 mr-2" />}
+                  {(selectedModel === 'Quality (Claude)') && <Sparkles className="w-5 h-5 mr-2" />}
                   {selectedModel}
                   <ChevronDown className={`w-5 h-5 ml-2 transform transition-transform ${isModelSelectorOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -886,29 +907,53 @@ export default function Home() {
                   transition={{ duration: 0.5, delay: 0.2 }}
                   className="flex-grow min-w-0"
                 >
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <p className="text-xl sm:text-2xl font-medium font-serif truncate">
-                          {lastSubmittedQuery}
-                        </p>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{lastSubmittedQuery}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  {isEditingQuery ? (
+                    <form onSubmit={handleQuerySubmit} className="flex items-center space-x-2">
+                      <Input
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        className="flex-grow"
+                      />
+                      <Button type="submit" size="sm">
+                        <ArrowRight size={16} />
+                      </Button>
+                    </form>
+                  ) : (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <p className="text-xl sm:text-2xl font-medium font-serif truncate">
+                            {lastSubmittedQuery}
+                          </p>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{lastSubmittedQuery}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                 </motion.div>
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.5, delay: 0.4 }}
-                  className="flex-shrink-0"
+                  className="flex-shrink-0 flex flex-row items-center gap-2"
                 >
+                  {!isEditingQuery && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleQueryEdit}
+                      className="ml-2"
+                      disabled={isLoading}
+                    >
+                      <Edit2 size={16} />
+                    </Button>
+                  )}
                   <ModelSelector
                     selectedModel={selectedModel}
                     onModelSelect={handleModelChange}
-                    isDisabled={isLoading}
+                    isDisabled={isLoading || isEditingQuery}
                   />
                 </motion.div>
               </div>
