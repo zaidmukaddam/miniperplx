@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^0.0.37",
+    "@ai-sdk/anthropic": "latest",
     "@ai-sdk/openai": "^0.0.46",
     "@e2b/code-interpreter": "^0.0.8",
     "@radix-ui/react-accordion": "^1.2.0",

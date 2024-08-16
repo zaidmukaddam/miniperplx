@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   '@ai-sdk/anthropic':
-    specifier: ^0.0.37
-    version: 0.0.37(zod@3.23.8)
+    specifier: latest
+    version: 0.0.43(zod@3.23.8)
   '@ai-sdk/openai':
     specifier: ^0.0.46
     version: 0.0.46(zod@3.23.8)
@@ -130,14 +130,14 @@ devDependencies:
 
 packages:
 
-  /@ai-sdk/anthropic@0.0.37(zod@3.23.8):
-    resolution: {integrity: sha512-RkFtA+dg5BSptuK3T08JDmFWCDaXehtnRjK/gy8VFWuWT5T44wqoP0Ca9AJksmsEDdYdTXUrLQOS5QmAgifc8w==}
+  /@ai-sdk/anthropic@0.0.43(zod@3.23.8):
+    resolution: {integrity: sha512-X9GBINVeaynnpSETD6rBgkmkR5VynceyVe8FxDCM+5jQF9fNNPCpaXX/syE9G8HH941HGFdEcFuGuLR6MvNdeA==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.0.0
     dependencies:
-      '@ai-sdk/provider': 0.0.15
-      '@ai-sdk/provider-utils': 1.0.7(zod@3.23.8)
+      '@ai-sdk/provider': 0.0.20
+      '@ai-sdk/provider-utils': 1.0.13(zod@3.23.8)
       zod: 3.23.8
     dev: false
 
@@ -168,8 +168,8 @@ packages:
       zod: 3.23.8
     dev: false
 
-  /@ai-sdk/provider-utils@1.0.7(zod@3.23.8):
-    resolution: {integrity: sha512-xIDpinTnuInH16wBgKAVdN6pmrpjlJF+5f+f/8ahYMQlYzpe4Vj1qw8OL+rUGdCePcRSrFmjk8G/wdX5+J8dIw==}
+  /@ai-sdk/provider-utils@1.0.13(zod@3.23.8):
+    resolution: {integrity: sha512-NDQUUBDQoWk9aGn2pOA5wiM5CdO57KeYTEph7PpKGEU8IyqI0d+CiYKISOia6Omy17d+Dw/ZM6KP98F89BGJ5A==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.0.0
@@ -177,22 +177,22 @@ packages:
       zod:
         optional: true
     dependencies:
-      '@ai-sdk/provider': 0.0.15
+      '@ai-sdk/provider': 0.0.20
       eventsource-parser: 1.1.2
       nanoid: 3.3.6
       secure-json-parse: 2.7.0
       zod: 3.23.8
     dev: false
 
-  /@ai-sdk/provider@0.0.15:
-    resolution: {integrity: sha512-phX/YdwKd8q8/uZ7MsUytcHuN5KvT+wgM+y78eu6E+VyFE3GRwelctBFnaaA96uRL6xnKNmb0e7e+2fDOYuBoA==}
+  /@ai-sdk/provider@0.0.19:
+    resolution: {integrity: sha512-WXyyJ0Fqg0OHzUQ/spem4jRFPq+NkYB8YNTVbSQrE+Rpxtm7DqK1x9MrHtIEhoikCMg9wBOCbm7HuMnfsIR5GA==}
     engines: {node: '>=18'}
     dependencies:
       json-schema: 0.4.0
     dev: false
 
-  /@ai-sdk/provider@0.0.19:
-    resolution: {integrity: sha512-WXyyJ0Fqg0OHzUQ/spem4jRFPq+NkYB8YNTVbSQrE+Rpxtm7DqK1x9MrHtIEhoikCMg9wBOCbm7HuMnfsIR5GA==}
+  /@ai-sdk/provider@0.0.20:
+    resolution: {integrity: sha512-nCQZRUTi/+y+kf1ep9rujpbQEtsIwySzlQAudiFeVhzzDi9rYvWp5tOSVu8/ArT+i1xSc2tw40akxb1TX73ofQ==}
     engines: {node: '>=18'}
     dependencies:
       json-schema: 0.4.0
