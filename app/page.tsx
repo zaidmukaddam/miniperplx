@@ -784,7 +784,7 @@ export default function Home() {
       <Button
         variant="outline"
         size="sm"
-        onClick={() => router.push('/')}
+        onClick={() => router.push('/new')}
         className="flex items-center space-x-2"
       >
         <RefreshCw className="h-4 w-4" />
