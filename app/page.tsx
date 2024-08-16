@@ -188,7 +188,7 @@ export default function Home() {
 
   const models = [
     { name: 'Speed', description: 'High speed, but lower quality.', details: '(Anthropic/Claude-3-Haiku)', icon: FastForward },
-    { name: 'Quality (Claude)', description: 'High quality generation.', details: '(Anthropic/Claude-3.5-Sonnet)', icon: Sparkles },
+    { name: 'Quality', description: 'High quality generation.', details: '(Anthropic/Claude-3.5-Sonnet)', icon: Sparkles },
   ];
 
   const handleModelChange = (value: string) => {
@@ -855,7 +855,7 @@ export default function Home() {
                   className={`flex items-center font-semibold ${models.find((model) => model.name === selectedModel)?.name.includes('Quality') ? 'text-purple-500' : 'text-green-500'} focus:outline-none focus:ring-0 `}
                 >
                   {selectedModel === 'Speed' && <FastForward className="w-5 h-5 mr-2" />}
-                  {(selectedModel === 'Quality (Claude)') && <Sparkles className="w-5 h-5 mr-2" />}
+                  {(selectedModel === 'Quality') && <Sparkles className="w-5 h-5 mr-2" />}
                   {selectedModel}
                   <ChevronDown className={`w-5 h-5 ml-2 transform transition-transform ${isModelSelectorOpen ? 'rotate-180' : ''}`} />
                 </button>
