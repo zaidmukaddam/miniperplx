@@ -39,6 +39,7 @@ import {
   Edit2,
   RefreshCw,
   Heart,
+  X,
 } from 'lucide-react';
 import {
   HoverCard,
@@ -112,7 +113,7 @@ export default function Home() {
   const { isLoading, input, messages, setInput, append, reload, handleSubmit, setMessages } = useChat({
     api: '/api/chat',
     body: {
-      model: selectedModel === 'Speed' ? 'claude-3-haiku-20240307' : 'claude-3-5-sonnet-20240620',
+      model: selectedModel === 'Speed' ? 'gpt-4o-mini' : 'claude-3-5-sonnet-20240620',
     },
     maxToolRoundtrips: 1,
     onFinish: async (message, { finishReason }) => {
@@ -163,7 +164,7 @@ export default function Home() {
   };
 
   const models = [
-    { name: 'Speed', description: 'High speed, but lower quality.', details: '(Anthropic/Claude-3-Haiku)', icon: FastForward },
+    { name: 'Speed', description: 'High speed, but lower quality.', details: '(OpenAI/GPT-4o-mini)', icon: FastForward },
     { name: 'Quality', description: 'High quality generation.', details: '(Anthropic/Claude-3.5-Sonnet)', icon: Sparkles },
   ];
 
@@ -176,7 +177,7 @@ export default function Home() {
         setSelectedModel(value);
         reload({
           body: {
-            model: value === 'Speed' ? 'claude-3-haiku-20240307' : 'claude-3-5-sonnet-20240620',
+            model: value === 'Speed' ? 'gpt-4o-mini' : 'claude-3-5-sonnet-20240620',
           },
         });
       }
@@ -191,7 +192,7 @@ export default function Home() {
       setSuggestedQuestions([]);
       reload({
         body: {
-          model: newSelectedModel === 'Speed' ? 'claude-3-haiku-20240307' : 'claude-3-5-sonnet-20240620',
+          model: newSelectedModel === 'Speed' ? 'gpt-4o-mini' : 'claude-3-5-sonnet-20240620',
         },
       });
     } else {
@@ -713,6 +714,7 @@ export default function Home() {
   }, [append, setMessages]);
 
   const handleQueryEdit = useCallback(() => {
+    setIsAnimating(true)
     setIsEditingQuery(true);
     setInput(lastSubmittedQuery);
   }, [lastSubmittedQuery, setInput]);
@@ -929,6 +931,18 @@ export default function Home() {
                         onChange={(e) => setInput(e.target.value)}
                         className="flex-grow"
                       />
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        type="button"
+                        onClick={() => {
+                          setIsEditingQuery(false)
+                          setInput('')
+                        }}
+                        disabled={isLoading}
+                      >
+                        <X size={16} />
+                      </Button>
                       <Button type="submit" size="sm">
                         <ArrowRight size={16} />
                       </Button>
@@ -948,29 +962,29 @@ export default function Home() {
                     </TooltipProvider>
                   )}
                 </motion.div>
-                <motion.div
+                {!isEditingQuery && (<motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.5, delay: 0.4 }}
                   className="flex-shrink-0 flex flex-row items-center gap-2"
                 >
-                  {!isEditingQuery && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleQueryEdit}
-                      className="ml-2"
-                      disabled={isLoading}
-                    >
-                      <Edit2 size={16} />
-                    </Button>
-                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleQueryEdit}
+                    className="ml-2"
+                    disabled={isLoading}
+                  >
+                    <Edit2 size={16} />
+                  </Button>
+
                   <ModelSelector
                     selectedModel={selectedModel}
                     onModelSelect={handleModelChange}
                     isDisabled={isLoading || isEditingQuery}
                   />
                 </motion.div>
+                )}
               </div>
             </motion.div>
           )}

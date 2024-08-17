@@ -17,14 +17,17 @@ A minimalistic AI-powered search engine that helps you find information on the i
 - [Tailwind CSS](https://tailwindcss.com/)
 - [Vercel AI SDK](https://sdk.vercel.ai/docs)
 - [Shadcn/UI](https://ui.shadcn.com/)
-- [Anthropic](https://www.anthropic.com/)
 - [Tavily](https://tavily.com/)
 - [OpenWeather](https://openweathermap.org/)
 - [E2B](https://e2b.dev/)
 
+## LLMs used
+- [OpenAI's GPT 4o mini](https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/)
+- [Anthropic's Claude 3.5 Sonnet](https://www.anthropic.com/news/claude-3-5-sonnet)
+
 ### Deploy your own
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fzaidmukaddam%2Fminiperplx&env=ANTHROPIC_API_KEY,GROQ_API_KEY,TAVILY_API_KEY,OPENWEATHER_API_KEY,E2B_API_KEY&envDescription=API%20keys%20needed%20for%20application)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fzaidmukaddam%2Fminiperplx&env=OPENAI_API_KEY,ANTHROPIC_API_KEY,GROQ_API_KEY,TAVILY_API_KEY,OPENWEATHER_API_KEY,E2B_API_KEY&envDescription=API%20keys%20needed%20for%20application)
 
 ### Local development
 

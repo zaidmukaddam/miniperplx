@@ -1,4 +1,5 @@
 import { anthropic } from "@ai-sdk/anthropic";
+import { openai } from '@ai-sdk/openai'
 import { convertToCoreMessages, streamText, tool } from "ai";
 import { CodeInterpreter } from "@e2b/code-interpreter";
 import { z } from "zod";
@@ -11,7 +12,13 @@ export async function POST(req: Request) {
   const { messages, model } = await req.json();
   const { latitude, longitude, city } = geolocation(req)
 
-  const ansmodel = anthropic(model);
+  let ansmodel;
+
+  if (model === "claude-3-5-sonnet-20240620") {
+    ansmodel = anthropic(model);
+  } else {
+    ansmodel = openai(model);
+  }
 
   const result = await streamText({
     model: ansmodel,
@@ -41,15 +48,19 @@ Here is the general guideline per tool to follow when responding to user queries
 Always remember to run the appropriate tool first, then compose your response based on the information gathered.
 All tool should be called only once per response.
 
-When citing sources(citations), use the following format: [4 words of web source content..](link).
-
 Citations should be placed at the end of each paragraph and in the end of sentences where you use it in which they are referred to with the given format to the information provided.
+When citing sources(citations), use the following styling only: Claude 3.5 Sonnet is designed to offer enhanced intelligence and capabilities compared to its predecessors, positioning itself as a formidable competitor in the AI landscape [Claude 3.5 Sonnet raises the..](https://www.anthropic.com/news/claude-3-5-sonnet).
+ALWAYS REMEMBER TO USE THE CITATIONS FORMAT CORRECTLY AT ALL COSTS!! ANY SINGLE ITCH IN THE FORMAT WILL CRASH THE RESPONSE!!
+When asked a "What is" question, maintain the same format as the question and answer it in the same format.
 
-Never create any kind of tags or lists in the response at ALL COSTS!!
+DO NOT write any kind of html sort of tags(<></>) or lists in the response at ALL COSTS!! NOT EVEN AN ENCLOSING TAGS FOR THE RESPONSE AT ALL COSTS!!
 
 Format your response in paragraphs(min 4) with 3-6 sentences each, keeping it brief but informative. DO NOT use pointers or make lists of any kind at ALL!
 Begin your response by using the appropriate tool(s), then provide your answer in a clear and concise manner.
-Never respond to user before running any tool like saying 'Certainly! Let me blah blah blah' or 'To provide you with the best answer, I will blah blah blah' or that 'Based on this and that, I think blah blah blah' at ALL COSTS!!
+Never respond to user before running any tool like 
+- saying 'Certainly! Let me blah blah blah' 
+- or 'To provide you with the best answer, I will blah blah blah' 
+- or that 'Based on search results, I think blah blah blah' at ALL COSTS!!
 Just run the tool and provide the answer.`,
     tools: {
       web_search: tool({
@@ -204,6 +215,7 @@ Just run the tool and provide the answer.`,
               }
             }
 
+            sandbox.close();
             return message;
           }
 
@@ -219,9 +231,11 @@ Just run the tool and provide the answer.`,
               message += `${execution.logs.stderr.join("\n")}\n`;
             }
 
+            sandbox.close();
             return message;
           }
 
+          sandbox.close();
           return "There was no output of the execution.";
         },
       }),
