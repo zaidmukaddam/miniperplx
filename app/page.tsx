@@ -31,7 +31,6 @@ import {
   AlignLeft,
   Newspaper,
   Copy,
-  TrendingUp,
   Cloud,
   Code,
   Check,
@@ -76,7 +75,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import StockChart from '@/components/stock-chart';
 import { Line, LineChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import {
   Card,
@@ -116,7 +114,7 @@ export default function Home() {
     body: {
       model: selectedModel === 'Speed' ? 'claude-3-haiku-20240307' : 'claude-3-5-sonnet-20240620',
     },
-    maxToolRoundtrips: 2,
+    maxToolRoundtrips: 1,
     onFinish: async (message, { finishReason }) => {
       if (finishReason === 'stop') {
         const newHistory: Message[] = [{ role: "user", content: lastSubmittedQuery, }, { role: "assistant", content: message.content }];
@@ -124,11 +122,6 @@ export default function Home() {
         setSuggestedQuestions(questions);
       }
       setIsAnimating(false);
-    },
-    onToolCall({ toolCall }) {
-      if (toolCall.toolName === 'stock_chart_ui') {
-        return 'Stock chart was shown to the user.';
-      }
     },
     onError: (error) => {
       console.error("Chat error:", error);
@@ -142,45 +135,28 @@ export default function Home() {
     },
   });
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-        toast.success("Copied to clipboard");
-        return true;
-      } else {
-        throw new Error("Clipboard API not available");
-      }
-    } catch (error) {
-      console.error('Failed to copy:', error);
-      toast.error("Failed to copy");
-      return false;
-    }
-  };
-
   const CopyButton = ({ text }: { text: string }) => {
     const [isCopied, setIsCopied] = useState(false);
-
-    const handleCopy = async () => {
-      const success = await copyToClipboard(text);
-      if (success) {
-        setIsCopied(true);
-        setTimeout(() => setIsCopied(false), 2000);
-      }
-    };
 
     return (
       <Button
         variant="ghost"
         size="sm"
-        onClick={handleCopy}
-        className="h-8 px-2 text-xs"
+        onClick={async () => {
+          if (!navigator.clipboard) {
+            return;
+          }
+          await navigator.clipboard.writeText(text);
+          setIsCopied(true);
+          setTimeout(() => setIsCopied(false), 2000);
+          toast.success("Copied to clipboard");
+        }}
+        className="h-8 px-2 text-xs rounded-full"
       >
-        {isCopied ? "copied" : "copy"}
         {isCopied ? (
-          <Check className="h-3 w-3 ml-2" />
+          <Check className="h-4 w-4" />
         ) : (
-          <Copy className="h-3 w-3 ml-2" />
+          <Copy className="h-4 w-4" />
         )}
       </Button>
     );
@@ -392,22 +368,6 @@ export default function Home() {
   const renderToolInvocation = (toolInvocation: ToolInvocation, index: number) => {
     const args = JSON.parse(JSON.stringify(toolInvocation.args));
     const result = 'result' in toolInvocation ? JSON.parse(JSON.stringify(toolInvocation.result)) : null;
-
-    if (toolInvocation.toolName === 'stock_chart_ui') {
-      return (
-        <div className="my-4">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            <h2 className="font-semibold text-base">{args.symbol}</h2>
-          </div>
-          <Card className='!border-none !shadow-none !bg-none'>
-            <CardContent className="p-0">
-              <StockChart props={args.symbol} />
-            </CardContent>
-          </Card>
-        </div>
-      );
-    }
 
     if (toolInvocation.toolName === 'get_weather_data') {
       if (!result) {
@@ -774,7 +734,7 @@ export default function Home() {
 
   const exampleQueries = [
     "Weather in Doha",
-    "Latest on Paris Olympics",
+    "What is new with Grok 2.0?",
     "Count the number of r's in strawberry",
     "Explain Claude 3.5 Sonnet"
   ];
