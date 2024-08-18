@@ -41,6 +41,9 @@ dependencies:
   '@tailwindcss/typography':
     specifier: ^0.5.13
     version: 0.5.13(tailwindcss@3.4.7)
+  '@types/googlemaps':
+    specifier: ^3.43.3
+    version: 3.43.3
   '@vercel/analytics':
     specifier: ^1.3.1
     version: 1.3.1(next@14.2.5)(react@18.3.1)
@@ -49,7 +52,7 @@ dependencies:
     version: 1.4.0
   ai:
     specifier: latest
-    version: 3.3.7(react@18.3.1)(svelte@4.2.18)(vue@3.4.35)(zod@3.23.8)
+    version: 3.3.9(react@18.3.1)(svelte@4.2.18)(vue@3.4.35)(zod@3.23.8)
   class-variance-authority:
     specifier: ^0.7.0
     version: 0.7.0
@@ -198,8 +201,8 @@ packages:
       json-schema: 0.4.0
     dev: false
 
-  /@ai-sdk/react@0.0.43(react@18.3.1)(zod@3.23.8):
-    resolution: {integrity: sha512-maWuV9529tIVVST9iXgnxBWUoM5Z8DW0lyrMYnsaLJAZ4kostt+PbqJjhy6eAQPzmXGcu4+OdgT1v1ZNCZR4+Q==}
+  /@ai-sdk/react@0.0.45(react@18.3.1)(zod@3.23.8):
+    resolution: {integrity: sha512-rPsjHtJ+qsWoRV88xzEpvPXhqRBF2wljGjWrsFcao4p48hKwZkuhW/zzpxZj3A4ZPy6jpDHRTYtqMuPHVpc9Eg==}
     engines: {node: '>=18'}
     peerDependencies:
       react: ^18 || ^19
@@ -210,15 +213,15 @@ packages:
       zod:
         optional: true
     dependencies:
-      '@ai-sdk/provider-utils': 1.0.11(zod@3.23.8)
-      '@ai-sdk/ui-utils': 0.0.31(zod@3.23.8)
+      '@ai-sdk/provider-utils': 1.0.13(zod@3.23.8)
+      '@ai-sdk/ui-utils': 0.0.33(zod@3.23.8)
       react: 18.3.1
       swr: 2.2.5(react@18.3.1)
       zod: 3.23.8
     dev: false
 
-  /@ai-sdk/solid@0.0.34(zod@3.23.8):
-    resolution: {integrity: sha512-puVv9rrskWXrtaikDbpoMkGeTboa4ZY6wTmC66Xw9rhZ0zK5yN15lLJBf/LeBIV6J1V9F9bBxjRX7UQXjE3sZg==}
+  /@ai-sdk/solid@0.0.36(zod@3.23.8):
+    resolution: {integrity: sha512-pm57goMQczSpPTNrUrwbab5BybZYofBRZ10UkTi2KgJP5i+S/sGHSh/xtgZz+xNpUt42pk8aYvOiNDN1ppjkDA==}
     engines: {node: '>=18'}
     peerDependencies:
       solid-js: ^1.7.7
@@ -226,14 +229,14 @@ packages:
       solid-js:
         optional: true
     dependencies:
-      '@ai-sdk/provider-utils': 1.0.11(zod@3.23.8)
-      '@ai-sdk/ui-utils': 0.0.31(zod@3.23.8)
+      '@ai-sdk/provider-utils': 1.0.13(zod@3.23.8)
+      '@ai-sdk/ui-utils': 0.0.33(zod@3.23.8)
     transitivePeerDependencies:
       - zod
     dev: false
 
-  /@ai-sdk/svelte@0.0.36(svelte@4.2.18)(zod@3.23.8):
-    resolution: {integrity: sha512-5pSaKt+UZK9+9AsbIYLs4REtAc/0HOLX4DK3nRtMcDqDLoWDoSJDKK/EjDMYVhYB1gqQmT0AeiSLo2WH0nf00w==}
+  /@ai-sdk/svelte@0.0.38(svelte@4.2.18)(zod@3.23.8):
+    resolution: {integrity: sha512-sTNkxzhS1B0TDdVWZR6yXG+3qQGYAxMwcEKzMVjm1VdpGlZits1PxF39aVvPldaWM8QB4MrVE+H5b5dTA43D0Q==}
     engines: {node: '>=18'}
     peerDependencies:
       svelte: ^3.0.0 || ^4.0.0
@@ -241,16 +244,16 @@ packages:
       svelte:
         optional: true
     dependencies:
-      '@ai-sdk/provider-utils': 1.0.11(zod@3.23.8)
-      '@ai-sdk/ui-utils': 0.0.31(zod@3.23.8)
+      '@ai-sdk/provider-utils': 1.0.13(zod@3.23.8)
+      '@ai-sdk/ui-utils': 0.0.33(zod@3.23.8)
       sswr: 2.1.0(svelte@4.2.18)
       svelte: 4.2.18
     transitivePeerDependencies:
       - zod
     dev: false
 
-  /@ai-sdk/ui-utils@0.0.31(zod@3.23.8):
-    resolution: {integrity: sha512-PA1mI+WC69Bc8JCTDOXwhLv9OAfocex/d+MRtQjfuWE6jTBjkBMa6davw+JjN7Vcp6zP0JLQG6gd7n6MnkFepQ==}
+  /@ai-sdk/ui-utils@0.0.33(zod@3.23.8):
+    resolution: {integrity: sha512-2oZjZzZG3AGQihO1d3mWqgFuywTtjBtkUEeE7d8nicw3QQv9m1MwrbQqRhhKbbBetBke6V9o5FQ5wngmb/+3iw==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.0.0
@@ -258,16 +261,16 @@ packages:
       zod:
         optional: true
     dependencies:
-      '@ai-sdk/provider': 0.0.19
-      '@ai-sdk/provider-utils': 1.0.11(zod@3.23.8)
+      '@ai-sdk/provider': 0.0.20
+      '@ai-sdk/provider-utils': 1.0.13(zod@3.23.8)
       json-schema: 0.4.0
       secure-json-parse: 2.7.0
       zod: 3.23.8
       zod-to-json-schema: 3.22.5(zod@3.23.8)
     dev: false
 
-  /@ai-sdk/vue@0.0.35(vue@3.4.35)(zod@3.23.8):
-    resolution: {integrity: sha512-7cPShsxiyxzoSB5orjCqwnFWvjpM/YX2W+a2K6lyV2Z2JAgHc+4PHhVnrKwc0c9Q7vwfpvW+3MoKM6U2xZaS+w==}
+  /@ai-sdk/vue@0.0.37(vue@3.4.35)(zod@3.23.8):
+    resolution: {integrity: sha512-m7dMi6qRoWPuru9TyWUm5jXAPGSDb1SHZp/Q+uYjhNY1dZwgsZxJvSeakogzR37uhiRCg3Kg8fCypQJe+dikPA==}
     engines: {node: '>=18'}
     peerDependencies:
       vue: ^3.3.4
@@ -275,8 +278,8 @@ packages:
       vue:
         optional: true
     dependencies:
-      '@ai-sdk/provider-utils': 1.0.11(zod@3.23.8)
-      '@ai-sdk/ui-utils': 0.0.31(zod@3.23.8)
+      '@ai-sdk/provider-utils': 1.0.13(zod@3.23.8)
+      '@ai-sdk/ui-utils': 0.0.33(zod@3.23.8)
       swrv: 1.0.4(vue@3.4.35)
       vue: 3.4.35(typescript@5.5.4)
     transitivePeerDependencies:
@@ -1321,6 +1324,11 @@ packages:
     resolution: {integrity: sha512-/kYRxGDLWzHOB7q+wtSUQlFrtcdUccpfy+X+9iMBpHK8QLLhx2wIPYuS5DYtR9Wa/YlZAbIovy7qVdB1Aq6Lyw==}
     dev: false
 
+  /@types/googlemaps@3.43.3:
+    resolution: {integrity: sha512-ZWNoz/O8MPEpiajvj7QiqCY8tTLFNqNZ/a+s+zTV58wFVNAvvqV4bdGfnsjTb5Cs4V6wEsLrX8XRhmnyYJ2Tdg==}
+    deprecated: 'Types for the Google Maps browser API have moved to @types/google.maps. Note: these types are not for the googlemaps npm package, which is a Node API.'
+    dev: false
+
   /@types/hast@2.3.10:
     resolution: {integrity: sha512-McWspRw8xx8J9HurkVBfYj0xKoE25tOFlHGdx4MJ5xORQrMGZNqJhVQWaIbm6Oyla5kYOXtDiopzKRJzEOkwJw==}
     dependencies:
@@ -1561,8 +1569,8 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
-  /ai@3.3.7(react@18.3.1)(svelte@4.2.18)(vue@3.4.35)(zod@3.23.8):
-    resolution: {integrity: sha512-xMfQdOL2s0aiGozdUO0ahOAfcwkGBUye3q4wC64PPNpmE3Qeing1Tv4JSsHk0zymhCMHBDiI1Tky8BNGdu+V6A==}
+  /ai@3.3.9(react@18.3.1)(svelte@4.2.18)(vue@3.4.35)(zod@3.23.8):
+    resolution: {integrity: sha512-PS6xHzYIH+iVLG3xd/jwsqZW7+X8GrSrsJwVB4ACMbxhZN8KRs4yUcnGEDPcvRkEL3PqHHJFUo9iVysdZwOUwg==}
     engines: {node: '>=18'}
     peerDependencies:
       openai: ^4.42.0
@@ -1582,13 +1590,13 @@ packages:
       zod:
         optional: true
     dependencies:
-      '@ai-sdk/provider': 0.0.19
-      '@ai-sdk/provider-utils': 1.0.11(zod@3.23.8)
-      '@ai-sdk/react': 0.0.43(react@18.3.1)(zod@3.23.8)
-      '@ai-sdk/solid': 0.0.34(zod@3.23.8)
-      '@ai-sdk/svelte': 0.0.36(svelte@4.2.18)(zod@3.23.8)
-      '@ai-sdk/ui-utils': 0.0.31(zod@3.23.8)
-      '@ai-sdk/vue': 0.0.35(vue@3.4.35)(zod@3.23.8)
+      '@ai-sdk/provider': 0.0.20
+      '@ai-sdk/provider-utils': 1.0.13(zod@3.23.8)
+      '@ai-sdk/react': 0.0.45(react@18.3.1)(zod@3.23.8)
+      '@ai-sdk/solid': 0.0.36(zod@3.23.8)
+      '@ai-sdk/svelte': 0.0.38(svelte@4.2.18)(zod@3.23.8)
+      '@ai-sdk/ui-utils': 0.0.33(zod@3.23.8)
+      '@ai-sdk/vue': 0.0.37(vue@3.4.35)(zod@3.23.8)
       '@opentelemetry/api': 1.9.0
       eventsource-parser: 1.1.2
       json-schema: 0.4.0

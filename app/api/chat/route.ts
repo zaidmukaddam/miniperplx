@@ -9,19 +9,11 @@ import { geolocation } from "@vercel/functions";
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
-  const { messages, model } = await req.json();
+  const { messages } = await req.json();
   const { latitude, longitude, city } = geolocation(req)
 
-  let ansmodel;
-
-  if (model === "claude-3-5-sonnet-20240620") {
-    ansmodel = anthropic(model);
-  } else {
-    ansmodel = openai(model);
-  }
-
   const result = await streamText({
-    model: ansmodel,
+    model: openai("gpt-4o-mini"),
     messages: convertToCoreMessages(messages),
     temperature: 0,
     maxTokens: 800,
@@ -36,7 +28,7 @@ The user is located in ${city}(${latitude}, ${longitude}).
 
 Here are the tools available to you:
 <available_tools>
-web_search, retrieve, get_weather_data, programming
+web_search, retrieve, get_weather_data, programming, nearby_search
 </available_tools>
 
 Here is the general guideline per tool to follow when responding to user queries:
@@ -44,6 +36,8 @@ Here is the general guideline per tool to follow when responding to user queries
 - If you need to retrieve specific information from a webpage, use the retrieve tool. Then, compose your response based on the retrieved information.
 - For weather-related queries, use the get_weather_data tool. Then, provide the weather information in your response.
 - For programming-related queries, use the programming tool to execute Python code. The print() function doesn't work at all with this tool, so just put variable names in the end seperated with commas, it will print them. Then, compose your response based on the output of the code execution.
+- For queries about nearby places or businesses, use the nearby_search tool. Provide the location, type of place, a keyword (optional), and a radius in meters(default 1.5 Kilometers). Then, compose your response based on the search results.
+- Do not use the retrieve tool for general web searches. It is only for retrieving specific information from a URL.- Do not use the retrieve tool for general web searches. It is only for retrieving specific information from a URL.
 
 Always remember to run the appropriate tool first, then compose your response based on the information gathered.
 All tool should be called only once per response.
@@ -237,6 +231,52 @@ Just run the tool and provide the answer.`,
 
           sandbox.close();
           return "There was no output of the execution.";
+        },
+      }),
+      nearby_search: tool({
+        description: "Search for nearby places using Google Maps API.",
+        parameters: z.object({
+          location: z.string().describe("The location to search near (e.g., 'New York City' or '1600 Amphitheatre Parkway, Mountain View, CA')."),
+          type: z.string().describe("The type of place to search for (e.g., restaurant, cafe, park)."),
+          keyword: z.string().optional().describe("An optional keyword to refine the search."),
+          radius: z.number().default(3000).describe("The radius of the search area in meters (max 50000, default 3000)."),
+        }),
+        execute: async ({ location, type, keyword, radius }: { location: string; type: string; keyword?: string; radius: number }) => {
+          const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+          
+          // First, use the Geocoding API to get the coordinates
+          const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${apiKey}`;
+          const geocodeResponse = await fetch(geocodeUrl);
+          const geocodeData = await geocodeResponse.json();
+          
+          if (geocodeData.status !== "OK" || !geocodeData.results[0]) {
+            throw new Error("Failed to geocode the location");
+          }
+          
+          const { lat, lng } = geocodeData.results[0].geometry.location;
+          
+          // perform the nearby search
+          let searchUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${type}&key=${apiKey}`;
+          
+          if (keyword) {
+            searchUrl += `&keyword=${encodeURIComponent(keyword)}`;
+          }
+          
+          const searchResponse = await fetch(searchUrl);
+          const searchData = await searchResponse.json();
+          
+          return {
+            results: searchData.results.slice(0, 5).map((place: any) => ({
+              name: place.name,
+              vicinity: place.vicinity,
+              rating: place.rating,
+              user_ratings_total: place.user_ratings_total,
+              place_id: place.place_id,
+              location: place.geometry.location,
+            })),
+            center: { lat, lng },
+            formatted_address: geocodeData.results[0].formatted_address,
+          };
         },
       }),
     },

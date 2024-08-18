@@ -21,9 +21,8 @@ A minimalistic AI-powered search engine that helps you find information on the i
 - [OpenWeather](https://openweathermap.org/)
 - [E2B](https://e2b.dev/)
 
-## LLMs used
+## LLM used
 - [OpenAI's GPT 4o mini](https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/)
-- [Anthropic's Claude 3.5 Sonnet](https://www.anthropic.com/news/claude-3-5-sonnet)
 
 ### Deploy your own
 

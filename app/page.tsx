@@ -23,8 +23,6 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {
   SearchIcon,
-  ChevronDown,
-  FastForward,
   Sparkles,
   ArrowRight,
   Globe,
@@ -40,6 +38,8 @@ import {
   RefreshCw,
   Heart,
   X,
+  MapPin,
+  Star,
 } from 'lucide-react';
 import {
   HoverCard,
@@ -53,26 +53,11 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -92,8 +77,16 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { GitHubLogoIcon } from '@radix-ui/react-icons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const maxDuration = 60;
+
+declare global {
+  interface Window {
+    google: any;
+    initMap: () => void;
+  }
+}
 
 export default function Home() {
   const router = useRouter();
@@ -103,18 +96,11 @@ export default function Home() {
   const [isAnimating, setIsAnimating] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
-  const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('Speed');
   const [showExamples, setShowExamples] = useState(false)
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [newSelectedModel, setNewSelectedModel] = useState('');
   const [isEditingQuery, setIsEditingQuery] = useState(false);
 
-  const { isLoading, input, messages, setInput, append, reload, handleSubmit, setMessages } = useChat({
+  const { isLoading, input, messages, setInput, append, handleSubmit, setMessages } = useChat({
     api: '/api/chat',
-    body: {
-      model: selectedModel === 'Speed' ? 'gpt-4o-mini' : 'claude-3-5-sonnet-20240620',
-    },
     maxToolRoundtrips: 1,
     onFinish: async (message, { finishReason }) => {
       if (finishReason === 'stop') {
@@ -162,101 +148,6 @@ export default function Home() {
       </Button>
     );
   };
-
-  const models = [
-    { name: 'Speed', description: 'High speed, but lower quality.', details: '(OpenAI/GPT-4o-mini)', icon: FastForward },
-    { name: 'Quality', description: 'High quality generation.', details: '(Anthropic/Claude-3.5-Sonnet)', icon: Sparkles },
-  ];
-
-  const handleModelChange = (value: string) => {
-    if (value !== selectedModel) {
-      if (hasSubmitted) {
-        setNewSelectedModel(value);
-        setShowConfirmModal(true);
-      } else {
-        setSelectedModel(value);
-        reload({
-          body: {
-            model: value === 'Speed' ? 'gpt-4o-mini' : 'claude-3-5-sonnet-20240620',
-          },
-        });
-      }
-    }
-    setIsModelSelectorOpen(false);
-  };
-
-  const handleConfirmModelChange = () => {
-    if (newSelectedModel !== selectedModel) {
-      setSelectedModel(newSelectedModel);
-      setShowConfirmModal(false);
-      setSuggestedQuestions([]);
-      reload({
-        body: {
-          model: newSelectedModel === 'Speed' ? 'gpt-4o-mini' : 'claude-3-5-sonnet-20240620',
-        },
-      });
-    } else {
-      setShowConfirmModal(false);
-    }
-  };
-
-  interface ModelSelectorProps {
-    selectedModel: string;
-    onModelSelect: (model: string) => void;
-    isDisabled: boolean;
-  }
-
-  function ModelSelector({ selectedModel, onModelSelect, isDisabled }: ModelSelectorProps) {
-    const [isOpen, setIsOpen] = useState(false);
-
-    const handleToggle = () => {
-      if (!isDisabled) {
-        setIsOpen(!isOpen);
-      }
-    };
-
-    return (
-      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            className={`flex items-center p-0 px-2 rounded-full ${selectedModel.includes('Quality') ? 'bg-purple-500 hover:bg-purple-400 !disabled:bg-purple-600 disabled:!opacity-85' : 'bg-green-500 hover:bg-green-400 disabled:!bg-green-600 disabled:!opacity-85'
-              } text-white hover:text-white`}
-            disabled={isDisabled}
-            onClick={handleToggle}
-          >
-            {selectedModel === 'Speed' && <FastForward className="w-5 h-5 sm:mr-2" />}
-            {selectedModel.includes('Quality') && <Sparkles className="w-5 h-5 sm:mr-2" />}
-            <span className="hidden sm:inline">{selectedModel}</span>
-            <ChevronDown className={`w-5 h-5 ml-2 transform transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-64 p-1 mr-2 sm:mr-0">
-          {models.map((model) => (
-            <DropdownMenuItem
-              key={model.name}
-              onSelect={() => onModelSelect(model.name)}
-              className={`flex items-start p-3 !font-sans rounded-md ${selectedModel === model.name ? 'bg-muted' : ''}`}
-            >
-              <model.icon className={`w-5 h-5 mr-1 mt-0.5 flex-shrink-0 ${model.name.includes('Quality') ? 'text-purple-500' : 'text-green-500'}`} />
-              <div className="flex-grow">
-                <div className="font-semibold flex items-center justify-between">
-                  {model.name}
-                  {selectedModel === model.name && (
-                    <span className="text-xs text-white px-2 py-0.5 rounded-full bg-black">
-                      Active
-                    </span>
-                  )}
-                </div>
-                <div className="text-sm text-gray-500 mt-0.5">{model.description}</div>
-                <div className="text-xs text-gray-400 mt-0.5">{model.details}</div>
-              </div>
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    );
-  }
 
   interface WeatherDataPoint {
     date: string;
@@ -366,9 +257,188 @@ export default function Home() {
 
   WeatherChart.displayName = 'WeatherChart';
 
+  const isValidCoordinate = (coord: number) => {
+    return typeof coord === 'number' && !isNaN(coord) && isFinite(coord);
+  };
+  
+  const loadGoogleMapsScript = (callback: () => void) => {
+    if (window.google && window.google.maps) {
+      callback();
+      return;
+    }
+  
+    const existingScript = document.getElementById('googleMapsScript');
+    if (existingScript) {
+      existingScript.remove();
+    }
+  
+    window.initMap = callback;
+    const script = document.createElement('script');
+    script.id = 'googleMapsScript';
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initMap`;
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+  };
+  
+  const MapComponent = React.memo(({ center, places }: { center: { lat: number; lng: number }, places: any[] }) => {
+    const mapRef = useRef<HTMLDivElement>(null);
+    const [mapError, setMapError] = useState<string | null>(null);
+    const googleMapRef = useRef<google.maps.Map | null>(null);
+    const markersRef = useRef<google.maps.Marker[]>([]);
+  
+    const memoizedCenter = useMemo(() => center, [center]);
+    const memoizedPlaces = useMemo(() => places, [places]);
+  
+    const initializeMap = useCallback(() => {
+      if (mapRef.current && isValidCoordinate(memoizedCenter.lat) && isValidCoordinate(memoizedCenter.lng)) {
+        if (!googleMapRef.current) {
+          googleMapRef.current = new window.google.maps.Map(mapRef.current, {
+            center: memoizedCenter,
+            zoom: 14,
+          });
+        } else {
+          googleMapRef.current.setCenter(memoizedCenter);
+        }
+  
+        // Clear existing markers
+        markersRef.current.forEach(marker => marker.setMap(null));
+        markersRef.current = [];
+  
+        memoizedPlaces.forEach((place) => {
+          if (isValidCoordinate(place.location.lat) && isValidCoordinate(place.location.lng)) {
+            const MarkerClass = window.google.maps.marker?.AdvancedMarkerElement || window.google.maps.Marker;
+            const marker = new MarkerClass({
+              position: place.location,
+              map: googleMapRef.current,
+              title: place.name,
+            });
+            markersRef.current.push(marker);
+          }
+        });
+      } else {
+        setMapError('Invalid coordinates provided');
+      }
+    }, [memoizedCenter, memoizedPlaces]);
+  
+    useEffect(() => {
+      loadGoogleMapsScript(() => {
+        try {
+          initializeMap();
+        } catch (error) {
+          console.error('Error initializing map:', error);
+          setMapError('Failed to initialize Google Maps');
+        }
+      });
+  
+      return () => {
+        // Clean up markers when component unmounts
+        markersRef.current.forEach(marker => marker.setMap(null));
+      };
+    }, [initializeMap]);
+  
+    if (mapError) {
+      return <div className="h-64 flex items-center justify-center bg-gray-100">{mapError}</div>;
+    }
+  
+    return <div ref={mapRef} className="w-full h-64" />;
+  });
+  
+  MapComponent.displayName = 'MapComponent';
+
+  const MapSkeleton = () => (
+    <Skeleton className="w-full h-64" />
+  );
+  
+  const PlaceDetails = ({ place }: { place: any }) => (
+    <div className="flex justify-between items-start py-2">
+      <div>
+        <h4 className="font-semibold">{place.name}</h4>
+        <p className="text-sm text-muted-foreground max-w-[200px]" title={place.vicinity}>
+          {place.vicinity}
+        </p>
+      </div>
+      {place.rating && (
+        <Badge variant="secondary" className="flex items-center">
+          <Star className="h-3 w-3 mr-1 text-yellow-400" />
+          {place.rating} ({place.user_ratings_total})
+        </Badge>
+      )}
+    </div>
+  );
+
   const renderToolInvocation = (toolInvocation: ToolInvocation, index: number) => {
     const args = JSON.parse(JSON.stringify(toolInvocation.args));
     const result = 'result' in toolInvocation ? JSON.parse(JSON.stringify(toolInvocation.result)) : null;
+
+    if (toolInvocation.toolName === 'nearby_search') {
+      if (!result) {
+        return (
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-neutral-700 animate-pulse" />
+              <span className="text-neutral-700 text-lg">Searching nearby places...</span>
+            </div>
+            <div className="flex space-x-1">
+              {[0, 1, 2].map((index) => (
+                <motion.div
+                  key={index}
+                  className="w-2 h-2 bg-muted-foreground rounded-full"
+                  initial={{ opacity: 0.3 }}
+                  animate={{ opacity: 1 }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 0.8,
+                    delay: index * 0.2,
+                    repeatType: "reverse",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      }
+  
+      if (isLoading) {
+        return (
+          <Card className="w-full my-4 overflow-hidden">
+            <CardHeader>
+              <Skeleton className="h-6 w-3/4" />
+            </CardHeader>
+            <CardContent className="p-0 rounded-t-none rounded-b-xl">
+              <MapSkeleton />
+            </CardContent>
+          </Card>
+        );
+      }
+  
+      return (
+        <Card className="w-full my-4 overflow-hidden">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
+              <span>Nearby {args.type ? args.type.charAt(0).toUpperCase() + args.type.slice(1) + 's' : 'Places'}</span>
+              {args.keyword && <Badge variant="secondary">{args.keyword}</Badge>}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <MapComponent center={result.center} places={result.results} />
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="place-details">
+                <AccordionTrigger className="px-4">Place Details</AccordionTrigger>
+                <AccordionContent>
+                  <div className="px-4 space-y-4 max-h-64 overflow-y-auto">
+                    {result.results.map((place: any, placeIndex: number) => (
+                      <PlaceDetails key={placeIndex} place={place} />
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </CardContent>
+        </Card>
+      );
+    }
 
     if (toolInvocation.toolName === 'get_weather_data') {
       if (!result) {
@@ -505,6 +575,74 @@ export default function Home() {
       );
     }
 
+    if (toolInvocation.toolName === 'nearby_search') {
+      if (!result) {
+        return (
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-neutral-700 animate-pulse" />
+              <span className="text-neutral-700 text-lg">Searching nearby places...</span>
+            </div>
+            <div className="flex space-x-1">
+              {[0, 1, 2].map((index) => (
+                <motion.div
+                  key={index}
+                  className="w-2 h-2 bg-muted-foreground rounded-full"
+                  initial={{ opacity: 0.3 }}
+                  animate={{ opacity: 1 }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 0.8,
+                    delay: index * 0.2,
+                    repeatType: "reverse",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      const mapUrl = `https://www.google.com/maps/embed/v1/search?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(args.type)}&center=${result.results[0].geometry.location.lat},${result.results[0].geometry.location.lng}&zoom=14`;
+
+      return (
+        <Card className="w-full my-4 overflow-hidden">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
+              <span>Nearby {args.type.charAt(0).toUpperCase() + args.type.slice(1)}s</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="aspect-video w-full">
+              <iframe
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                loading="lazy"
+                allowFullScreen
+                referrerPolicy="no-referrer-when-downgrade"
+                src={mapUrl}
+              ></iframe>
+            </div>
+            <div className="p-4 space-y-2">
+              {result.results.map((place: any, placeIndex: number) => (
+                <div key={placeIndex} className="flex justify-between items-center">
+                  <div>
+                    <h4 className="font-semibold">{place.name}</h4>
+                    <p className="text-sm text-muted-foreground">{place.vicinity}</p>
+                  </div>
+                  <Badge variant="secondary" className="flex items-center">
+                    {place.rating} ★ ({place.user_ratings_total})
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
     return (
       <div>
         {!result ? (
@@ -600,8 +738,7 @@ export default function Home() {
     index: number;
   }
 
-  const CitationComponent: React.FC<CitationComponentProps> = React.memo(({ href, children, index }) => {
-    const citationText = Array.isArray(children) ? children[0] : children;
+  const CitationComponent: React.FC<CitationComponentProps> = React.memo(({ href, index }) => {
     const faviconUrl = `https://www.google.com/s2/favicons?sz=128&domain=${new URL(href).hostname}`;
 
     return (
@@ -789,17 +926,17 @@ export default function Home() {
     <div className="flex flex-col font-sans items-center min-h-screen p-2 sm:p-4 bg-background text-foreground transition-all duration-500">
       <Navbar />
 
-      <div className={`w-full max-w-[90%] sm:max-w-2xl space-y-4 sm:space-y-6 p-1 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[15vh] sm:mt-[20vh]'}`}>
+      <div className={`w-full max-w-[90%] sm:max-w-2xl space-y-6 p-1 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[16vh] sm:mt-[25vh]'}`}>
         <motion.div
           initial={false}
           animate={hasSubmitted ? { scale: 1.2 } : { scale: 1 }}
           transition={{ duration: 0.5 }}
           className="text-center"
         >
-          <h1 className="text-3xl sm:text-4xl mb-4 sm:mb-8 text-primary font-serif">MiniPerplx</h1>
+          <h1 className="text-3xl sm:text-4xl mb-1 text-primary font-serif">MiniPerplx</h1>
           {!hasSubmitted &&
-            <h2 className='text-xl sm:text-2xl font-serif text-balance text-center mb-2'>
-              A minimalistic AI-powered search engine that helps you find information on the internet.
+            <h2 className='text-xl sm:text-2xl font-serif text-balance text-center mb-6'>
+              In search for minimalism and simplicity
             </h2>
           }
         </motion.div>
@@ -811,48 +948,6 @@ export default function Home() {
               exit={{ opacity: 0, y: 20 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="relative px-2 mb-4">
-                <button
-                  onClick={() => setIsModelSelectorOpen(!isModelSelectorOpen)}
-                  className={`flex items-center font-semibold ${models.find((model) => model.name === selectedModel)?.name.includes('Quality') ? 'text-purple-500' : 'text-green-500'} focus:outline-none focus:ring-0 `}
-                >
-                  {selectedModel === 'Speed' && <FastForward className="w-5 h-5 mr-2" />}
-                  {(selectedModel === 'Quality') && <Sparkles className="w-5 h-5 mr-2" />}
-                  {selectedModel}
-                  <ChevronDown className={`w-5 h-5 ml-2 transform transition-transform ${isModelSelectorOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {isModelSelectorOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-fit bg-white border border-gray-200 rounded-md shadow-lg z-10">
-                    {models.map((model) => (
-                      <button
-                        key={model.name}
-                        onClick={() => {
-                          setSelectedModel(model.name);
-                          setIsModelSelectorOpen(false);
-                        }}
-                        className={`w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center ${models.indexOf(model) === 0 ? 'rounded-t-md' : models.indexOf(model) === models.length - 1 ? 'rounded-b-md' : ''}`}
-                      >
-                        <model.icon className={`w-5 h-5 mr-3 ${model.name.includes('Quality') ? 'text-purple-500' : 'text-green-500'}`} />
-                        <div>
-                          <div className="font-semibold flex items-center">
-                            {model.name}
-                            {selectedModel === model.name && (
-                              <span
-                                className={`ml-2 text-xs text-white px-2 py-0.5 rounded-full ${model.name.includes('Quality') ? 'bg-purple-500' : 'bg-green-500'}`}
-                              >
-                                Selected
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-sm text-gray-500">{model.description}</div>
-                          <div className="text-xs text-gray-400">{model.details}</div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
               <form onSubmit={handleFormSubmit} className="flex items-center space-x-2 px-2 mb-4 sm:mb-6">
                 <div className="relative flex-1">
                   <Input
@@ -977,12 +1072,6 @@ export default function Home() {
                   >
                     <Edit2 size={16} />
                   </Button>
-
-                  <ModelSelector
-                    selectedModel={selectedModel}
-                    onModelSelect={handleModelChange}
-                    isDisabled={isLoading || isEditingQuery}
-                  />
                 </motion.div>
                 )}
               </div>
@@ -1078,20 +1167,6 @@ export default function Home() {
           </motion.div>
         )}
       </AnimatePresence>
-      <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
-        <DialogContent className='!font-sans'>
-          <DialogHeader>
-            <DialogTitle>Confirm Model Change</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to change the model? This will change the quality of the responses and cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConfirmModal(false)}>Cancel</Button>
-            <Button onClick={handleConfirmModelChange}>Confirm</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
