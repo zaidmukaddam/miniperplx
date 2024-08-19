@@ -923,17 +923,17 @@ export default function Home() {
   );
 
   return (
-    <div className="flex flex-col font-sans items-center min-h-screen p-2 sm:p-4 bg-background text-foreground transition-all duration-500">
+    <div className="flex flex-col font-sans items-center justify-center p-2 sm:p-4 bg-background text-foreground transition-all duration-500">
       <Navbar />
 
-      <div className={`w-full max-w-[90%] sm:max-w-2xl space-y-6 p-1 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[16vh] sm:mt-[25vh]'}`}>
+      <div className={`w-full max-w-[90%] sm:max-w-2xl space-y-6 p-1 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[26vh] sm:mt-[30vh]'}`}>
         <motion.div
           initial={false}
-          animate={hasSubmitted ? { scale: 1.2 } : { scale: 1 }}
+          animate={hasSubmitted ? { scale: 0.7 } : { scale: 1 }}
           transition={{ duration: 0.5 }}
           className="text-center"
         >
-          <h1 className="text-3xl sm:text-4xl mb-1 text-primary font-serif">MiniPerplx</h1>
+          <h1 className="text-4xl sm:text-6xl mb-1 text-primary font-serif">MiniPerplx</h1>
           {!hasSubmitted &&
             <h2 className='text-xl sm:text-2xl font-serif text-balance text-center mb-6'>
               In search for minimalism and simplicity

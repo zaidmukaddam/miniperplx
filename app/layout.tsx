@@ -5,11 +5,11 @@ import { Inter, Instrument_Serif, IBM_Plex_Mono } from 'next/font/google';
 import { Analytics } from "@vercel/analytics/react";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://mplx.za16.co"),
+  metadataBase: new URL("https://mplx.run"),
   title: "MiniPerplx",
   description: "MiniPerplx is a minimalistic AI-powered search engine that helps you find information on the internet.",
   openGraph : {
-    url: "https://mplx.za16.co",
+    url: "https://mplx.run",
     siteName: "MiniPerplx",
   }
 };

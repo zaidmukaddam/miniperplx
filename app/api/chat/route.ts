@@ -33,8 +33,8 @@ web_search, retrieve, get_weather_data, programming, nearby_search
 
 Here is the general guideline per tool to follow when responding to user queries:
 - Use the web_search tool to gather relevant information. The query should only be the word that need's context for search. Then write the response based on the information gathered. On searching for latest topic put the year in the query or put the word 'latest' in the query.
-- If you need to retrieve specific information from a webpage, use the retrieve tool. Then, compose your response based on the retrieved information.
-- For weather-related queries, use the get_weather_data tool. Then, provide the weather information in your response.
+- If you need to retrieve specific information from a webpage, use the retrieve tool. Analyze the user's query to set the topic type either normal or news. Then, compose your response based on the retrieved information.
+- For weather-related queries, use the get_weather_data tool. The weather results are 5 days weather forecast data with 3-hour step. Then, provide the weather information in your response.
 - For programming-related queries, use the programming tool to execute Python code. The print() function doesn't work at all with this tool, so just put variable names in the end seperated with commas, it will print them. Then, compose your response based on the output of the code execution.
 - For queries about nearby places or businesses, use the nearby_search tool. Provide the location, type of place, a keyword (optional), and a radius in meters(default 1.5 Kilometers). Then, compose your response based on the search results.
 - Do not use the retrieve tool for general web searches. It is only for retrieving specific information from a URL.- Do not use the retrieve tool for general web searches. It is only for retrieving specific information from a URL.
@@ -42,7 +42,7 @@ Here is the general guideline per tool to follow when responding to user queries
 Always remember to run the appropriate tool first, then compose your response based on the information gathered.
 All tool should be called only once per response.
 
-Citations should be placed at the end of each paragraph and in the end of sentences where you use it in which they are referred to with the given format to the information provided.
+Citations should always be placed at the end of each paragraph and in the end of sentences where you use it in which they are referred to with the given format to the information provided.
 When citing sources(citations), use the following styling only: Claude 3.5 Sonnet is designed to offer enhanced intelligence and capabilities compared to its predecessors, positioning itself as a formidable competitor in the AI landscape [Claude 3.5 Sonnet raises the..](https://www.anthropic.com/news/claude-3-5-sonnet).
 ALWAYS REMEMBER TO USE THE CITATIONS FORMAT CORRECTLY AT ALL COSTS!! ANY SINGLE ITCH IN THE FORMAT WILL CRASH THE RESPONSE!!
 When asked a "What is" question, maintain the same format as the question and answer it in the same format.
@@ -67,6 +67,9 @@ Just run the tool and provide the answer.`,
             .describe(
               "The maximum number of results to return. Default to be used is 10.",
             ),
+          topic: z
+            .enum(["general", "news"])
+            .describe("The topic type to search for. Default is general."),
           searchDepth: z
             .enum(["basic", "advanced"])
             .describe(
@@ -82,34 +85,62 @@ Just run the tool and provide the answer.`,
         execute: async ({
           query,
           maxResults,
+          topic,
           searchDepth,
           exclude_domains,
         }: {
           query: string;
           maxResults: number;
+          topic: "general" | "news";
           searchDepth: "basic" | "advanced";
           exclude_domains?: string[];
         }) => {
           const apiKey = process.env.TAVILY_API_KEY;
+
+          let body = JSON.stringify({
+            api_key: apiKey,
+            query,
+            topic: topic,
+            max_results: maxResults < 5 ? 5 : maxResults,
+            search_depth: searchDepth,
+            include_answers: true,
+            exclude_domains: exclude_domains,
+          });
+
+          if (topic === "news") {
+            body = JSON.stringify({
+              api_key: apiKey,
+              query,
+              topic: topic,
+              days: 7,
+              max_results: maxResults < 5 ? 5 : maxResults,
+              search_depth: searchDepth,
+              include_answers: true,
+              exclude_domains: exclude_domains,
+            });
+          }
+
           const response = await fetch("https://api.tavily.com/search", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              api_key: apiKey,
-              query,
-              max_results: maxResults < 5 ? 5 : maxResults,
-              search_depth: searchDepth,
-              include_answers: true,
-              exclude_domains: exclude_domains,
-            }),
+            body,
           });
 
           const data = await response.json();
 
           let context = data.results.map(
-            (obj: { url: any; content: any; title: any; raw_content: any }) => {
+            (obj: { url: any; content: any; title: any; raw_content: any, published_date: any }) => {
+              if (topic === "news") {
+                return {
+                  url: obj.url,
+                  title: obj.title,
+                  content: obj.content,
+                  raw_content: obj.raw_content,
+                  published_date: obj.published_date,
+                };
+              }
               return {
                 url: obj.url,
                 title: obj.title,
@@ -243,28 +274,28 @@ Just run the tool and provide the answer.`,
         }),
         execute: async ({ location, type, keyword, radius }: { location: string; type: string; keyword?: string; radius: number }) => {
           const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-          
+
           // First, use the Geocoding API to get the coordinates
           const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${apiKey}`;
           const geocodeResponse = await fetch(geocodeUrl);
           const geocodeData = await geocodeResponse.json();
-          
+
           if (geocodeData.status !== "OK" || !geocodeData.results[0]) {
             throw new Error("Failed to geocode the location");
           }
-          
+
           const { lat, lng } = geocodeData.results[0].geometry.location;
-          
+
           // perform the nearby search
           let searchUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${type}&key=${apiKey}`;
-          
+
           if (keyword) {
             searchUrl += `&keyword=${encodeURIComponent(keyword)}`;
           }
-          
+
           const searchResponse = await fetch(searchUrl);
           const searchData = await searchResponse.json();
-          
+
           return {
             results: searchData.results.slice(0, 5).map((place: any) => ({
               name: place.name,
