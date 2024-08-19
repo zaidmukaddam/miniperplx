@@ -1,4 +1,3 @@
-import { anthropic } from "@ai-sdk/anthropic";
 import { openai } from '@ai-sdk/openai'
 import { convertToCoreMessages, streamText, tool } from "ai";
 import { CodeInterpreter } from "@e2b/code-interpreter";

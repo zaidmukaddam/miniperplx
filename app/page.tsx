@@ -260,57 +260,60 @@ export default function Home() {
   const isValidCoordinate = (coord: number) => {
     return typeof coord === 'number' && !isNaN(coord) && isFinite(coord);
   };
-  
+
   const loadGoogleMapsScript = (callback: () => void) => {
     if (window.google && window.google.maps) {
       callback();
       return;
     }
-  
+
     const existingScript = document.getElementById('googleMapsScript');
     if (existingScript) {
       existingScript.remove();
     }
-  
+
     window.initMap = callback;
     const script = document.createElement('script');
     script.id = 'googleMapsScript';
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initMap`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places,marker&callback=initMap`;
     script.async = true;
     script.defer = true;
     document.head.appendChild(script);
   };
-  
+
   const MapComponent = React.memo(({ center, places }: { center: { lat: number; lng: number }, places: any[] }) => {
     const mapRef = useRef<HTMLDivElement>(null);
     const [mapError, setMapError] = useState<string | null>(null);
     const googleMapRef = useRef<google.maps.Map | null>(null);
-    const markersRef = useRef<google.maps.Marker[]>([]);
-  
+    const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
+
     const memoizedCenter = useMemo(() => center, [center]);
     const memoizedPlaces = useMemo(() => places, [places]);
-  
-    const initializeMap = useCallback(() => {
+
+    const initializeMap = useCallback(async () => {
       if (mapRef.current && isValidCoordinate(memoizedCenter.lat) && isValidCoordinate(memoizedCenter.lng)) {
+        const { Map } = await google.maps.importLibrary("maps") as google.maps.MapsLibrary;
+        const { AdvancedMarkerElement } = await google.maps.importLibrary("marker") as google.maps.MarkerLibrary;
+
         if (!googleMapRef.current) {
-          googleMapRef.current = new window.google.maps.Map(mapRef.current, {
+          googleMapRef.current = new Map(mapRef.current, {
             center: memoizedCenter,
             zoom: 14,
+            mapId: "347ff92e0c7225cf",
           });
         } else {
           googleMapRef.current.setCenter(memoizedCenter);
         }
-  
+
         // Clear existing markers
-        markersRef.current.forEach(marker => marker.setMap(null));
+        markersRef.current.forEach(marker => marker.map = null);
         markersRef.current = [];
-  
+
         memoizedPlaces.forEach((place) => {
           if (isValidCoordinate(place.location.lat) && isValidCoordinate(place.location.lng)) {
-            const MarkerClass = window.google.maps.marker?.AdvancedMarkerElement || window.google.maps.Marker;
-            const marker = new MarkerClass({
-              position: place.location,
+            const marker = new AdvancedMarkerElement({
               map: googleMapRef.current,
+              position: place.location,
               title: place.name,
             });
             markersRef.current.push(marker);
@@ -320,7 +323,7 @@ export default function Home() {
         setMapError('Invalid coordinates provided');
       }
     }, [memoizedCenter, memoizedPlaces]);
-  
+
     useEffect(() => {
       loadGoogleMapsScript(() => {
         try {
@@ -330,17 +333,17 @@ export default function Home() {
           setMapError('Failed to initialize Google Maps');
         }
       });
-  
+
       return () => {
         // Clean up markers when component unmounts
-        markersRef.current.forEach(marker => marker.setMap(null));
+        markersRef.current.forEach(marker => marker.map = null);
       };
     }, [initializeMap]);
-  
+
     if (mapError) {
       return <div className="h-64 flex items-center justify-center bg-gray-100">{mapError}</div>;
     }
-  
+
     return <div ref={mapRef} className="w-full h-64" />;
   });
   
@@ -349,7 +352,7 @@ export default function Home() {
   const MapSkeleton = () => (
     <Skeleton className="w-full h-64" />
   );
-  
+
   const PlaceDetails = ({ place }: { place: any }) => (
     <div className="flex justify-between items-start py-2">
       <div>
@@ -398,7 +401,7 @@ export default function Home() {
           </div>
         );
       }
-  
+
       if (isLoading) {
         return (
           <Card className="w-full my-4 overflow-hidden">
@@ -411,7 +414,7 @@ export default function Home() {
           </Card>
         );
       }
-  
+
       return (
         <Card className="w-full my-4 overflow-hidden">
           <CardHeader>

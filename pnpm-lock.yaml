@@ -52,7 +52,7 @@ dependencies:
     version: 1.4.0
   ai:
     specifier: latest
-    version: 3.3.9(react@18.3.1)(svelte@4.2.18)(vue@3.4.35)(zod@3.23.8)
+    version: 3.3.10(react@18.3.1)(svelte@4.2.18)(vue@3.4.35)(zod@3.23.8)
   class-variance-authority:
     specifier: ^0.7.0
     version: 0.7.0
@@ -103,6 +103,9 @@ dependencies:
     version: 3.23.8
 
 devDependencies:
+  '@types/google.maps':
+    specifier: ^3.55.12
+    version: 3.55.12
   '@types/node':
     specifier: ^20
     version: 20.14.13
@@ -269,8 +272,8 @@ packages:
       zod-to-json-schema: 3.22.5(zod@3.23.8)
     dev: false
 
-  /@ai-sdk/vue@0.0.37(vue@3.4.35)(zod@3.23.8):
-    resolution: {integrity: sha512-m7dMi6qRoWPuru9TyWUm5jXAPGSDb1SHZp/Q+uYjhNY1dZwgsZxJvSeakogzR37uhiRCg3Kg8fCypQJe+dikPA==}
+  /@ai-sdk/vue@0.0.38(vue@3.4.35)(zod@3.23.8):
+    resolution: {integrity: sha512-iqVPsRDXkrfIFzwrWoUKqBzMqSHxJQoompdj0LCC9v3s9c4ndn9Vx67nB5g2ee3fO3bY/O9vLebDwYyVKM4glg==}
     engines: {node: '>=18'}
     peerDependencies:
       vue: ^3.3.4
@@ -1324,6 +1327,10 @@ packages:
     resolution: {integrity: sha512-/kYRxGDLWzHOB7q+wtSUQlFrtcdUccpfy+X+9iMBpHK8QLLhx2wIPYuS5DYtR9Wa/YlZAbIovy7qVdB1Aq6Lyw==}
     dev: false
 
+  /@types/google.maps@3.55.12:
+    resolution: {integrity: sha512-Q8MsLE+YYIrE1H8wdN69YHHAF8h7ApvF5MiMXh/zeCpP9Ut745mV9M0F4X4eobZ2WJe9k8tW2ryYjLa87IO2Sg==}
+    dev: true
+
   /@types/googlemaps@3.43.3:
     resolution: {integrity: sha512-ZWNoz/O8MPEpiajvj7QiqCY8tTLFNqNZ/a+s+zTV58wFVNAvvqV4bdGfnsjTb5Cs4V6wEsLrX8XRhmnyYJ2Tdg==}
     deprecated: 'Types for the Google Maps browser API have moved to @types/google.maps. Note: these types are not for the googlemaps npm package, which is a Node API.'
@@ -1569,8 +1576,8 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
-  /ai@3.3.9(react@18.3.1)(svelte@4.2.18)(vue@3.4.35)(zod@3.23.8):
-    resolution: {integrity: sha512-PS6xHzYIH+iVLG3xd/jwsqZW7+X8GrSrsJwVB4ACMbxhZN8KRs4yUcnGEDPcvRkEL3PqHHJFUo9iVysdZwOUwg==}
+  /ai@3.3.10(react@18.3.1)(svelte@4.2.18)(vue@3.4.35)(zod@3.23.8):
+    resolution: {integrity: sha512-NuUUymuQb5KWZii8xMARfhloXmzlRNJiibv7Ci5N6WsMs2DmiVUlybUEL+DOYfIdDRzqCC2mxE0agpdgCbA2kA==}
     engines: {node: '>=18'}
     peerDependencies:
       openai: ^4.42.0
@@ -1596,7 +1603,7 @@ packages:
       '@ai-sdk/solid': 0.0.36(zod@3.23.8)
       '@ai-sdk/svelte': 0.0.38(svelte@4.2.18)(zod@3.23.8)
       '@ai-sdk/ui-utils': 0.0.33(zod@3.23.8)
-      '@ai-sdk/vue': 0.0.37(vue@3.4.35)(zod@3.23.8)
+      '@ai-sdk/vue': 0.0.38(vue@3.4.35)(zod@3.23.8)
       '@opentelemetry/api': 1.9.0
       eventsource-parser: 1.1.2
       json-schema: 0.4.0
