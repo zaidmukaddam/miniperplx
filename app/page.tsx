@@ -386,7 +386,7 @@ export default function Home() {
   const MapEmbed = memo(({ location, zoom = 15 }: { location: string, zoom?: number }) => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     const mapUrl = `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodeURIComponent(location)}&zoom=${zoom}`;
-  
+
     return (
       <div className="aspect-video w-full">
         <iframe
@@ -402,13 +402,13 @@ export default function Home() {
       </div>
     );
   });
-  
+
   MapEmbed.displayName = 'MapEmbed';
-  
+
   const FindPlaceResult = memo(({ result }: { result: any }) => {
     const place = result.candidates[0];
     const location = `${place.geometry.location.lat},${place.geometry.location.lng}`;
-  
+
     return (
       <Card className="w-full my-4 overflow-hidden shadow-none">
         <CardHeader>
@@ -438,13 +438,13 @@ export default function Home() {
       </Card>
     );
   });
-  
+
   FindPlaceResult.displayName = 'FindPlaceResult';
-  
+
   const TextSearchResult = memo(({ result }: { result: any }) => {
     const centerLocation = result.results[0]?.geometry?.location;
     const mapLocation = centerLocation ? `${centerLocation.lat},${centerLocation.lng}` : '';
-  
+
     return (
       <Card className="w-full my-4 overflow-hidden shadow-none">
         <CardHeader>
@@ -484,9 +484,9 @@ export default function Home() {
       </Card>
     );
   });
-  
+
   TextSearchResult.displayName = 'TextSearchResult';
-  
+
 
   const renderToolInvocation = (toolInvocation: ToolInvocation, index: number) => {
     const args = JSON.parse(JSON.stringify(toolInvocation.args));
@@ -560,7 +560,7 @@ export default function Home() {
         </Card>
       );
     }
-    
+
     if (toolInvocation.toolName === 'find_place') {
       if (!result) {
         return (
@@ -588,10 +588,10 @@ export default function Home() {
           </div>
         );
       }
-  
+
       return <FindPlaceResult result={result} />;
     }
-  
+
     if (toolInvocation.toolName === 'text_search') {
       if (!result) {
         return (
@@ -619,7 +619,7 @@ export default function Home() {
           </div>
         );
       }
-  
+
       return <TextSearchResult result={result} />;
     }
 
@@ -738,39 +738,39 @@ export default function Home() {
               </div>
             </TabsContent>
             {result?.images && result.images.length > 0 && (
-            <TabsContent value="images" className="p-0 m-0 bg-white">
-              <div className="space-y-4 p-4">
-                {result.images.map((img: { format: 'png' | 'jpeg' | 'svg', data: string }, imgIndex: number) => (
-                  <div key={imgIndex} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <h4 className="text-sm font-medium">Image {imgIndex + 1}</h4>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="p-0 h-8 w-8"
-                        onClick={() => {
-                          const link = document.createElement('a');
-                          link.href = `data:image/${img.format === 'svg' ? 'svg+xml' : img.format};base64,${img.data}`;
-                          link.download = `generated-image-${imgIndex + 1}.${img.format}`;
-                          link.click();
-                        }}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
+              <TabsContent value="images" className="p-0 m-0 bg-white">
+                <div className="space-y-4 p-4">
+                  {result.images.map((img: { format: 'png' | 'jpeg' | 'svg', data: string }, imgIndex: number) => (
+                    <div key={imgIndex} className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-sm font-medium">Image {imgIndex + 1}</h4>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="p-0 h-8 w-8"
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = `data:image/${img.format === 'svg' ? 'svg+xml' : img.format};base64,${img.data}`;
+                            link.download = `generated-image-${imgIndex + 1}.${img.format}`;
+                            link.click();
+                          }}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
+                        <Image
+                          src={`data:image/${img.format === 'svg' ? 'svg+xml' : img.format};base64,${img.data}`}
+                          alt={`Generated image ${imgIndex + 1}`}
+                          layout="fill"
+                          objectFit="contain"
+                        />
+                      </div>
                     </div>
-                    <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
-                      <Image
-                        src={`data:image/${img.format === 'svg' ? 'svg+xml' : img.format};base64,${img.data}`}
-                        alt={`Generated image ${imgIndex + 1}`}
-                        layout="fill"
-                        objectFit="contain"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </TabsContent>
-          )}
+                  ))}
+                </div>
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       );
@@ -1131,16 +1131,34 @@ export default function Home() {
       <Navbar />
 
       <div className={`w-full max-w-[90%] sm:max-w-2xl space-y-6 p-1 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[26vh] sm:mt-[30vh]'}`}>
-        {!hasSubmitted &&
-          <div
-            className="text-center"
-          >
+        {!hasSubmitted && (
+          <div className="text-center">
             <h1 className="text-4xl sm:text-6xl mb-1 text-primary font-serif">MiniPerplx</h1>
             <h2 className='text-xl sm:text-2xl font-serif text-balance text-center mb-6'>
               In search for minimalism and simplicity
             </h2>
+            <div className="flex justify-center items-center space-x-4 mb-6">
+              <Link href="https://www.producthunt.com/posts/miniperplx?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-miniperplx" target="_blank" rel="noopener noreferrer" passHref>
+                <Image
+                  src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=481378&theme=light"
+                  alt="MiniPerplx - A minimalistic AI-powered search engine. | Product Hunt"
+                  width={250}
+                  height={54}
+                  className="h-auto w-auto"
+                />
+              </Link>
+              <Link href="https://peerlist.io/zaidmukaddam/project/miniperplx" target="_blank" rel="noopener noreferrer" passHref>
+                <Image
+                  src="/Launch_SVG_Light.svg"
+                  alt="Peerlist"
+                  width={32}
+                  height={32}
+                  className="h-auto w-auto"
+                />
+              </Link>
+            </div>
           </div>
-        }
+        )}
         <AnimatePresence>
           {!hasSubmitted && (
             <motion.div
