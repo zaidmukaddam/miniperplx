@@ -1025,20 +1025,16 @@ export default function Home() {
     });
   }, [append]);
 
-  const handleSuggestedQuestionClick = useCallback(async (question: string) => {
-    setLastSubmittedQuery(question.trim());
+  const handleSuggestedQuestionClick = useCallback((question: string) => {
     setHasSubmitted(true);
     setSuggestedQuestions([]);
-    await append({
-      content: question.trim(),
-      role: 'user'
-    });
-  }, [append]);
+    setInput(question.trim());
+    handleSubmit(new Event('submit') as any);
+  }, [setInput, handleSubmit]);
 
   const handleFormSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (input.trim()) {
-      setLastSubmittedQuery(input.trim());
       setHasSubmitted(true);
       setSuggestedQuestions([]);
       handleSubmit(e);
@@ -1061,15 +1057,11 @@ export default function Home() {
       setMessages(updatedMessages);
       setIsEditingMessage(false);
       setEditingMessageIndex(-1);
-      setInput('');
-      append({
-        content: input.trim(),
-        role: 'user'
-      });
+      handleSubmit(e);
     } else {
       toast.error("Please enter a valid message.");
     }
-  }, [input, messages, editingMessageIndex, setMessages, setInput, append]);
+  }, [input, messages, editingMessageIndex, setMessages, handleSubmit]);
 
   const exampleQueries = [
     "Weather in Doha",
