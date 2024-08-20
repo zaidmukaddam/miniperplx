@@ -4,6 +4,12 @@
 
 A minimalistic AI-powered search engine that helps you find information on the internet.
 
+## ProductHunt Launch
+
+Upvote MiniPerplx on ProductHunt to show your support!
+
+<a href="https://www.producthunt.com/posts/miniperplx?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-miniperplx" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=481378&theme=light" alt="MiniPerplx - A&#0032;minimalistic&#0032;AI&#0045;powered&#0032;search&#0032;engine&#0046; | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+
 ## Features
 
 - **AI-powered search**: Get answers to your questions using Anthropic's Models.
