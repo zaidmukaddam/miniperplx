@@ -12,14 +12,13 @@ React,
   memo
 } from 'react';
 import ReactMarkdown, { Components } from 'react-markdown';
-import { useRouter } from 'next/navigation';
 import remarkGfm from 'remark-gfm';
 import { useChat } from 'ai/react';
 import { ToolInvocation } from 'ai';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { suggestQuestions, Message } from './actions';
+import { suggestQuestions } from './actions';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {
@@ -41,8 +40,6 @@ import {
   MapPin,
   Star,
   Plus,
-  Terminal,
-  ImageIcon,
   Download,
 } from 'lucide-react';
 import {
@@ -51,7 +48,6 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
 import {
   Accordion,
   AccordionContent,
@@ -85,7 +81,6 @@ import {
 import { GitHubLogoIcon } from '@radix-ui/react-icons';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
 
 export const maxDuration = 60;
 
@@ -97,26 +92,24 @@ declare global {
 }
 
 export default function Home() {
-  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [lastSubmittedQuery, setLastSubmittedQuery] = useState("");
   const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
   const [showExamples, setShowExamples] = useState(false)
-  const [isEditingQuery, setIsEditingQuery] = useState(false);
+  const [isEditingMessage, setIsEditingMessage] = useState(false);
+  const [editingMessageIndex, setEditingMessageIndex] = useState(-1);
 
   const { isLoading, input, messages, setInput, append, handleSubmit, setMessages } = useChat({
     api: '/api/chat',
     maxToolRoundtrips: 1,
     onFinish: async (message, { finishReason }) => {
       if (finishReason === 'stop') {
-        const newHistory: Message[] = [{ role: "user", content: lastSubmittedQuery, }, { role: "assistant", content: message.content }];
+        const newHistory = [...messages, { role: "user", content: lastSubmittedQuery }, { role: "assistant", content: message.content }];
         const { questions } = await suggestQuestions(newHistory);
         setSuggestedQuestions(questions);
       }
-      setIsAnimating(false);
     },
     onError: (error) => {
       console.error("Chat error:", error);
@@ -1007,6 +1000,14 @@ export default function Home() {
 
   MarkdownRenderer.displayName = "MarkdownRenderer";
 
+  const lastUserMessageIndex = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        return i;
+      }
+    }
+    return -1;
+  }, [messages]);
 
   useEffect(() => {
     if (bottomRef.current) {
@@ -1018,9 +1019,18 @@ export default function Home() {
     setLastSubmittedQuery(query.trim());
     setHasSubmitted(true);
     setSuggestedQuestions([]);
-    setIsAnimating(true);
     await append({
       content: query.trim(),
+      role: 'user'
+    });
+  }, [append]);
+
+  const handleSuggestedQuestionClick = useCallback(async (question: string) => {
+    setLastSubmittedQuery(question.trim());
+    setHasSubmitted(true);
+    setSuggestedQuestions([]);
+    await append({
+      content: question.trim(),
       role: 'user'
     });
   }, [append]);
@@ -1028,49 +1038,38 @@ export default function Home() {
   const handleFormSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (input.trim()) {
-      setMessages([]);
       setLastSubmittedQuery(input.trim());
       setHasSubmitted(true);
-      setIsAnimating(true);
       setSuggestedQuestions([]);
       handleSubmit(e);
     } else {
       toast.error("Please enter a search query.");
     }
-  }, [input, setMessages, handleSubmit]);
+  }, [input, handleSubmit]);
 
-  const handleSuggestedQuestionClick = useCallback(async (question: string) => {
-    setMessages([]);
-    setLastSubmittedQuery(question.trim());
-    setHasSubmitted(true);
-    setSuggestedQuestions([]);
-    setIsAnimating(true);
-    await append({
-      content: question.trim(),
-      role: 'user'
-    });
-  }, [append, setMessages]);
+  const handleMessageEdit = useCallback((index: number) => {
+    setIsEditingMessage(true);
+    setEditingMessageIndex(index);
+    setInput(messages[index].content);
+  }, [messages, setInput]);
 
-  const handleQueryEdit = useCallback(() => {
-    setIsAnimating(true)
-    setIsEditingQuery(true);
-    setInput(lastSubmittedQuery);
-  }, [lastSubmittedQuery, setInput]);
-
-  const handleQuerySubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
+  const handleMessageUpdate = useCallback((e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (input.trim()) {
-      setLastSubmittedQuery(input.trim());
-      setIsEditingQuery(false);
-      setMessages([]);
-      setHasSubmitted(true);
-      setIsAnimating(true);
-      setSuggestedQuestions([]);
-      handleSubmit(e);
+      const updatedMessages = [...messages];
+      updatedMessages[editingMessageIndex] = { ...updatedMessages[editingMessageIndex], content: input.trim() };
+      setMessages(updatedMessages);
+      setIsEditingMessage(false);
+      setEditingMessageIndex(-1);
+      setInput('');
+      append({
+        content: input.trim(),
+        role: 'user'
+      });
     } else {
-      toast.error("Please enter a search query.");
+      toast.error("Please enter a valid message.");
     }
-  }, [input, setMessages, handleSubmit]);
+  }, [input, messages, editingMessageIndex, setMessages, setInput, append]);
 
   const exampleQueries = [
     "Weather in Doha",
@@ -1214,94 +1213,63 @@ export default function Home() {
         </AnimatePresence>
 
 
-        <AnimatePresence>
-          {hasSubmitted && (
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 50 }}
-              transition={{ duration: 0.5 }}
-              onAnimationComplete={() => setIsAnimating(false)}
-            >
-              <div className="flex items-center space-x-2 mb-4">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                >
-                  <User2 className="size-5 sm:size-6 text-primary flex-shrink-0" />
-                </motion.div>
+        <div className="space-y-4 sm:space-y-6 mb-24"> 
+          {messages.map((message, index) => (
+            <div key={index}>
+              {message.role === 'user' && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                  className="flex-grow min-w-0"
+                  transition={{ duration: 0.5 }}
+                  className="flex items-center space-x-2 mb-4"
                 >
-                  {isEditingQuery ? (
-                    <form onSubmit={handleQuerySubmit} className="flex items-center space-x-2">
-                      <Input
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        className="flex-grow"
-                      />
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        type="button"
-                        onClick={() => {
-                          setIsEditingQuery(false)
-                          setInput('')
-                        }}
-                        disabled={isLoading}
-                      >
-                        <X size={16} />
-                      </Button>
-                      <Button type="submit" size="sm">
-                        <ArrowRight size={16} />
-                      </Button>
-                    </form>
-                  ) : (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <p className="text-xl sm:text-2xl font-medium font-serif truncate">
-                            {lastSubmittedQuery}
-                          </p>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{lastSubmittedQuery}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                  <User2 className="size-5 sm:size-6 text-primary flex-shrink-0" />
+                  <div className="flex-grow min-w-0">
+                    {isEditingMessage && editingMessageIndex === index ? (
+                      <form onSubmit={handleMessageUpdate} className="flex items-center space-x-2">
+                        <Input
+                          value={input}
+                          onChange={(e) => setInput(e.target.value)}
+                          className="flex-grow"
+                        />
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          type="button"
+                          onClick={() => {
+                            setIsEditingMessage(false)
+                            setEditingMessageIndex(-1)
+                            setInput('')
+                          }}
+                          disabled={isLoading}
+                        >
+                          <X size={16} />
+                        </Button>
+                        <Button type="submit" size="sm">
+                          <ArrowRight size={16} />
+                        </Button>
+                      </form>
+                    ) : (
+                      <p className="text-xl sm:text-2xl font-medium font-serif truncate">
+                        {message.content}
+                      </p>
+                    )}
+                  </div>
+                  {!isEditingMessage && index === lastUserMessageIndex && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleMessageEdit(index)}
+                      className="ml-2"
+                      disabled={isLoading}
+                    >
+                      <Edit2 size={16} />
+                    </Button>
                   )}
                 </motion.div>
-                {!isEditingQuery && (<motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 0.4 }}
-                  className="flex-shrink-0 flex flex-row items-center gap-2"
-                >
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleQueryEdit}
-                    className="ml-2"
-                    disabled={isLoading}
-                  >
-                    <Edit2 size={16} />
-                  </Button>
-                </motion.div>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div className="space-y-4 sm:space-y-6">
-          {messages.map((message, index) => (
-            <div key={index}>
+              )}
               {message.role === 'assistant' && message.content && (
-                <div className={`${suggestedQuestions.length === 0 ? '!mb-20 sm:!mb-18' : ''}`}>
+                <div>
                   <div className='flex items-center justify-between mb-2'>
                     <div className='flex items-center gap-2'>
                       <Sparkles className="size-5 text-primary" />
@@ -1327,7 +1295,7 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               transition={{ duration: 0.5 }}
-              className="w-full max-w-xl sm:max-w-2xl !mb-20 !sm:mb-18"
+              className="w-full max-w-xl sm:max-w-2xl"
             >
               <div className="flex items-center gap-2 mb-4">
                 <AlignLeft className="w-5 h-5 text-primary" />
@@ -1352,7 +1320,7 @@ export default function Home() {
       </div>
 
       <AnimatePresence>
-        {hasSubmitted && !isAnimating && (
+        {hasSubmitted && (
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1363,7 +1331,6 @@ export default function Home() {
             <form onSubmit={handleFormSubmit} className="flex items-center space-x-2">
               <div className="relative flex-1">
                 <Input
-                  ref={inputRef}
                   name="search"
                   placeholder="Ask a new question..."
                   value={input}
@@ -1376,7 +1343,7 @@ export default function Home() {
                   size={'icon'}
                   variant={'ghost'}
                   className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                  disabled={input.length === 0}
+                  disabled={input.length === 0 || isLoading}
                 >
                   <ArrowRight size={20} />
                 </Button>

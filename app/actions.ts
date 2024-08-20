@@ -4,17 +4,12 @@ import { generateObject } from 'ai';
 import { createOpenAI as createGroq } from '@ai-sdk/openai';
 import { z } from 'zod';
 
-export interface Message {
-    role: 'user' | 'assistant';
-    content: string;
-}
-
 const groq = createGroq({
     baseURL: 'https://api.groq.com/openai/v1',
     apiKey: process.env.GROQ_API_KEY,
 });
 
-export async function suggestQuestions(history: Message[]) {
+export async function suggestQuestions(history: any[]) {
     'use server';
 
     const { object } = await generateObject({
@@ -31,10 +26,7 @@ For location based conversations, always generate questions that are about the c
 Never use pronouns in the questions as they blur the context.`,
         messages: history,
         schema: z.object({
-            questions: z.array(
-                z.string()
-            )
-                .describe('The generated questions based on the message history.')
+            questions: z.array(z.string()).describe('The generated questions based on the message history.')
         }),
     });
 
