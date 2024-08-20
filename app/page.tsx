@@ -8,7 +8,8 @@ React,
   useCallback,
   useState,
   useEffect,
-  useMemo
+  useMemo,
+  memo
 } from 'react';
 import ReactMarkdown, { Components } from 'react-markdown';
 import { useRouter } from 'next/navigation';
@@ -35,17 +36,22 @@ import {
   Loader2,
   User2,
   Edit2,
-  RefreshCw,
   Heart,
   X,
   MapPin,
   Star,
+  Plus,
+  Terminal,
+  ImageIcon,
+  Download,
 } from 'lucide-react';
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
 import {
   Accordion,
   AccordionContent,
@@ -78,6 +84,8 @@ import {
 } from "@/components/ui/chart";
 import { GitHubLogoIcon } from '@radix-ui/react-icons';
 import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 export const maxDuration = 60;
 
@@ -148,6 +156,8 @@ export default function Home() {
       </Button>
     );
   };
+
+  // Weather chart components
 
   interface WeatherDataPoint {
     date: string;
@@ -257,6 +267,9 @@ export default function Home() {
 
   WeatherChart.displayName = 'WeatherChart';
 
+
+  // Google Maps components
+
   const isValidCoordinate = (coord: number) => {
     return typeof coord === 'number' && !isNaN(coord) && isFinite(coord);
   };
@@ -346,7 +359,7 @@ export default function Home() {
 
     return <div ref={mapRef} className="w-full h-64" />;
   });
-  
+
   MapComponent.displayName = 'MapComponent';
 
   const MapSkeleton = () => (
@@ -369,6 +382,111 @@ export default function Home() {
       )}
     </div>
   );
+
+  const MapEmbed = memo(({ location, zoom = 15 }: { location: string, zoom?: number }) => {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    const mapUrl = `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodeURIComponent(location)}&zoom=${zoom}`;
+  
+    return (
+      <div className="aspect-video w-full">
+        <iframe
+          width="100%"
+          height="100%"
+          style={{ border: 0 }}
+          loading="lazy"
+          allowFullScreen
+          referrerPolicy="no-referrer-when-downgrade"
+          src={mapUrl}
+          className='rounded-xl'
+        ></iframe>
+      </div>
+    );
+  });
+  
+  MapEmbed.displayName = 'MapEmbed';
+  
+  const FindPlaceResult = memo(({ result }: { result: any }) => {
+    const place = result.candidates[0];
+    const location = `${place.geometry.location.lat},${place.geometry.location.lng}`;
+  
+    return (
+      <Card className="w-full my-4 overflow-hidden shadow-none">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-primary" />
+            <span>{place.name}</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MapEmbed location={location} />
+          <div className="mt-4 space-y-2">
+            <p><strong>Address:</strong> {place.formatted_address}</p>
+            {place.rating && (
+              <div className="flex items-center">
+                <strong className="mr-2">Rating:</strong>
+                <Badge variant="secondary" className="flex items-center">
+                  <Star className="h-3 w-3 mr-1 text-yellow-400" />
+                  {place.rating}
+                </Badge>
+              </div>
+            )}
+            {place.opening_hours && (
+              <p><strong>Open now:</strong> {place.opening_hours.open_now ? 'Yes' : 'No'}</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  });
+  
+  FindPlaceResult.displayName = 'FindPlaceResult';
+  
+  const TextSearchResult = memo(({ result }: { result: any }) => {
+    const centerLocation = result.results[0]?.geometry?.location;
+    const mapLocation = centerLocation ? `${centerLocation.lat},${centerLocation.lng}` : '';
+  
+    return (
+      <Card className="w-full my-4 overflow-hidden shadow-none">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-primary" />
+            <span>Text Search Results</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {mapLocation && <MapEmbed location={mapLocation} zoom={13} />}
+          <Accordion type="single" collapsible className="w-full mt-4">
+            <AccordionItem value="place-details">
+              <AccordionTrigger>Place Details</AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-4 max-h-64 overflow-y-auto">
+                  {result.results.map((place: any, index: number) => (
+                    <div key={index} className="flex justify-between items-start py-2 border-b last:border-b-0">
+                      <div>
+                        <h4 className="font-semibold">{place.name}</h4>
+                        <p className="text-sm text-muted-foreground max-w-[200px]" title={place.formatted_address}>
+                          {place.formatted_address}
+                        </p>
+                      </div>
+                      {place.rating && (
+                        <Badge variant="secondary" className="flex items-center">
+                          <Star className="h-3 w-3 mr-1 text-yellow-400" />
+                          {place.rating} ({place.user_ratings_total})
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </CardContent>
+      </Card>
+    );
+  });
+  
+  TextSearchResult.displayName = 'TextSearchResult';
+  
 
   const renderToolInvocation = (toolInvocation: ToolInvocation, index: number) => {
     const args = JSON.parse(JSON.stringify(toolInvocation.args));
@@ -442,6 +560,68 @@ export default function Home() {
         </Card>
       );
     }
+    
+    if (toolInvocation.toolName === 'find_place') {
+      if (!result) {
+        return (
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-neutral-700 animate-pulse" />
+              <span className="text-neutral-700 text-lg">Finding place...</span>
+            </div>
+            <motion.div className="flex space-x-1">
+              {[0, 1, 2].map((index) => (
+                <motion.div
+                  key={index}
+                  className="w-2 h-2 bg-muted-foreground rounded-full"
+                  initial={{ opacity: 0.3 }}
+                  animate={{ opacity: 1 }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 0.8,
+                    delay: index * 0.2,
+                    repeatType: "reverse",
+                  }}
+                />
+              ))}
+            </motion.div>
+          </div>
+        );
+      }
+  
+      return <FindPlaceResult result={result} />;
+    }
+  
+    if (toolInvocation.toolName === 'text_search') {
+      if (!result) {
+        return (
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-neutral-700 animate-pulse" />
+              <span className="text-neutral-700 text-lg">Searching places...</span>
+            </div>
+            <motion.div className="flex space-x-1">
+              {[0, 1, 2].map((index) => (
+                <motion.div
+                  key={index}
+                  className="w-2 h-2 bg-muted-foreground rounded-full"
+                  initial={{ opacity: 0.3 }}
+                  animate={{ opacity: 1 }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 0.8,
+                    delay: index * 0.2,
+                    repeatType: "reverse",
+                  }}
+                />
+              ))}
+            </motion.div>
+          </div>
+        );
+      }
+  
+      return <TextSearchResult result={result} />;
+    }
 
     if (toolInvocation.toolName === 'get_weather_data') {
       if (!result) {
@@ -489,92 +669,110 @@ export default function Home() {
 
     if (toolInvocation.toolName === 'programming') {
       return (
-        <Accordion type="single" collapsible className="w-full my-4">
-          <AccordionItem value="programming" className="border-none">
-            <AccordionTrigger className="hover:no-underline">
-              <div className="flex items-center justify-between w-full">
-                <div className="flex items-center gap-2 text-left">
-                  <Code className="h-5 w-5 text-primary" />
-                  <span className="font-semibold">Programming</span>
-                </div>
-                {result ? (
-                  <Badge variant="secondary" className="ml-auto mr-2 rounded-full">
-                    <Check className="h-3 w-3 mr-1" />
-                    Run Complete
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary" className="ml-auto mr-2 rounded-full">
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    Running
-                  </Badge>
-                )}
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="pt-4 pb-2 space-y-4">
-              {args?.code && (
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-medium">Code</h3>
-                    <CopyButton text={args.code} />
-                  </div>
-                  <div className="relative">
-                    <SyntaxHighlighter
-                      language="python"
-                      style={oneLight}
-                      customStyle={{
-                        margin: 0,
-                        padding: '1rem',
-                        borderRadius: '0.5rem',
-                        fontSize: '0.875rem',
-                      }}
-                    >
-                      {args.code}
-                    </SyntaxHighlighter>
-                    <div className="absolute top-2 right-2">
-                      <Badge variant="outline" className="text-xs">
-                        Python
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
+        <div className="w-full my-2 border border-gray-200 overflow-hidden rounded-md">
+          <div className="bg-gray-100 p-2 flex items-center">
+            <Code className="h-5 w-5 text-gray-500 mr-2" />
+            <span className="text-sm font-medium">Programming</span>
+          </div>
+          <Tabs defaultValue="code" className="w-full">
+            <TabsList className="bg-gray-50 p-0 h-auto shadow-sm">
+              <TabsTrigger
+                value="code"
+                className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
+              >
+                Code
+              </TabsTrigger>
+              <TabsTrigger
+                value="output"
+                className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
+              >
+                Output
+              </TabsTrigger>
+              {result?.images && result.images.length > 0 && (
+                <TabsTrigger
+                  value="images"
+                  className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
+                >
+                  Images
+                </TabsTrigger>
               )}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium">Result</h3>
-                  {result && <CopyButton text={result} />}
+            </TabsList>
+            <TabsContent value="code" className="p-0 m-0 rounded-none">
+              <div className="relative">
+                <SyntaxHighlighter
+                  language="python"
+                  style={oneLight}
+                  customStyle={{
+                    margin: 0,
+                    padding: '1rem',
+                    fontSize: '0.875rem',
+                    borderRadius: 0,
+                  }}
+                >
+                  {args.code}
+                </SyntaxHighlighter>
+                <div className="absolute top-2 right-2">
+                  <CopyButton text={args.code} />
                 </div>
+              </div>
+            </TabsContent>
+            <TabsContent value="output" className="p-0 m-0 rounded-none">
+              <div className="relative bg-white p-4">
                 {result ? (
-                  <pre className="bg-neutral-50 p-3 rounded-md overflow-x-auto text-sm">
-                    <code>{result}</code>
-                  </pre>
-                ) : (
-                  <div className="flex items-center justify-between w-full !bg-neutral-100 p-3 rounded-md">
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
-                      <span className="text-muted-foreground text-sm">Executing code...</span>
+                  <>
+                    <pre className="text-sm">
+                      <code>{result.message}</code>
+                    </pre>
+                    <div className="absolute top-2 right-2">
+                      <CopyButton text={result.message} />
                     </div>
-                    <div className="flex space-x-1">
-                      {[0, 1, 2].map((index) => (
-                        <motion.div
-                          key={index}
-                          className="w-1.5 h-1.5 bg-muted-foreground rounded-full"
-                          initial={{ opacity: 0.3 }}
-                          animate={{ opacity: 1 }}
-                          transition={{
-                            repeat: Infinity,
-                            duration: 0.8,
-                            delay: index * 0.2,
-                            repeatType: "reverse",
-                          }}
-                        />
-                      ))}
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center h-20">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
+                      <span className="text-gray-500 text-sm">Executing code...</span>
                     </div>
                   </div>
                 )}
               </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+            </TabsContent>
+            {result?.images && result.images.length > 0 && (
+            <TabsContent value="images" className="p-0 m-0 bg-white">
+              <div className="space-y-4 p-4">
+                {result.images.map((img: { format: 'png' | 'jpeg' | 'svg', data: string }, imgIndex: number) => (
+                  <div key={imgIndex} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-sm font-medium">Image {imgIndex + 1}</h4>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="p-0 h-8 w-8"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = `data:image/${img.format === 'svg' ? 'svg+xml' : img.format};base64,${img.data}`;
+                          link.download = `generated-image-${imgIndex + 1}.${img.format}`;
+                          link.click();
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
+                      <Image
+                        src={`data:image/${img.format === 'svg' ? 'svg+xml' : img.format};base64,${img.data}`}
+                        alt={`Generated image ${imgIndex + 1}`}
+                        layout="fill"
+                        objectFit="contain"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
+          )}
+          </Tabs>
+        </div>
       );
     }
 
@@ -883,15 +1081,18 @@ export default function Home() {
 
   const Navbar = () => (
     <div className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center p-4 bg-background">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => router.push('/new')}
-        className="flex items-center space-x-2"
-      >
-        <RefreshCw className="h-4 w-4" />
-        <span>New</span>
-      </Button>
+      <Link href="/new">
+        <Button
+          type="button"
+          variant={'secondary'}
+          className="rounded-full bg-secondary/80 group transition-all hover:scale-105 pointer-events-auto"
+        >
+          <Plus size={18} className="group-hover:rotate-90 transition-all" />
+          <span className="text-sm ml-2 group-hover:block hidden animate-in fade-in duration-300">
+            New
+          </span>
+        </Button>
+      </Link>
       <div
         className='flex items-center space-x-2'
       >
@@ -930,20 +1131,16 @@ export default function Home() {
       <Navbar />
 
       <div className={`w-full max-w-[90%] sm:max-w-2xl space-y-6 p-1 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[26vh] sm:mt-[30vh]'}`}>
-        <motion.div
-          initial={false}
-          animate={hasSubmitted ? { scale: 0.7 } : { scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="text-center"
-        >
-          <h1 className="text-4xl sm:text-6xl mb-1 text-primary font-serif">MiniPerplx</h1>
-          {!hasSubmitted &&
+        {!hasSubmitted &&
+          <div
+            className="text-center"
+          >
+            <h1 className="text-4xl sm:text-6xl mb-1 text-primary font-serif">MiniPerplx</h1>
             <h2 className='text-xl sm:text-2xl font-serif text-balance text-center mb-6'>
               In search for minimalism and simplicity
             </h2>
-          }
-        </motion.div>
-
+          </div>
+        }
         <AnimatePresence>
           {!hasSubmitted && (
             <motion.div

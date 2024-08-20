@@ -27,7 +27,7 @@ The user is located in ${city}(${latitude}, ${longitude}).
 
 Here are the tools available to you:
 <available_tools>
-web_search, retrieve, get_weather_data, programming, nearby_search
+web_search, retrieve, get_weather_data, programming, nearby_search, find_place, text_search
 </available_tools>
 
 Here is the general guideline per tool to follow when responding to user queries:
@@ -36,7 +36,12 @@ Here is the general guideline per tool to follow when responding to user queries
 - For weather-related queries, use the get_weather_data tool. The weather results are 5 days weather forecast data with 3-hour step. Then, provide the weather information in your response.
 - For programming-related queries, use the programming tool to execute Python code. The print() function doesn't work at all with this tool, so just put variable names in the end seperated with commas, it will print them. Then, compose your response based on the output of the code execution.
 - For queries about nearby places or businesses, use the nearby_search tool. Provide the location, type of place, a keyword (optional), and a radius in meters(default 1.5 Kilometers). Then, compose your response based on the search results.
-- Do not use the retrieve tool for general web searches. It is only for retrieving specific information from a URL.- Do not use the retrieve tool for general web searches. It is only for retrieving specific information from a URL.
+- For queries about finding a specific place, use the find_place tool. Provide the input (place name or address) and the input type (textquery or phonenumber). Then, compose your response based on the search results.
+- For text-based searches of places, use the text_search tool. Provide the query, location (optional), and radius (optional). Then, compose your response based on the search results.
+- Do not use the retrieve tool for general web searches. It is only for retrieving specific information from a URL.
+- Show plots from the programming tool using plt.show() function. The tool will automatically capture the plot and display it in the response.
+- If asked for multiple plots, make it happen in one run of the tool. The tool will automatically capture the plots and display them in the response.
+- The location search tools return images in the response, please do not include them in the response at all costs.
 
 Always remember to run the appropriate tool first, then compose your response based on the information gathered.
 All tool should be called only once per response.
@@ -226,8 +231,10 @@ Just run the tool and provide the answer.`,
         execute: async ({ code }: { code: string }) => {
           const sandbox = await CodeInterpreter.create();
           const execution = await sandbox.notebook.execCell(code);
+          let message = "";
+          let images = [];
+
           if (execution.results.length > 0) {
-            let message: string = "";
             for (const result of execution.results) {
               if (result.isMainResult) {
                 message += `${result.text}\n`;
@@ -235,32 +242,31 @@ Just run the tool and provide the answer.`,
                 message += `${result.text}\n`;
               }
               if (result.formats().length > 0) {
-                message += `It has following formats: ${result.formats()}\n`;
+                const formats = result.formats();
+                for (let format of formats) {
+                  if (format === "png") {
+                    images.push({ format: "png", data: result.png });
+                  } else if (format === "jpeg") {
+                    images.push({ format: "jpeg", data: result.jpeg });
+                  } else if (format === "svg") {
+                    images.push({ format: "svg", data: result.svg });
+                  }
+                }
               }
             }
-
-            sandbox.close();
-            return message;
           }
 
-          if (
-            execution.logs.stdout.length > 0 ||
-            execution.logs.stderr.length > 0
-          ) {
-            let message = "";
+          if (execution.logs.stdout.length > 0 || execution.logs.stderr.length > 0) {
             if (execution.logs.stdout.length > 0) {
               message += `${execution.logs.stdout.join("\n")}\n`;
             }
             if (execution.logs.stderr.length > 0) {
               message += `${execution.logs.stderr.join("\n")}\n`;
             }
-
-            sandbox.close();
-            return message;
           }
 
           sandbox.close();
-          return "There was no output of the execution.";
+          return { message: message.trim(), images };
         },
       }),
       nearby_search: tool({
@@ -307,6 +313,46 @@ Just run the tool and provide the answer.`,
             center: { lat, lng },
             formatted_address: geocodeData.results[0].formatted_address,
           };
+        },
+      }),
+      find_place: tool({
+        description: "Find a specific place using Google Maps API.",
+        parameters: z.object({
+          input: z.string().describe("The place to search for (e.g., 'Museum of Contemporary Art Australia')."),
+          inputtype: z.enum(["textquery", "phonenumber"]).describe("The type of input (textquery or phonenumber)."),
+        }),
+        execute: async ({ input, inputtype }: { input: string; inputtype: "textquery" | "phonenumber" }) => {
+          const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+          const url = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?fields=formatted_address,name,rating,opening_hours,geometry&input=${encodeURIComponent(input)}&inputtype=${inputtype}&key=${apiKey}`;
+          
+          const response = await fetch(url);
+          const data = await response.json();
+          
+          return data;
+        },
+      }),
+      text_search: tool({
+        description: "Perform a text-based search for places using Google Maps API.",
+        parameters: z.object({
+          query: z.string().describe("The search query (e.g., '123 main street')."),
+          location: z.string().optional().describe("The location to center the search (e.g., '42.3675294,-71.186966')."),
+          radius: z.number().optional().describe("The radius of the search area in meters (max 50000)."),
+        }),
+        execute: async ({ query, location, radius }: { query: string; location?: string; radius?: number }) => {
+          const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+          let url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${apiKey}`;
+          
+          if (location) {
+            url += `&location=${encodeURIComponent(location)}`;
+          }
+          if (radius) {
+            url += `&radius=${radius}`;
+          }
+          
+          const response = await fetch(url);
+          const data = await response.json();
+          
+          return data;
         },
       }),
     },
