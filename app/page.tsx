@@ -675,7 +675,7 @@ export default function Home() {
             <span className="text-sm font-medium">Programming</span>
           </div>
           <Tabs defaultValue="code" className="w-full">
-            <TabsList className="bg-gray-50 p-0 h-auto shadow-sm">
+            <TabsList className="bg-gray-50 p-0 h-auto shadow-sm rounded-none">
               <TabsTrigger
                 value="code"
                 className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
