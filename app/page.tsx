@@ -1135,7 +1135,7 @@ export default function Home() {
                   alt="MiniPerplx - A minimalistic AI-powered search engine. | Product Hunt"
                   width={250}
                   height={54}
-                  className="h-auto w-auto"
+                  className="h-12 w-auto"
                 />
               </Link>
               <Link href="https://peerlist.io/zaidmukaddam/project/miniperplx" target="_blank" rel="noopener noreferrer" passHref>
@@ -1144,7 +1144,7 @@ export default function Home() {
                   alt="Peerlist"
                   width={32}
                   height={32}
-                  className="h-auto w-auto"
+                  className="h-12 w-auto"
                 />
               </Link>
             </div>
