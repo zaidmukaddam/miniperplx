@@ -41,6 +41,9 @@ import {
   Star,
   Plus,
   Download,
+  Flame,
+  Video,
+  Sun
 } from 'lucide-react';
 import {
   HoverCard,
@@ -97,7 +100,6 @@ export default function Home() {
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
-  const [showExamples, setShowExamples] = useState(false)
   const [isEditingMessage, setIsEditingMessage] = useState(false);
   const [editingMessageIndex, setEditingMessageIndex] = useState(-1);
 
@@ -105,7 +107,8 @@ export default function Home() {
     api: '/api/chat',
     maxToolRoundtrips: 1,
     onFinish: async (message, { finishReason }) => {
-      if (finishReason === 'stop') {
+      console.log("[finish reason]:", finishReason);
+      if (message.content && finishReason === 'stop') {
         const newHistory = [...messages, { role: "user", content: lastSubmittedQuery }, { role: "assistant", content: message.content }];
         const { questions } = await suggestQuestions(newHistory);
         setSuggestedQuestions(questions);
@@ -1063,11 +1066,11 @@ export default function Home() {
     }
   }, [input, messages, editingMessageIndex, setMessages, handleSubmit]);
 
-  const exampleQueries = [
-    "Weather in Doha",
-    "What is new with Grok 2.0?",
-    "Count the number of r's in strawberry",
-    "Explain Claude 3.5 Sonnet"
+  const suggestionCards = [
+    { icon: <Flame className="w-5 h-5 text-gray-400" />, text: "What's new with XAI's Grok?" },
+    { icon: <Sparkles className="w-5 h-5 text-gray-400" />, text: "Latest updates on OpenAI" },
+    { icon: <Sun className="w-5 h-5 text-gray-400" />, text: "Weather in Doha" },
+    { icon: <Video className="w-5 h-5 text-gray-400" />, text: "What are people saying about Luma?" },
   ];
 
   const Navbar = () => (
@@ -1124,8 +1127,8 @@ export default function Home() {
       <div className={`w-full max-w-[90%] sm:max-w-2xl space-y-6 p-1 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[26vh] sm:mt-[30vh]'}`}>
         {!hasSubmitted && (
           <div className="text-center">
-            <h1 className="text-4xl sm:text-6xl mb-1 text-primary font-serif">MiniPerplx</h1>
-            <h2 className='text-xl sm:text-2xl font-serif text-balance text-center mb-6'>
+            <h1 className="text-4xl sm:text-6xl mb-1 text-gray-800 font-serif">MiniPerplx</h1>
+            <h2 className='text-xl sm:text-2xl font-serif text-balance text-center mb-6 text-gray-600'>
               In search for minimalism and simplicity
             </h2>
             <div className="flex justify-center items-center space-x-4 mb-6">
@@ -1167,8 +1170,6 @@ export default function Home() {
                     onChange={(e) => setInput(e.target.value)}
                     disabled={isLoading}
                     className="w-full min-h-12 py-3 px-4 bg-muted border border-input rounded-full pr-12 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-200 focus-visible:ring-offset-2 text-sm sm:text-base"
-                    onFocus={() => setShowExamples(true)}
-                    onBlur={() => setShowExamples(false)}
                   />
                   <Button
                     type="submit"
@@ -1182,30 +1183,24 @@ export default function Home() {
                 </div>
               </form>
 
-              <div className={`mx-auto w-full transition-all ${showExamples ? 'visible' : 'invisible'}`}>
-                <div className="bg-background p-2">
-                  <div className="flex flex-col items-start space-y-2">
-                    {exampleQueries.map((message, index) => (
-                      <Button
-                        key={index}
-                        variant="link"
-                        className="h-auto p-0 text-base"
-                        name={message}
-                        onClick={() => handleExampleClick(message)}
-                      >
-                        <ArrowRight size={16} className="mr-2 text-muted-foreground" />
-                        {message}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
+              <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2 sm:space-x-4 mt-6">
+                {suggestionCards.map((card, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleExampleClick(card.text)}
+                    className="flex items-center space-x-2 p-3 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors duration-200 text-left"
+                  >
+                    <span>{card.icon}</span>
+                    <span className="text-xs font-medium text-gray-700 line-clamp-2">{card.text}</span>
+                  </button>
+                ))}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
 
-        <div className="space-y-4 sm:space-y-6 mb-24"> 
+        <div className="space-y-4 sm:space-y-6 mb-24">
           {messages.map((message, index) => (
             <div key={index}>
               {message.role === 'user' && (
