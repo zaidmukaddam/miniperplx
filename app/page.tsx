@@ -1070,7 +1070,7 @@ export default function Home() {
     { icon: <Flame className="w-5 h-5 text-gray-400" />, text: "What's new with XAI's Grok?" },
     { icon: <Sparkles className="w-5 h-5 text-gray-400" />, text: "Latest updates on OpenAI" },
     { icon: <Sun className="w-5 h-5 text-gray-400" />, text: "Weather in Doha" },
-    { icon: <Video className="w-5 h-5 text-gray-400" />, text: "What are people saying about Luma?" },
+    { icon: <Video className="w-5 h-5 text-gray-400" />, text: "What are people saying about Llama 3.1?" },
   ];
 
   const Navbar = () => (
