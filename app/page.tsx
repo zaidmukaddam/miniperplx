@@ -13,12 +13,16 @@ React,
 } from 'react';
 import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 import { useChat } from 'ai/react';
 import { ToolInvocation } from 'ai';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { suggestQuestions } from './actions';
+import { generateSpeech, suggestQuestions } from './actions';
+import { Wave } from "@foobar404/wave";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {
@@ -42,9 +46,11 @@ import {
   Plus,
   Download,
   Flame,
-  Video,
   Sun,
-  Terminal
+  Terminal,
+  Pause,
+  Play,
+  RotateCw
 } from 'lucide-react';
 import {
   HoverCard,
@@ -109,7 +115,7 @@ export default function Home() {
     maxToolRoundtrips: 1,
     onFinish: async (message, { finishReason }) => {
       console.log("[finish reason]:", finishReason);
-      if (message.content && finishReason === 'stop') {
+      if (message.content && finishReason === 'stop' || finishReason === 'length') {
         const newHistory = [...messages, { role: "user", content: lastSubmittedQuery }, { role: "assistant", content: message.content }];
         const { questions } = await suggestQuestions(newHistory);
         setSuggestedQuestions(questions);
@@ -484,6 +490,147 @@ export default function Home() {
 
   TextSearchResult.displayName = 'TextSearchResult';
 
+  const TranslationTool = ({ toolInvocation, result }: { toolInvocation: ToolInvocation; result: any }) => {
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [audioUrl, setAudioUrl] = useState<string | null>(null);
+    const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const waveRef = useRef<Wave | null>(null);
+
+    useEffect(() => {
+      return () => {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.src = '';
+        }
+      };
+    }, []);
+
+    useEffect(() => {
+      if (audioUrl && audioRef.current && canvasRef.current) {
+        waveRef.current = new Wave(audioRef.current, canvasRef.current);
+        waveRef.current.addAnimation(new waveRef.current.animations.Lines({
+          lineColor: "hsl(var(--primary))",
+          lineWidth: 2,
+          mirroredY: true,
+          count: 100,
+        }));
+      }
+    }, [audioUrl]);
+
+    const handlePlayPause = async () => {
+      if (!audioUrl && !isGeneratingAudio) {
+        setIsGeneratingAudio(true);
+        try {
+          const { audio } = await generateSpeech(result.translatedText, 'alloy');
+          setAudioUrl(audio);
+          setIsGeneratingAudio(false);
+        } catch (error) {
+          console.error("Error generating speech:", error);
+          setIsGeneratingAudio(false);
+        }
+      } else if (audioRef.current) {
+        if (isPlaying) {
+          audioRef.current.pause();
+        } else {
+          audioRef.current.play();
+        }
+        setIsPlaying(!isPlaying);
+      }
+    };
+
+    const handleReset = () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        setIsPlaying(false);
+      }
+    };
+
+    if (!result) {
+      return (
+        <Card className="w-full my-4">
+          <CardContent className="flex items-center justify-center h-24">
+            <div className="animate-pulse flex items-center">
+              <div className="h-4 w-4 bg-primary rounded-full mr-2"></div>
+              <div className="h-4 w-32 bg-primary rounded"></div>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <Card className="w-full my-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary w-5 h-5 sm:w-6 sm:h-6">
+              <path d="m5 8 6 6"></path><path d="m4 14 6-6 2-3"></path><path d="M2 5h12"></path><path d="M7 2h1"></path><path d="m22 22-5-10-5 10"></path><path d="M14 18h6"></path>
+            </svg>
+            Translation Result
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 sm:space-y-6">
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-medium text-xs sm:text-sm mb-2 flex items-center gap-2">
+                Original Text <Badge variant="outline" className="text-xs">{result.detectedLanguage}</Badge>
+              </h4>
+              <p className="text-xs sm:text-sm p-2 sm:p-3 bg-muted rounded-md">{toolInvocation.args.text}</p>
+            </div>
+            <div>
+              <h4 className="font-medium text-xs sm:text-sm mb-2 flex items-center gap-2">
+                Translated Text <Badge variant="outline" className="text-xs">{toolInvocation.args.to}</Badge>
+              </h4>
+              <p className="text-xs sm:text-sm p-2 sm:p-3 bg-muted rounded-md">{result.translatedText}</p>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <h4 className="font-medium text-xs sm:text-sm">Audio Playback:</h4>
+            <div className="w-full h-16 sm:h-24 bg-muted rounded-lg overflow-hidden">
+              <canvas ref={canvasRef} width="500" height="100" className="w-full h-full" />
+            </div>
+            <div className="flex justify-center space-x-2">
+              <Button
+                onClick={handlePlayPause}
+                disabled={isGeneratingAudio}
+                variant="outline"
+                size="sm"
+                className="text-xs sm:text-sm"
+              >
+                {isGeneratingAudio ? (
+                  "Generating..."
+                ) : isPlaying ? (
+                  <><Pause className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Pause</>
+                ) : (
+                  <><Play className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Play</>
+                )}
+              </Button>
+              <Button
+                onClick={handleReset}
+                disabled={isGeneratingAudio || !audioUrl}
+                variant="outline"
+                size="sm"
+                className="text-xs sm:text-sm"
+              >
+                <RotateCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Reset
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+        {audioUrl && (
+          <audio
+            ref={audioRef}
+            src={audioUrl}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onEnded={() => setIsPlaying(false)}
+          />
+        )}
+      </Card>
+    );
+  };
 
   const renderToolInvocation = (toolInvocation: ToolInvocation, index: number) => {
     const args = JSON.parse(JSON.stringify(toolInvocation.args));
@@ -926,7 +1073,7 @@ export default function Home() {
         </div>
       );
     }
-  
+
     if (toolInvocation.toolName === 'retrieve') {
       if (!result) {
         return (
@@ -954,7 +1101,7 @@ export default function Home() {
           </div>
         );
       }
-  
+
       return (
         <div className="w-full my-4">
           <div className="flex items-center gap-2 mb-2">
@@ -985,6 +1132,10 @@ export default function Home() {
           </Accordion>
         </div>
       );
+    }
+
+    if (toolInvocation.toolName === 'text_translate') {
+      return <TranslationTool toolInvocation={toolInvocation} result={result} />;
     }
 
     return (
@@ -1081,10 +1232,10 @@ export default function Home() {
     children: React.ReactNode;
     index: number;
   }
-
+  
   const CitationComponent: React.FC<CitationComponentProps> = React.memo(({ href, index }) => {
     const faviconUrl = `https://www.google.com/s2/favicons?sz=128&domain=${new URL(href).hostname}`;
-
+  
     return (
       <HoverCard key={index}>
         <HoverCardTrigger asChild>
@@ -1106,13 +1257,13 @@ export default function Home() {
       </HoverCard>
     );
   });
-
+  
   CitationComponent.displayName = "CitationComponent";
-
+  
   interface MarkdownRendererProps {
     content: string;
   }
-
+  
   const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ content }) => {
     const citationLinks = useMemo(() => {
       return [...content.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map(([_, text, link]) => ({
@@ -1120,7 +1271,7 @@ export default function Home() {
         link,
       }));
     }, [content]);
-
+  
     const components: Partial<Components> = useMemo(() => ({
       a: ({ href, children }) => {
         if (!href) return null;
@@ -1136,10 +1287,11 @@ export default function Home() {
         );
       },
     }), [citationLinks]);
-
+  
     return (
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
         components={components}
         className="prose text-sm sm:text-base text-pretty text-left"
       >
@@ -1147,7 +1299,7 @@ export default function Home() {
       </ReactMarkdown>
     );
   });
-
+  
   MarkdownRenderer.displayName = "MarkdownRenderer";
 
   const lastUserMessageIndex = useMemo(() => {

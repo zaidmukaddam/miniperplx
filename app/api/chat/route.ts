@@ -28,7 +28,7 @@ The user is located in ${city}(${latitude}, ${longitude}).
 
 Here are the tools available to you:
 <available_tools>
-web_search, retrieve, get_weather_data, programming, nearby_search, find_place, text_search
+web_search, retrieve, get_weather_data, programming, nearby_search, find_place, text_search, text_translate
 </available_tools>
 
 Here is the general guideline per tool to follow when responding to user queries:
@@ -36,9 +36,12 @@ Here is the general guideline per tool to follow when responding to user queries
 - If you need to retrieve specific information from a webpage, use the retrieve tool. Analyze the user's query to set the topic type either normal or news. Then, compose your response based on the retrieved information.
 - For weather-related queries, use the get_weather_data tool. The weather results are 5 days weather forecast data with 3-hour step. Then, provide the weather information in your response.
 - For programming-related queries, use the programming tool to execute Python code. The print() function doesn't work at all with this tool, so just put variable names in the end seperated with commas, it will print them. Then, compose your response based on the output of the code execution.
+- The programming tool runs the code in a jupyper notebook environment. Use this tool for tasks that require code execution, such as data analysis, calculations, or visualizations.
 - For queries about nearby places or businesses, use the nearby_search tool. Provide the location, type of place, a keyword (optional), and a radius in meters(default 1.5 Kilometers). Then, compose your response based on the search results.
 - For queries about finding a specific place, use the find_place tool. Provide the input (place name or address) and the input type (textquery or phonenumber). Then, compose your response based on the search results.
 - For text-based searches of places, use the text_search tool. Provide the query, location (optional), and radius (optional). Then, compose your response based on the search results.
+- For text translation queries, use the text_translate tool. Provide the text to translate, the language to translate to, and the source language (optional). Then, compose your response based on the translated text.
+- Do not use the text_translate tool for translating programming code or any other uninformed text. Only run the tool for translating on user's request.
 - Do not use the retrieve tool for general web searches. It is only for retrieving specific information from a URL.
 - Show plots from the programming tool using plt.show() function. The tool will automatically capture the plot and display it in the response.
 - If asked for multiple plots, make it happen in one run of the tool. The tool will automatically capture the plots and display them in the response.
@@ -50,10 +53,13 @@ Here is the general guideline per tool to follow when responding to user queries
 Always remember to run the appropriate tool first, then compose your response based on the information gathered.
 All tool should be called only once per response.
 
+The programming tool is actually a Python Code interpreter, so you can run any Python code in it.
+
 Citations should always be placed at the end of each paragraph and in the end of sentences where you use it in which they are referred to with the given format to the information provided.
 When citing sources(citations), use the following styling only: Claude 3.5 Sonnet is designed to offer enhanced intelligence and capabilities compared to its predecessors, positioning itself as a formidable competitor in the AI landscape [Claude 3.5 Sonnet raises the..](https://www.anthropic.com/news/claude-3-5-sonnet).
 ALWAYS REMEMBER TO USE THE CITATIONS FORMAT CORRECTLY AT ALL COSTS!! ANY SINGLE ITCH IN THE FORMAT WILL CRASH THE RESPONSE!!
 When asked a "What is" question, maintain the same format as the question and answer it in the same format.
+The response should include latex equations, use the format $<equation>$ for inline equations, $$<equation>$$ for block equations and \[ \] for math blocks.
 
 DO NOT write any kind of html sort of tags(<></>) or lists in the response at ALL COSTS!! NOT EVEN AN ENCLOSING TAGS FOR THE RESPONSE AT ALL COSTS!!
 
@@ -337,6 +343,37 @@ Just run the tool and provide the answer.`,
           const data = await response.json();
 
           return data;
+        },
+      }),
+      text_translate: tool({
+        description: "Translate text from one language to another using Microsoft Translator.",
+        parameters: z.object({
+          text: z.string().describe("The text to translate."),
+          to: z.string().describe("The language to translate to (e.g., 'fr' for French)."),
+          from: z.string().optional().describe("The source language (optional, will be auto-detected if not provided)."),
+        }),
+        execute: async ({ text, to, from }: { text: string; to: string; from?: string }) => {
+          const key = process.env.AZURE_TRANSLATOR_KEY;
+          const endpoint = "https://api.cognitive.microsofttranslator.com";
+          const location = process.env.AZURE_TRANSLATOR_LOCATION;
+      
+          const url = `${endpoint}/translate?api-version=3.0&to=${to}${from ? `&from=${from}` : ''}`;
+      
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Ocp-Apim-Subscription-Key': key!,
+              'Ocp-Apim-Subscription-Region': location!,
+              'Content-type': 'application/json',
+            },
+            body: JSON.stringify([{ text }]),
+          });
+      
+          const data = await response.json();
+          return {
+            translatedText: data[0].translations[0].text,
+            detectedLanguage: data[0].detectedLanguage?.language,
+          };
         },
       }),
     },

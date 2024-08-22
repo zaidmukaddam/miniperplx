@@ -1,5 +1,6 @@
 'use server';
 
+import { OpenAI } from 'openai';
 import { generateObject } from 'ai';
 import { createOpenAI as createGroq } from '@ai-sdk/openai';
 import { z } from 'zod';
@@ -7,6 +8,10 @@ import { z } from 'zod';
 const groq = createGroq({
     baseURL: 'https://api.groq.com/openai/v1',
     apiKey: process.env.GROQ_API_KEY,
+});
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function suggestQuestions(history: any[]) {
@@ -23,6 +28,7 @@ Try to stick to the context of the conversation and avoid asking questions that 
 For weather based converations sent to you, always generate questions that are about news, sports, or other topics that are not related to the weather.
 For programming based conversations, always generate questions that are about the algorithms, data structures, or other topics that are related to it or an improvement of the question.
 For location based conversations, always generate questions that are about the culture, history, or other topics that are related to the location.
+For the translation based conversations, always generate questions that may continue the conversation or ask for more information or translations.
 Never use pronouns in the questions as they blur the context.`,
         messages: history,
         schema: z.object({
@@ -32,5 +38,20 @@ Never use pronouns in the questions as they blur the context.`,
 
     return {
         questions: object.questions
+    };
+}
+
+export async function generateSpeech(text: string, voice: 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer' = "alloy") {
+    const response = await openai.audio.speech.create({
+        model: "tts-1",
+        voice: voice,
+        input: text,
+    });
+
+    const arrayBuffer = await response.arrayBuffer();
+    const base64Audio = Buffer.from(arrayBuffer).toString('base64');
+
+    return {
+        audio: `data:audio/mp3;base64,${base64Audio}`,
     };
 }
