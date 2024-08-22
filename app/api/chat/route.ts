@@ -1,6 +1,7 @@
 import { openai } from '@ai-sdk/openai'
 import { convertToCoreMessages, streamText, tool } from "ai";
 import { CodeInterpreter } from "@e2b/code-interpreter";
+import FirecrawlApp from '@mendable/firecrawl-js';
 import { z } from "zod";
 import { geolocation } from "@vercel/functions";
 
@@ -163,52 +164,32 @@ Just run the tool and provide the answer.`,
         },
       }),
       retrieve: tool({
-        description: "Retrieve the information from a URL.",
+        description: "Retrieve the information from a URL using Firecrawl.",
         parameters: z.object({
           url: z.string().describe("The URL to retrieve the information from."),
         }),
         execute: async ({ url }: { url: string }) => {
-          let hasError = false;
-
-          let results;
+          const app = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY });
           try {
-            const response = await fetch(`https://r.jina.ai/${url}`, {
-              method: "GET",
-              headers: {
-                Accept: "application/json",
-                "X-With-Generated-Alt": "true",
-              },
-            });
-            const json = await response.json();
-            if (!json.data || json.data.length === 0) {
-              hasError = true;
-            } else {
-              // Limit the content to 5000 characters
-              if (json.data.content.length > 5000) {
-                json.data.content = json.data.content.slice(0, 5000);
-              }
-              results = {
-                results: [
-                  {
-                    title: json.data.title,
-                    content: json.data.content,
-                    url: json.data.url,
-                  },
-                ],
-                query: "",
-                images: [],
-              };
+            const content = await app.scrapeUrl(url);
+            if (!content.data) {
+              return { error: "Failed to retrieve content" };
             }
+            return {
+              results: [
+                {
+                  title: content.data.metadata.title,
+                  content: content.data.markdown,
+                  url: content.data.metadata.sourceURL,
+                  description: content.data.metadata.description,
+                  language: content.data.metadata.language,
+                },
+              ],
+            };
           } catch (error) {
-            hasError = true;
-            console.error("Retrieve API error:", error);
+            console.error("Firecrawl API error:", error);
+            return { error: "Failed to retrieve content" };
           }
-
-          if (hasError || !results) {
-            return results;
-          }
-
-          return results;
         },
       }),
       get_weather_data: tool({
@@ -327,10 +308,10 @@ Just run the tool and provide the answer.`,
         execute: async ({ input, inputtype }: { input: string; inputtype: "textquery" | "phonenumber" }) => {
           const apiKey = process.env.GOOGLE_MAPS_API_KEY;
           const url = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?fields=formatted_address,name,rating,opening_hours,geometry&input=${encodeURIComponent(input)}&inputtype=${inputtype}&key=${apiKey}`;
-          
+
           const response = await fetch(url);
           const data = await response.json();
-          
+
           return data;
         },
       }),
@@ -344,17 +325,17 @@ Just run the tool and provide the answer.`,
         execute: async ({ query, location, radius }: { query: string; location?: string; radius?: number }) => {
           const apiKey = process.env.GOOGLE_MAPS_API_KEY;
           let url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${apiKey}`;
-          
+
           if (location) {
             url += `&location=${encodeURIComponent(location)}`;
           }
           if (radius) {
             url += `&radius=${radius}`;
           }
-          
+
           const response = await fetch(url);
           const data = await response.json();
-          
+
           return data;
         },
       }),
