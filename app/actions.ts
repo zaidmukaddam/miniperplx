@@ -1,6 +1,6 @@
 'use server';
 
-import { OpenAI } from 'openai';
+import { OpenAI, AzureOpenAI } from 'openai';
 import { generateObject } from 'ai';
 import { createOpenAI as createGroq } from '@ai-sdk/openai';
 import { z } from 'zod';
@@ -8,10 +8,6 @@ import { z } from 'zod';
 const groq = createGroq({
     baseURL: 'https://api.groq.com/openai/v1',
     apiKey: process.env.GROQ_API_KEY,
-});
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function suggestQuestions(history: any[]) {
@@ -42,16 +38,29 @@ Never use pronouns in the questions as they blur the context.`,
 }
 
 export async function generateSpeech(text: string, voice: 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer' = "alloy") {
-    const response = await openai.audio.speech.create({
-        model: "tts-1",
-        voice: voice,
+    const url = process.env.AZURE_OPENAI_API_URL!;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'api-key': process.env.AZURE_OPENAI_API_KEY!,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: "tts",
         input: text,
+        voice: voice
+      })
     });
-
+  
+    if (!response.ok) {
+      throw new Error(`Failed to generate speech: ${response.statusText}`);
+    }
+  
     const arrayBuffer = await response.arrayBuffer();
     const base64Audio = Buffer.from(arrayBuffer).toString('base64');
-
+  
     return {
-        audio: `data:audio/mp3;base64,${base64Audio}`,
+      audio: `data:audio/mp3;base64,${base64Audio}`,
     };
-}
+  }
