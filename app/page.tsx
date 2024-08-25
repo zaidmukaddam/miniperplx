@@ -788,115 +788,129 @@ export default function Home() {
 
     if (toolInvocation.toolName === 'programming') {
       return (
-        <div className="w-full my-2 border border-gray-200 overflow-hidden rounded-md">
-          <div className="bg-gray-100 p-2 flex items-center">
-            <Code className="h-5 w-5 text-gray-500 mr-2" />
-            <span className="text-sm font-medium">Programming</span>
-          </div>
-          <Tabs defaultValue="code" className="w-full">
-            <TabsList className="bg-gray-50 p-0 h-auto shadow-sm rounded-none">
-              <TabsTrigger
-                value="code"
-                className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
-              >
-                Code
-              </TabsTrigger>
-              <TabsTrigger
-                value="output"
-                className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
-              >
-                Output
-              </TabsTrigger>
-              {result?.images && result.images.length > 0 && (
-                <TabsTrigger
-                  value="images"
-                  className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
-                >
-                  Images
-                </TabsTrigger>
-              )}
-            </TabsList>
-            <TabsContent value="code" className="p-0 m-0 rounded-none">
-              <div className="relative">
-                <SyntaxHighlighter
-                  language="python"
-                  style={oneLight}
-                  customStyle={{
-                    margin: 0,
-                    padding: '1rem',
-                    fontSize: '0.875rem',
-                    borderRadius: 0,
-                  }}
-                >
-                  {args.code}
-                </SyntaxHighlighter>
-                <div className="absolute top-2 right-2">
-                  <CopyButton text={args.code} />
+        <Accordion type="single" collapsible className="w-full mt-4">
+          <AccordionItem value={`item-${index}`} className="border-none">
+            <AccordionTrigger className="hover:no-underline py-2">
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-2">
+                  <Code className="h-5 w-5 text-primary" />
+                  <h2 className="text-base font-semibold">Programming</h2>
                 </div>
               </div>
-            </TabsContent>
-            <TabsContent value="output" className="p-0 m-0 rounded-none">
-              <div className="relative bg-white p-4">
-                {result ? (
-                  <>
-                    <pre className="text-sm">
-                      <code>{result.message}</code>
-                    </pre>
-                    <div className="absolute top-2 right-2">
-                      <CopyButton text={result.message} />
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex items-center justify-center h-20">
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
-                      <span className="text-gray-500 text-sm">Executing code...</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-            {result?.images && result.images.length > 0 && (
-              <TabsContent value="images" className="p-0 m-0 bg-white">
-                <div className="space-y-4 p-4">
-                  {result.images.map((img: { format: string, url: string }, imgIndex: number) => (
-                    <div key={imgIndex} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <h4 className="text-sm font-medium">Image {imgIndex + 1}</h4>
-                        {img.url && img.url.trim() !== '' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="p-0 h-8 w-8"
-                            onClick={() => {
-                              window.open(img.url + "?download=1", '_blank');
-                            }}
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        )}
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="w-full my-2 border border-gray-200 overflow-hidden rounded-md">
+                <div className="bg-gray-100 p-2 flex items-center">
+                  <Code className="h-5 w-5 text-gray-500 mr-2" />
+                  <span className="text-sm font-medium">{args.title}</span>
+                </div>
+                <Tabs defaultValue="code" className="w-full">
+                  <TabsList className="bg-gray-50 p-0 h-auto shadow-sm rounded-none">
+                    <TabsTrigger
+                      value="code"
+                      className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
+                    >
+                      Code
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="output"
+                      className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
+                    >
+                      Output
+                    </TabsTrigger>
+                    {result?.images && result.images.length > 0 && (
+                      <TabsTrigger
+                        value="images"
+                        className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
+                      >
+                        Images
+                      </TabsTrigger>
+                    )}
+                  </TabsList>
+                  <TabsContent value="code" className="p-0 m-0 rounded-none">
+                    <div className="relative">
+                      <SyntaxHighlighter
+                        language="python"
+                        style={oneLight}
+                        customStyle={{
+                          margin: 0,
+                          padding: '1rem',
+                          fontSize: '0.875rem',
+                          borderRadius: 0,
+                        }}
+                      >
+                        {args.code}
+                      </SyntaxHighlighter>
+                      <div className="absolute top-2 right-2">
+                        <CopyButton text={args.code} />
                       </div>
-                      <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
-                        {img.url && img.url.trim() !== '' ? (
-                          <Image
-                            src={img.url}
-                            alt={`Generated image ${imgIndex + 1}`}
-                            layout="fill"
-                            objectFit="contain"
-                          />
-                        ) : (
-                          <div className="flex items-center justify-center h-full bg-gray-100 text-gray-400">
-                            Image upload failed or URL is empty
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="output" className="p-0 m-0 rounded-none">
+                    <div className="relative bg-white p-4">
+                      {result ? (
+                        <>
+                          <pre className="text-sm">
+                            <code>{result.message}</code>
+                          </pre>
+                          <div className="absolute top-2 right-2">
+                            <CopyButton text={result.message} />
                           </div>
-                        )}
-                      </div>
+                        </>
+                      ) : (
+                        <div className="flex items-center justify-center h-20">
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
+                            <span className="text-gray-500 text-sm">Executing code...</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
-              </TabsContent>
-            )}
-          </Tabs>
-        </div>
+                  </TabsContent>
+                  {result?.images && result.images.length > 0 && (
+                    <TabsContent value="images" className="p-0 m-0 bg-white">
+                      <div className="space-y-4 p-4">
+                        {result.images.map((img: { format: string, url: string }, imgIndex: number) => (
+                          <div key={imgIndex} className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <h4 className="text-sm font-medium">Image {imgIndex + 1}</h4>
+                              {img.url && img.url.trim() !== '' && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="p-0 h-8 w-8"
+                                  onClick={() => {
+                                    window.open(img.url + "?download=1", '_blank');
+                                  }}
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                            <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
+                              {img.url && img.url.trim() !== '' ? (
+                                <Image
+                                  src={img.url}
+                                  alt={`Generated image ${imgIndex + 1}`}
+                                  layout="fill"
+                                  objectFit="contain"
+                                />
+                              ) : (
+                                <div className="flex items-center justify-center h-full bg-gray-100 text-gray-400">
+                                  Image upload failed or URL is empty
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </TabsContent>
+                  )}
+                </Tabs>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       );
     }
 
