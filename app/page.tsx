@@ -50,7 +50,10 @@ import {
   Terminal,
   Pause,
   Play,
-  RotateCw
+  RotateCw,
+  TrendingUpIcon,
+  Calendar,
+  Calculator
 } from 'lucide-react';
 import {
   HoverCard,
@@ -801,7 +804,10 @@ export default function Home() {
             <AccordionContent>
               <div className="w-full my-2 border border-gray-200 overflow-hidden rounded-md">
                 <div className="bg-gray-100 p-2 flex items-center">
-                  <Code className="h-5 w-5 text-gray-500 mr-2" />
+                  {args.icon === 'stock' && <TrendingUpIcon className="h-5 w-5 text-primary mr-2" />}
+                  {args.icon === 'default' && <Code className="h-5 w-5 text-primary mr-2" />}
+                  {args.icon === 'date' && <Calendar className="h-5 w-5 text-primary mr-2" />}
+                  {args.icon === 'calculation' && <Calculator className="h-5 w-5 text-primary mr-2" />}
                   <span className="text-sm font-medium">{args.title}</span>
                 </div>
                 <Tabs defaultValue="code" className="w-full">

@@ -237,6 +237,7 @@ When asked a "What is" question, maintain the same format as the question and an
         parameters: z.object({
           title: z.string().optional().describe("The title of the code snippet."),
           code: z.string().describe("The Python code to execute."),
+          icon: z.enum(["stock", "date", "calculation", "default"]).describe("The icon to display for the code snippet."),
         }),
         execute: async ({ code }: { code: string }) => {
           const sandbox = await CodeInterpreter.create();
