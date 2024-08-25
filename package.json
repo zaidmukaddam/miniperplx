@@ -33,7 +33,6 @@
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "framer-motion": "^11.3.19",
-    "katex": "^0.16.11",
     "lucide-react": "^0.424.0",
     "next": "^14.2.5",
     "openai": "^4.56.0",

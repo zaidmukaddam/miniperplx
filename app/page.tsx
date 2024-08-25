@@ -50,7 +50,6 @@ import {
   Terminal,
   Pause,
   Play,
-  RotateCw,
   TrendingUpIcon,
   Calendar,
   Calculator
@@ -799,6 +798,17 @@ export default function Home() {
                   <Code className="h-5 w-5 text-primary" />
                   <h2 className="text-base font-semibold">Programming</h2>
                 </div>
+                {!result ? (
+                  <Badge variant="secondary" className="mr-2 rounded-full">
+                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                    Executing
+                  </Badge>
+                ) : (
+                  <Badge className="mr-2 rounded-full">
+                    <Check className="h-3 w-3 mr-1 text-green-400" />
+                    Executed
+                  </Badge>
+                )}
               </div>
             </AccordionTrigger>
             <AccordionContent>
@@ -1265,12 +1275,15 @@ export default function Home() {
   }
 
   const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ content }) => {
+    // Escape dollar signs that are likely to be currency
+    const escapedContent = content.replace(/\$(\d+(\.\d{1,2})?)/g, '\\$$1');
+
     const citationLinks = useMemo(() => {
-      return [...content.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map(([_, text, link]) => ({
+      return [...escapedContent.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map(([_, text, link]) => ({
         text,
         link,
       }));
-    }, [content]);
+    }, [escapedContent]);
 
     const components: Partial<Components> = useMemo(() => ({
       a: ({ href, children }) => {
@@ -1295,7 +1308,7 @@ export default function Home() {
         components={components}
         className="prose text-sm sm:text-base text-pretty text-left"
       >
-        {content}
+        {escapedContent}
       </ReactMarkdown>
     );
   });
