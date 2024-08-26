@@ -50,7 +50,9 @@ import {
   Terminal,
   Pause,
   Play,
-  RotateCw
+  TrendingUpIcon,
+  Calendar,
+  Calculator
 } from 'lucide-react';
 import {
   HoverCard,
@@ -490,7 +492,7 @@ export default function Home() {
 
   TextSearchResult.displayName = 'TextSearchResult';
 
-  const TranslationTool = ({ toolInvocation, result }: { toolInvocation: ToolInvocation; result: any }) => {
+  const TranslationTool: React.FC<{ toolInvocation: ToolInvocation; result: any }> = ({ toolInvocation, result }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
     const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
@@ -511,7 +513,7 @@ export default function Home() {
       if (audioUrl && audioRef.current && canvasRef.current) {
         waveRef.current = new Wave(audioRef.current, canvasRef.current);
         waveRef.current.addAnimation(new waveRef.current.animations.Lines({
-          lineColor: "hsl(var(--primary))",
+          lineColor: "rgb(203, 113, 93)",
           lineWidth: 2,
           mirroredY: true,
           count: 100,
@@ -562,60 +564,35 @@ export default function Home() {
     }
 
     return (
-      <Card className="w-full my-4">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary w-5 h-5 sm:w-6 sm:h-6">
-              <path d="m5 8 6 6"></path><path d="m4 14 6-6 2-3"></path><path d="M2 5h12"></path><path d="M7 2h1"></path><path d="m22 22-5-10-5 10"></path><path d="M14 18h6"></path>
-            </svg>
-            Translation Result
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 sm:space-y-6">
+      <Card className="w-full my-4 shadow-none">
+        <CardContent className="p-6">
           <div className="space-y-4">
-            <div>
-              <h4 className="font-medium text-xs sm:text-sm mb-2 flex items-center gap-2">
-                Original Text <Badge variant="outline" className="text-xs">{result.detectedLanguage}</Badge>
-              </h4>
-              <p className="text-xs sm:text-sm p-2 sm:p-3 bg-muted rounded-md">{toolInvocation.args.text}</p>
+            <div className="w-full h-24 bg-white rounded-lg overflow-hidden">
+              <canvas ref={canvasRef} width="800" height="200" className="w-full h-full bg-neutral-100" />
             </div>
-            <div>
-              <h4 className="font-medium text-xs sm:text-sm mb-2 flex items-center gap-2">
-                Translated Text <Badge variant="outline" className="text-xs">{toolInvocation.args.to}</Badge>
-              </h4>
-              <p className="text-xs sm:text-sm p-2 sm:p-3 bg-muted rounded-md">{result.translatedText}</p>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <h4 className="font-medium text-xs sm:text-sm">Audio Playback:</h4>
-            <div className="w-full h-16 sm:h-24 bg-muted rounded-lg overflow-hidden">
-              <canvas ref={canvasRef} width="500" height="100" className="w-full h-full" />
-            </div>
-            <div className="flex justify-center space-x-2">
-              <Button
-                onClick={handlePlayPause}
-                disabled={isGeneratingAudio}
-                variant="outline"
-                size="sm"
-                className="text-xs sm:text-sm"
+            <div className="flex text-left gap-3">
+              <div className="flex justify-center space-x-2">
+                <Button
+                  onClick={handlePlayPause}
+                  disabled={isGeneratingAudio}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs sm:text-sm w-24"
+                >
+                  {isGeneratingAudio ? (
+                    "Generating..."
+                  ) : isPlaying ? (
+                    <><Pause className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Pause</>
+                  ) : (
+                    <><Play className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Play</>
+                  )}
+                </Button>
+              </div>
+              <div
+                className='text-sm text-neutral-800'
               >
-                {isGeneratingAudio ? (
-                  "Generating..."
-                ) : isPlaying ? (
-                  <><Pause className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Pause</>
-                ) : (
-                  <><Play className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Play</>
-                )}
-              </Button>
-              <Button
-                onClick={handleReset}
-                disabled={isGeneratingAudio || !audioUrl}
-                variant="outline"
-                size="sm"
-                className="text-xs sm:text-sm"
-              >
-                <RotateCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Reset
-              </Button>
+                The phrase <span className='font-semibold'>{toolInvocation.args.text}</span> translates from <span className='font-semibold'>{result.detectedLanguage}</span> to <span className='font-semibold'>{toolInvocation.args.to}</span> as <span className='font-semibold'>{result.translatedText}</span>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -625,7 +602,7 @@ export default function Home() {
             src={audioUrl}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
-            onEnded={() => setIsPlaying(false)}
+            onEnded={() => { setIsPlaying(false); handleReset(); }}
           />
         )}
       </Card>
@@ -813,110 +790,143 @@ export default function Home() {
 
     if (toolInvocation.toolName === 'programming') {
       return (
-        <div className="w-full my-2 border border-gray-200 overflow-hidden rounded-md">
-          <div className="bg-gray-100 p-2 flex items-center">
-            <Code className="h-5 w-5 text-gray-500 mr-2" />
-            <span className="text-sm font-medium">Programming</span>
-          </div>
-          <Tabs defaultValue="code" className="w-full">
-            <TabsList className="bg-gray-50 p-0 h-auto shadow-sm rounded-none">
-              <TabsTrigger
-                value="code"
-                className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
-              >
-                Code
-              </TabsTrigger>
-              <TabsTrigger
-                value="output"
-                className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
-              >
-                Output
-              </TabsTrigger>
-              {result?.images && result.images.length > 0 && (
-                <TabsTrigger
-                  value="images"
-                  className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
-                >
-                  Images
-                </TabsTrigger>
-              )}
-            </TabsList>
-            <TabsContent value="code" className="p-0 m-0 rounded-none">
-              <div className="relative">
-                <SyntaxHighlighter
-                  language="python"
-                  style={oneLight}
-                  customStyle={{
-                    margin: 0,
-                    padding: '1rem',
-                    fontSize: '0.875rem',
-                    borderRadius: 0,
-                  }}
-                >
-                  {args.code}
-                </SyntaxHighlighter>
-                <div className="absolute top-2 right-2">
-                  <CopyButton text={args.code} />
+        <Accordion type="single" collapsible className="w-full mt-4">
+          <AccordionItem value={`item-${index}`} className="border-none">
+            <AccordionTrigger className="hover:no-underline py-2">
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-2">
+                  <Code className="h-5 w-5 text-primary" />
+                  <h2 className="text-base font-semibold">Programming</h2>
                 </div>
-              </div>
-            </TabsContent>
-            <TabsContent value="output" className="p-0 m-0 rounded-none">
-              <div className="relative bg-white p-4">
-                {result ? (
-                  <>
-                    <pre className="text-sm">
-                      <code>{result.message}</code>
-                    </pre>
-                    <div className="absolute top-2 right-2">
-                      <CopyButton text={result.message} />
-                    </div>
-                  </>
+                {!result ? (
+                  <Badge variant="secondary" className="mr-2 rounded-full">
+                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                    Executing
+                  </Badge>
                 ) : (
-                  <div className="flex items-center justify-center h-20">
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
-                      <span className="text-gray-500 text-sm">Executing code...</span>
-                    </div>
-                  </div>
+                  <Badge className="mr-2 rounded-full">
+                    <Check className="h-3 w-3 mr-1 text-green-400" />
+                    Executed
+                  </Badge>
                 )}
               </div>
-            </TabsContent>
-            {result?.images && result.images.length > 0 && (
-              <TabsContent value="images" className="p-0 m-0 bg-white">
-                <div className="space-y-4 p-4">
-                  {result.images.map((img: { format: 'png' | 'jpeg' | 'svg', data: string }, imgIndex: number) => (
-                    <div key={imgIndex} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <h4 className="text-sm font-medium">Image {imgIndex + 1}</h4>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="p-0 h-8 w-8"
-                          onClick={() => {
-                            const link = document.createElement('a');
-                            link.href = `data:image/${img.format === 'svg' ? 'svg+xml' : img.format};base64,${img.data}`;
-                            link.download = `generated-image-${imgIndex + 1}.${img.format}`;
-                            link.click();
-                          }}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
-                        <Image
-                          src={`data:image/${img.format === 'svg' ? 'svg+xml' : img.format};base64,${img.data}`}
-                          alt={`Generated image ${imgIndex + 1}`}
-                          layout="fill"
-                          objectFit="contain"
-                        />
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="w-full my-2 border border-gray-200 overflow-hidden rounded-md">
+                <div className="bg-gray-100 p-2 flex items-center">
+                  {args.icon === 'stock' && <TrendingUpIcon className="h-5 w-5 text-primary mr-2" />}
+                  {args.icon === 'default' && <Code className="h-5 w-5 text-primary mr-2" />}
+                  {args.icon === 'date' && <Calendar className="h-5 w-5 text-primary mr-2" />}
+                  {args.icon === 'calculation' && <Calculator className="h-5 w-5 text-primary mr-2" />}
+                  <span className="text-sm font-medium">{args.title}</span>
+                </div>
+                <Tabs defaultValue="code" className="w-full">
+                  <TabsList className="bg-gray-50 p-0 h-auto shadow-sm rounded-none">
+                    <TabsTrigger
+                      value="code"
+                      className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
+                    >
+                      Code
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="output"
+                      className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
+                    >
+                      Output
+                    </TabsTrigger>
+                    {result?.images && result.images.length > 0 && (
+                      <TabsTrigger
+                        value="images"
+                        className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
+                      >
+                        Images
+                      </TabsTrigger>
+                    )}
+                  </TabsList>
+                  <TabsContent value="code" className="p-0 m-0 rounded-none">
+                    <div className="relative">
+                      <SyntaxHighlighter
+                        language="python"
+                        style={oneLight}
+                        customStyle={{
+                          margin: 0,
+                          padding: '1rem',
+                          fontSize: '0.875rem',
+                          borderRadius: 0,
+                        }}
+                      >
+                        {args.code}
+                      </SyntaxHighlighter>
+                      <div className="absolute top-2 right-2">
+                        <CopyButton text={args.code} />
                       </div>
                     </div>
-                  ))}
-                </div>
-              </TabsContent>
-            )}
-          </Tabs>
-        </div>
+                  </TabsContent>
+                  <TabsContent value="output" className="p-0 m-0 rounded-none">
+                    <div className="relative bg-white p-4">
+                      {result ? (
+                        <>
+                          <pre className="text-sm">
+                            <code>{result.message}</code>
+                          </pre>
+                          <div className="absolute top-2 right-2">
+                            <CopyButton text={result.message} />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex items-center justify-center h-20">
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
+                            <span className="text-gray-500 text-sm">Executing code...</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                  {result?.images && result.images.length > 0 && (
+                    <TabsContent value="images" className="p-0 m-0 bg-white">
+                      <div className="space-y-4 p-4">
+                        {result.images.map((img: { format: string, url: string }, imgIndex: number) => (
+                          <div key={imgIndex} className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <h4 className="text-sm font-medium">Image {imgIndex + 1}</h4>
+                              {img.url && img.url.trim() !== '' && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="p-0 h-8 w-8"
+                                  onClick={() => {
+                                    window.open(img.url + "?download=1", '_blank');
+                                  }}
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                            <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
+                              {img.url && img.url.trim() !== '' ? (
+                                <Image
+                                  src={img.url}
+                                  alt={`Generated image ${imgIndex + 1}`}
+                                  layout="fill"
+                                  objectFit="contain"
+                                />
+                              ) : (
+                                <div className="flex items-center justify-center h-full bg-gray-100 text-gray-400">
+                                  Image upload failed or URL is empty
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </TabsContent>
+                  )}
+                </Tabs>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       );
     }
 
@@ -1231,53 +1241,71 @@ export default function Home() {
     href: string;
     children: React.ReactNode;
     index: number;
+    citationText: string;
   }
-  
-  const CitationComponent: React.FC<CitationComponentProps> = React.memo(({ href, index }) => {
-    const faviconUrl = `https://www.google.com/s2/favicons?sz=128&domain=${new URL(href).hostname}`;
-  
+
+  const CitationComponent: React.FC<CitationComponentProps> = React.memo(({ href, index, citationText }) => {
+    const { hostname } = new URL(href);
+    const faviconUrl = `https://www.google.com/s2/favicons?sz=128&domain=${hostname}`;
+
     return (
-      <HoverCard key={index}>
+      <HoverCard>
         <HoverCardTrigger asChild>
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="cursor-help text-sm text-primary py-0.5 px-1.5 m-0 bg-secondary rounded-full no-underline"
-          >
-            {index + 1}
-          </a>
+          <sup>
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="cursor-help text-sm text-primary py-0.5 px-1.5 m-0 bg-secondary rounded-full no-underline"
+            >
+              {index + 1}
+            </a>
+          </sup>
         </HoverCardTrigger>
-        <HoverCardContent className="flex items-center gap-1 !p-0 !px-0.5 max-w-xs bg-card text-card-foreground !m-0 h-6 rounded-xl">
-          <Image src={faviconUrl} alt="Favicon" width={16} height={16} className="w-4 h-4 flex-shrink-0 rounded-full" />
-          <a href={href} target="_blank" rel="noopener noreferrer" className="text-sm text-primary no-underline truncate">
-            {href}
-          </a>
+        <HoverCardContent className="w-fit p-2 m-0">
+          <div className="flex items-center justify-between mb-1 m-0">
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center m-0 h-8 hover:no-underline">
+              <Image src={faviconUrl} alt="Favicon" width={16} height={16} className="rounded-sm mr-2" />
+              <span className="text-sm">{hostname}</span>
+            </a>
+          </div>
+          <p className="text-sm font-medium m-0">{citationText}</p>
         </HoverCardContent>
       </HoverCard>
     );
   });
-  
+
   CitationComponent.displayName = "CitationComponent";
-  
+
   interface MarkdownRendererProps {
     content: string;
   }
-  
+
   const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ content }) => {
+    // Escape dollar signs that are likely to be currency
+    const escapedContent = content.replace(/\$(\d+(\.\d{1,2})?)/g, '\\$$1');
+
     const citationLinks = useMemo(() => {
-      return [...content.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map(([_, text, link]) => ({
+      return [...escapedContent.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map(([_, text, link]) => ({
         text,
         link,
       }));
-    }, [content]);
-  
+    }, [escapedContent]);
+
     const components: Partial<Components> = useMemo(() => ({
       a: ({ href, children }) => {
         if (!href) return null;
         const index = citationLinks.findIndex((link) => link.link === href);
         return index !== -1 ? (
-          <CitationComponent href={href} index={index}>
+          <CitationComponent
+            href={href}
+            index={index}
+            citationText={citationLinks[index].text}
+          >
             {children}
           </CitationComponent>
         ) : (
@@ -1287,7 +1315,7 @@ export default function Home() {
         );
       },
     }), [citationLinks]);
-  
+
     return (
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
@@ -1295,11 +1323,11 @@ export default function Home() {
         components={components}
         className="prose text-sm sm:text-base text-pretty text-left"
       >
-        {content}
+        {escapedContent}
       </ReactMarkdown>
     );
   });
-  
+
   MarkdownRenderer.displayName = "MarkdownRenderer";
 
   const lastUserMessageIndex = useMemo(() => {
@@ -1369,7 +1397,7 @@ export default function Home() {
     { icon: <Flame className="w-5 h-5 text-gray-400" />, text: "What's new with XAI's Grok?" },
     { icon: <Sparkles className="w-5 h-5 text-gray-400" />, text: "Latest updates on OpenAI" },
     { icon: <Sun className="w-5 h-5 text-gray-400" />, text: "Weather in Doha" },
-    { icon: <Terminal className="w-5 h-5 text-gray-400" />, text: "Count the no. of r's in strawberry" },
+    { icon: <Terminal className="w-5 h-5 text-gray-400" />, text: "Count the no. of r's in strawberry?" },
   ];
 
   const Navbar = () => (
