@@ -7,7 +7,7 @@ import FirecrawlApp from '@mendable/firecrawl-js';
 import { z } from "zod";
 import { geolocation } from "@vercel/functions";
 
-// Allow streaming responses up to 30 seconds
+// Allow streaming responses up to 60 seconds
 export const maxDuration = 60;
 
 const azure = createAzure({
@@ -15,12 +15,24 @@ const azure = createAzure({
   apiKey: process.env.AZURE_API_KEY,
 });
 
+const provider = process.env.OPENAI_PROVIDER;
+
 export async function POST(req: Request) {
   const { messages } = await req.json();
   const { latitude, longitude, city } = geolocation(req)
 
+  let model;
+
+  if (provider === "azure") {
+    model = azure.chat("gpt-4o-mini");
+  } else if (provider === "openai") {
+    model = openai.chat("gpt-4o-mini");
+  } else {
+    model = openai.chat("gpt-4o-mini");
+  }
+
   const result = await streamText({
-    model: azure.chat("gpt-4o-mini"),
+    model,
     messages: convertToCoreMessages(messages),
     temperature: 0.72,
     topP: 0.95,
@@ -263,13 +275,13 @@ When asked a "What is" question, maintain the same format as the question and an
                       const abortController = new AbortController();
                       try {
                         const blobPromise = put(`mplx/image-${Date.now()}.${format}`, Buffer.from(imageData, 'base64'),
-                        {
-                          access: 'public',
-                          abortSignal: abortController.signal,
-                        });
+                          {
+                            access: 'public',
+                            abortSignal: abortController.signal,
+                          });
 
                         const timeout = setTimeout(() => {
-                          // Abort the request after 10 seconds
+                          // Abort the request after 2 seconds
                           abortController.abort();
                         }, 2000);
 
@@ -277,7 +289,7 @@ When asked a "What is" question, maintain the same format as the question and an
 
                         clearTimeout(timeout);
                         console.info('Blob put request completed', blob.url);
-                        
+
                         images.push({ format, url: blob.url });
                       } catch (error) {
                         if (error instanceof BlobRequestAbortedError) {
@@ -403,9 +415,9 @@ When asked a "What is" question, maintain the same format as the question and an
           const key = process.env.AZURE_TRANSLATOR_KEY;
           const endpoint = "https://api.cognitive.microsofttranslator.com";
           const location = process.env.AZURE_TRANSLATOR_LOCATION;
-      
+
           const url = `${endpoint}/translate?api-version=3.0&to=${to}${from ? `&from=${from}` : ''}`;
-      
+
           const response = await fetch(url, {
             method: 'POST',
             headers: {
@@ -415,7 +427,7 @@ When asked a "What is" question, maintain the same format as the question and an
             },
             body: JSON.stringify([{ text }]),
           });
-      
+
           const data = await response.json();
           return {
             translatedText: data[0].translations[0].text,
