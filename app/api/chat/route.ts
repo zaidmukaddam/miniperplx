@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   const { latitude, longitude, city } = geolocation(req)
 
   const result = await streamText({
-    model: azure.chat("gpt-4o"),
+    model: azure.chat("gpt-4o-mini"),
     messages: convertToCoreMessages(messages),
     temperature: 0.72,
     topP: 0.95,
@@ -89,6 +89,7 @@ When asked a "What is" question, maintain the same format as the question and an
   - $<equation>$ for inline equations 
   - $$<equation>$$ for block equations 
   - \[ \] for math blocks. 
+  - use it for symbols, equations, formulas, etc like pi, alpha, beta, etc. and wrap them in the above formats. like $(2\pi)$, $x^2$, etc.
 - Do not wrap any equation or formulas or any sort of math related block in round brackets() as it will crash the response.`,
     tools: {
       web_search: tool({
