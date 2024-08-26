@@ -1241,28 +1241,39 @@ export default function Home() {
     href: string;
     children: React.ReactNode;
     index: number;
+    citationText: string;
   }
 
-  const CitationComponent: React.FC<CitationComponentProps> = React.memo(({ href, index }) => {
-    const faviconUrl = `https://www.google.com/s2/favicons?sz=128&domain=${new URL(href).hostname}`;
+  const CitationComponent: React.FC<CitationComponentProps> = React.memo(({ href, index, citationText }) => {
+    const { hostname } = new URL(href);
+    const faviconUrl = `https://www.google.com/s2/favicons?sz=128&domain=${hostname}`;
 
     return (
-      <HoverCard key={index}>
+      <HoverCard>
         <HoverCardTrigger asChild>
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="cursor-help text-sm text-primary py-0.5 px-1.5 m-0 bg-secondary rounded-full no-underline"
-          >
-            {index + 1}
-          </a>
+          <sup>
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="cursor-help text-sm text-primary py-0.5 px-1.5 m-0 bg-secondary rounded-full no-underline"
+            >
+              {index + 1}
+            </a>
+          </sup>
         </HoverCardTrigger>
-        <HoverCardContent className="flex items-center gap-1 !p-0 !px-0.5 max-w-xs bg-card text-card-foreground !m-0 h-6 rounded-xl">
-          <Image src={faviconUrl} alt="Favicon" width={16} height={16} className="w-4 h-4 flex-shrink-0 rounded-full" />
-          <a href={href} target="_blank" rel="noopener noreferrer" className="text-sm text-primary no-underline truncate">
-            {href}
-          </a>
+        <HoverCardContent className="w-fit p-2 m-0">
+          <div className="flex items-center justify-between mb-1 m-0">
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center m-0 h-8 hover:no-underline">
+              <Image src={faviconUrl} alt="Favicon" width={16} height={16} className="rounded-sm mr-2" />
+              <span className="text-sm">{hostname}</span>
+            </a>
+          </div>
+          <p className="text-sm font-medium m-0">{citationText}</p>
         </HoverCardContent>
       </HoverCard>
     );
@@ -1290,7 +1301,11 @@ export default function Home() {
         if (!href) return null;
         const index = citationLinks.findIndex((link) => link.link === href);
         return index !== -1 ? (
-          <CitationComponent href={href} index={index}>
+          <CitationComponent
+            href={href}
+            index={index}
+            citationText={citationLinks[index].text}
+          >
             {children}
           </CitationComponent>
         ) : (
