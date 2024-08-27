@@ -439,5 +439,5 @@ When asked a "What is" question, maintain the same format as the question and an
     toolChoice: "auto",
   });
 
-  return result.toAIStreamResponse();
+  return result.toDataStreamResponse();
 }

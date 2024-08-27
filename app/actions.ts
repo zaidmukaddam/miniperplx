@@ -17,7 +17,7 @@ export async function suggestQuestions(history: any[]) {
     model: groq('llama-3.1-70b-versatile'),
     temperature: 0,
     system:
-      `You are a search engine query generator. You 'have' to create 3 questions for the search engine based on the message history which has been provided to you.
+      `You are a search engine query generator. You 'have' to create only '3' questions for the search engine based on the message history which has been provided to you.
 The questions should be open-ended and should encourage further discussion while maintaining the whole context. Limit it to 5-10 words per question. 
 Always put the user input's context is some way so that the next search knows what to search for exactly.
 Try to stick to the context of the conversation and avoid asking questions that are too general or too specific.

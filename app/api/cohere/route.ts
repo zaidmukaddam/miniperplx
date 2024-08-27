@@ -401,5 +401,5 @@ Remember to always run the appropriate tool(s) first and compose your response b
     toolChoice: "auto",
   });
 
-  return result.toAIStreamResponse();
+  return result.toDataStreamResponse();
 }
