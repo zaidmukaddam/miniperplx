@@ -152,6 +152,7 @@ When asked a "What is" question, maintain the same format as the question and an
             max_results: maxResults < 5 ? 5 : maxResults,
             search_depth: searchDepth,
             include_answers: true,
+            include_images: true,
             exclude_domains: exclude_domains,
           });
 
@@ -164,6 +165,7 @@ When asked a "What is" question, maintain the same format as the question and an
               max_results: maxResults < 5 ? 5 : maxResults,
               search_depth: searchDepth,
               include_answers: true,
+              include_images: true,
               exclude_domains: exclude_domains,
             });
           }
@@ -179,7 +181,7 @@ When asked a "What is" question, maintain the same format as the question and an
           const data = await response.json();
 
           let context = data.results.map(
-            (obj: { url: any; content: any; title: any; raw_content: any, published_date: any }) => {
+            (obj: { url: any; content: any; title: any; raw_content: any, published_date: any }, index:number) => {
               if (topic === "news") {
                 return {
                   url: obj.url,
@@ -187,6 +189,7 @@ When asked a "What is" question, maintain the same format as the question and an
                   content: obj.content,
                   raw_content: obj.raw_content,
                   published_date: obj.published_date,
+                  images: data.images[index] || []
                 };
               }
               return {
@@ -194,6 +197,7 @@ When asked a "What is" question, maintain the same format as the question and an
                 title: obj.title,
                 content: obj.content,
                 raw_content: obj.raw_content,
+                images: data.images[index] || []
               };
             },
           );
