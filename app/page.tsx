@@ -647,10 +647,11 @@ const LandingPage: React.FC = () => {
       </AnimatePresence>
 
       <main className="flex-1">
-      <section className="w-full py-48 bg-gradient-to-b from-background to-muted relative overflow-hidden">
+        <section className="w-full py-48 bg-gradient-to-b from-background to-muted relative overflow-hidden">
+          <FloatingIcons />
           <div className="container px-4 md:px-6 relative z-10">
             <div className="text-center space-y-4">
-              <motion.h1 
+              <motion.h1
                 className="font-serif font-bold text-6xl md:text-7xl lg:text-8xl bg-clip-text text-transparent bg-black leading-[1.1] tracking-tight pb-2"
                 variants={itemVariants}
                 initial="hidden"
@@ -658,7 +659,7 @@ const LandingPage: React.FC = () => {
               >
                 Introducing MiniPerplx
               </motion.h1>
-              <motion.p 
+              <motion.p
                 className="mx-auto max-w-[700px] text-muted-foreground text-xl md:text-2xl text-balance font-serif tracking-normal"
                 variants={itemVariants}
                 initial="hidden"
@@ -675,7 +676,7 @@ const LandingPage: React.FC = () => {
                 <motion.div variants={itemVariants}>
                   <TryButton />
                 </motion.div>
-                <motion.div 
+                <motion.div
                   className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6"
                   variants={itemVariants}
                 >
