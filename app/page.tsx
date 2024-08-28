@@ -512,7 +512,7 @@ const MobileNavItem: React.FC<{ href: string; children: React.ReactNode; onClick
   )
 }
 
-const EnhancedLandingPage: React.FC = () => {
+const LandingPage: React.FC = () => {
   const { scrollYProgress } = useScroll()
   const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0])
   const scale = useTransform(scrollYProgress, [0, 0.2], [1, 0.95])
@@ -556,6 +556,27 @@ const EnhancedLandingPage: React.FC = () => {
     { icon: Mic, title: "Translation & TTS", description: "Translate text and convert to speech with OpenAI TTS." },
   ]
 
+  const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        when: "beforeChildren",
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5 }
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-background font-sans" id='start'>
@@ -626,54 +647,59 @@ const EnhancedLandingPage: React.FC = () => {
       </AnimatePresence>
 
       <main className="flex-1">
-        <section className="w-full py-48 bg-gradient-to-b from-background to-muted relative overflow-hidden">
-          <FloatingIcons />
-          <motion.div
-            className="container px-4 md:px-6 relative z-10"
-            style={{ opacity, scale, y }}
-          >
+      <section className="w-full py-48 bg-gradient-to-b from-background to-muted relative overflow-hidden">
+          <div className="container px-4 md:px-6 relative z-10">
             <div className="text-center space-y-4">
-              <AnimatedSection>
-                <h1 className="font-serif font-bold text-6xl md:text-7xl lg:text-8xl bg-clip-text text-transparent bg-black leading-[1.1] tracking-tight pb-2">
-                  Introducing MiniPerplx
-                </h1>
-              </AnimatedSection>
-              <AnimatedSection delay={0.2}>
-                <p className="mx-auto max-w-[700px] text-muted-foreground text-xl md:text-2xl text-balance font-serif tracking-normal">
-                  A minimalistic AI search engine designed to deliver answers in the simplest and most elegant way possible.✨
-                </p>
-              </AnimatedSection>
-              <AnimatedSection delay={0.4} className="flex justify-center">
-                <TryButton />
-              </AnimatedSection>
+              <motion.h1 
+                className="font-serif font-bold text-6xl md:text-7xl lg:text-8xl bg-clip-text text-transparent bg-black leading-[1.1] tracking-tight pb-2"
+                variants={itemVariants}
+                initial="hidden"
+                animate="visible"
+              >
+                Introducing MiniPerplx
+              </motion.h1>
+              <motion.p 
+                className="mx-auto max-w-[700px] text-muted-foreground text-xl md:text-2xl text-balance font-serif tracking-normal"
+                variants={itemVariants}
+                initial="hidden"
+                animate="visible"
+              >
+                A minimalistic AI search engine designed to deliver answers in the simplest and most elegant way possible.✨
+              </motion.p>
+              <motion.div
+                className="flex flex-col items-center space-y-6"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+              >
+                <motion.div variants={itemVariants}>
+                  <TryButton />
+                </motion.div>
+                <motion.div 
+                  className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6"
+                  variants={itemVariants}
+                >
+                  <NextLink href="https://www.producthunt.com/posts/miniperplx?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-miniperplx" target="_blank" rel="noopener noreferrer" passHref>
+                    <Image
+                      src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=481378&theme=light"
+                      alt="MiniPerplx - A minimalistic AI-powered search engine. | Product Hunt"
+                      width={250}
+                      height={54}
+                      className="h-12 w-auto"
+                    />
+                  </NextLink>
+                  <NextLink href="https://peerlist.io/zaidmukaddam/project/miniperplx" target="_blank" rel="noopener noreferrer" passHref>
+                    <Image
+                      src="/Launch_SVG_Light.svg"
+                      alt="Peerlist"
+                      width={32}
+                      height={32}
+                      className="h-12 w-auto"
+                    />
+                  </NextLink>
+                </motion.div>
+              </motion.div>
             </div>
-          </motion.div>
-          <div className="container pt-6">
-            <motion.div
-              className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <NextLink href="https://www.producthunt.com/posts/miniperplx?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-miniperplx" target="_blank" rel="noopener noreferrer" passHref>
-                <Image
-                  src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=481378&theme=light"
-                  alt="MiniPerplx - A minimalistic AI-powered search engine. | Product Hunt"
-                  width={250}
-                  height={54}
-                  className="h-12 w-auto"
-                />
-              </NextLink>
-              <NextLink href="https://peerlist.io/zaidmukaddam/project/miniperplx" target="_blank" rel="noopener noreferrer" passHref>
-                <Image
-                  src="/Launch_SVG_Light.svg"
-                  alt="Peerlist"
-                  width={32}
-                  height={32}
-                  className="h-12 w-auto"
-                />
-              </NextLink>
-            </motion.div>
           </div>
         </section>
         <AboutUsSection />
@@ -805,4 +831,4 @@ const EnhancedLandingPage: React.FC = () => {
   )
 }
 
-export default EnhancedLandingPage
+export default LandingPage
