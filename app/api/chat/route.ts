@@ -15,6 +15,18 @@ const azure = createAzure({
   apiKey: process.env.AZURE_API_KEY,
 });
 
+function sanitizeUrl(url: string): string {
+  return url.replace(/\s+/g, '%20')
+}
+
+type SearchResultImage =
+  | string
+  | {
+    url: string
+    description: string
+    number_of_results?: number
+  }
+
 const provider = process.env.OPENAI_PROVIDER;
 
 export async function POST(req: Request) {
@@ -144,6 +156,7 @@ When asked a "What is" question, maintain the same format as the question and an
           exclude_domains?: string[];
         }) => {
           const apiKey = process.env.TAVILY_API_KEY;
+          const includeImageDescriptions = true
 
           let body = JSON.stringify({
             api_key: apiKey,
@@ -152,6 +165,8 @@ When asked a "What is" question, maintain the same format as the question and an
             max_results: maxResults < 5 ? 5 : maxResults,
             search_depth: searchDepth,
             include_answers: true,
+            include_images: true,
+            include_image_descriptions: includeImageDescriptions,
             exclude_domains: exclude_domains,
           });
 
@@ -164,6 +179,8 @@ When asked a "What is" question, maintain the same format as the question and an
               max_results: maxResults < 5 ? 5 : maxResults,
               search_depth: searchDepth,
               include_answers: true,
+              include_images: true,
+              include_image_descriptions: includeImageDescriptions,
               exclude_domains: exclude_domains,
             });
           }
@@ -179,7 +196,7 @@ When asked a "What is" question, maintain the same format as the question and an
           const data = await response.json();
 
           let context = data.results.map(
-            (obj: { url: any; content: any; title: any; raw_content: any, published_date: any }) => {
+            (obj: { url: any; content: any; title: any; raw_content: any, published_date: any }, index: number) => {
               if (topic === "news") {
                 return {
                   url: obj.url,
@@ -198,8 +215,25 @@ When asked a "What is" question, maintain the same format as the question and an
             },
           );
 
+          const processedImages = includeImageDescriptions
+            ? data.images
+              .map(({ url, description }: { url: string; description: string }) => ({
+                url: sanitizeUrl(url),
+                description
+              }))
+              .filter(
+                (
+                  image: SearchResultImage
+                ): image is { url: string; description: string } =>
+                  typeof image === 'object' &&
+                  image.description !== undefined &&
+                  image.description !== ''
+              )
+            : data.images.map((url: string) => sanitizeUrl(url))
+
           return {
             results: context,
+            images: processedImages,
           };
         },
       }),

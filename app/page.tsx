@@ -1,1465 +1,661 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
-import
-React,
-{
-  useRef,
-  useCallback,
-  useState,
-  useEffect,
-  useMemo,
-  memo
-} from 'react';
-import ReactMarkdown, { Components } from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
-import 'katex/dist/katex.min.css';
-import { useChat } from 'ai/react';
-import { ToolInvocation } from 'ai';
-import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
-import Image from 'next/image';
-import { generateSpeech, suggestQuestions } from './actions';
-import { Wave } from "@foobar404/wave";
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import {
-  SearchIcon,
-  Sparkles,
-  ArrowRight,
-  Globe,
-  AlignLeft,
-  Newspaper,
-  Copy,
-  Cloud,
-  Code,
-  Check,
-  Loader2,
-  User2,
-  Edit2,
-  Heart,
-  X,
-  MapPin,
-  Star,
-  Plus,
-  Download,
-  Flame,
-  Sun,
-  Terminal,
-  Pause,
-  Play,
-  TrendingUpIcon,
-  Calendar,
-  Calculator
-} from 'lucide-react';
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import React, { useState, useEffect, useRef } from 'react'
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Line, LineChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import { GitHubLogoIcon } from '@radix-ui/react-icons';
-import { Skeleton } from '@/components/ui/skeleton';
-import Link from 'next/link';
-
-export const maxDuration = 60;
-
-declare global {
-  interface Window {
-    google: any;
-    initMap: () => void;
-  }
-}
-
-export default function Home() {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [lastSubmittedQuery, setLastSubmittedQuery] = useState("");
-  const [hasSubmitted, setHasSubmitted] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
-  const [isEditingMessage, setIsEditingMessage] = useState(false);
-  const [editingMessageIndex, setEditingMessageIndex] = useState(-1);
-
-  const { isLoading, input, messages, setInput, append, handleSubmit, setMessages } = useChat({
-    api: '/api/chat',
-    maxToolRoundtrips: 1,
-    onFinish: async (message, { finishReason }) => {
-      console.log("[finish reason]:", finishReason);
-      if (message.content && finishReason === 'stop' || finishReason === 'length') {
-        const newHistory = [...messages, { role: "user", content: lastSubmittedQuery }, { role: "assistant", content: message.content }];
-        const { questions } = await suggestQuestions(newHistory);
-        setSuggestedQuestions(questions);
-      }
-    },
-    onError: (error) => {
-      console.error("Chat error:", error);
-      toast.error("An error occurred.", {
-        description: "We must have ran out of credits. Sponsor us on GitHub to keep this service running.",
-        action: {
-          label: "Sponsor",
-          onClick: () => window.open("https://git.new/mplx", "_blank"),
-        },
-      });
-    },
-  });
-
-  const CopyButton = ({ text }: { text: string }) => {
-    const [isCopied, setIsCopied] = useState(false);
-
-    return (
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={async () => {
-          if (!navigator.clipboard) {
-            return;
-          }
-          await navigator.clipboard.writeText(text);
-          setIsCopied(true);
-          setTimeout(() => setIsCopied(false), 2000);
-          toast.success("Copied to clipboard");
-        }}
-        className="h-8 px-2 text-xs rounded-full"
-      >
-        {isCopied ? (
-          <Check className="h-4 w-4" />
-        ) : (
-          <Copy className="h-4 w-4" />
-        )}
-      </Button>
-    );
-  };
-
-  // Weather chart components
-
-  interface WeatherDataPoint {
-    date: string;
-    minTemp: number;
-    maxTemp: number;
-  }
-
-  const WeatherChart: React.FC<{ result: any }> = React.memo(({ result }) => {
-    const { chartData, minTemp, maxTemp } = useMemo(() => {
-      const weatherData: WeatherDataPoint[] = result.list.map((item: any) => ({
-        date: new Date(item.dt * 1000).toLocaleDateString(),
-        minTemp: Number((item.main.temp_min - 273.15).toFixed(1)),
-        maxTemp: Number((item.main.temp_max - 273.15).toFixed(1)),
-      }));
-
-      // Group data by date and calculate min and max temperatures
-      const groupedData: { [key: string]: WeatherDataPoint } = weatherData.reduce((acc, curr) => {
-        if (!acc[curr.date]) {
-          acc[curr.date] = { ...curr };
-        } else {
-          acc[curr.date].minTemp = Math.min(acc[curr.date].minTemp, curr.minTemp);
-          acc[curr.date].maxTemp = Math.max(acc[curr.date].maxTemp, curr.maxTemp);
-        }
-        return acc;
-      }, {} as { [key: string]: WeatherDataPoint });
-
-      const chartData = Object.values(groupedData);
-
-      // Calculate overall min and max temperatures
-      const minTemp = Math.min(...chartData.map(d => d.minTemp));
-      const maxTemp = Math.max(...chartData.map(d => d.maxTemp));
-
-      return { chartData, minTemp, maxTemp };
-    }, [result]);
-
-    const chartConfig: ChartConfig = useMemo(() => ({
-      minTemp: {
-        label: "Min Temp.",
-        color: "hsl(var(--chart-1))",
-      },
-      maxTemp: {
-        label: "Max Temp.",
-        color: "hsl(var(--chart-2))",
-      },
-    }), []);
-
-    return (
-      <Card className="my-4 shadow-none">
-        <CardHeader>
-          <CardTitle>Weather Forecast for {result.city.name}</CardTitle>
-          <CardDescription>
-            Showing min and max temperatures for the next 5 days
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig}>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart
-                data={chartData}
-                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={(value) => new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                />
-                <YAxis
-                  domain={[Math.floor(minTemp) - 2, Math.ceil(maxTemp) + 2]}
-                  tickFormatter={(value) => `${value}°C`}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Line
-                  type="monotone"
-                  dataKey="minTemp"
-                  stroke="var(--color-minTemp)"
-                  strokeWidth={2}
-                  dot={false}
-                  name="Min Temp."
-                />
-                <Line
-                  type="monotone"
-                  dataKey="maxTemp"
-                  stroke="var(--color-maxTemp)"
-                  strokeWidth={2}
-                  dot={false}
-                  name="Max Temp."
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </CardContent>
-        <CardFooter>
-          <div className="flex w-full items-start gap-2 text-sm">
-            <div className="grid gap-2">
-              <div className="flex items-center gap-2 font-medium leading-none">
-                {result.city.name}, {result.city.country}
-              </div>
-              <div className="flex items-center gap-2 leading-none text-muted-foreground">
-                Next 5 days forecast
-              </div>
-            </div>
-          </div>
-        </CardFooter>
-      </Card>
-    );
-  });
-
-  WeatherChart.displayName = 'WeatherChart';
-
-
-  // Google Maps components
-
-  const isValidCoordinate = (coord: number) => {
-    return typeof coord === 'number' && !isNaN(coord) && isFinite(coord);
-  };
-
-  const loadGoogleMapsScript = (callback: () => void) => {
-    if (window.google && window.google.maps) {
-      callback();
-      return;
-    }
-
-    const existingScript = document.getElementById('googleMapsScript');
-    if (existingScript) {
-      existingScript.remove();
-    }
-
-    window.initMap = callback;
-    const script = document.createElement('script');
-    script.id = 'googleMapsScript';
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places,marker&callback=initMap`;
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
-  };
-
-  const MapComponent = React.memo(({ center, places }: { center: { lat: number; lng: number }, places: any[] }) => {
-    const mapRef = useRef<HTMLDivElement>(null);
-    const [mapError, setMapError] = useState<string | null>(null);
-    const googleMapRef = useRef<google.maps.Map | null>(null);
-    const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
-
-    const memoizedCenter = useMemo(() => center, [center]);
-    const memoizedPlaces = useMemo(() => places, [places]);
-
-    const initializeMap = useCallback(async () => {
-      if (mapRef.current && isValidCoordinate(memoizedCenter.lat) && isValidCoordinate(memoizedCenter.lng)) {
-        const { Map } = await google.maps.importLibrary("maps") as google.maps.MapsLibrary;
-        const { AdvancedMarkerElement } = await google.maps.importLibrary("marker") as google.maps.MarkerLibrary;
-
-        if (!googleMapRef.current) {
-          googleMapRef.current = new Map(mapRef.current, {
-            center: memoizedCenter,
-            zoom: 14,
-            mapId: "347ff92e0c7225cf",
-          });
-        } else {
-          googleMapRef.current.setCenter(memoizedCenter);
-        }
-
-        // Clear existing markers
-        markersRef.current.forEach(marker => marker.map = null);
-        markersRef.current = [];
-
-        memoizedPlaces.forEach((place) => {
-          if (isValidCoordinate(place.location.lat) && isValidCoordinate(place.location.lng)) {
-            const marker = new AdvancedMarkerElement({
-              map: googleMapRef.current,
-              position: place.location,
-              title: place.name,
-            });
-            markersRef.current.push(marker);
-          }
-        });
-      } else {
-        setMapError('Invalid coordinates provided');
-      }
-    }, [memoizedCenter, memoizedPlaces]);
-
-    useEffect(() => {
-      loadGoogleMapsScript(() => {
-        try {
-          initializeMap();
-        } catch (error) {
-          console.error('Error initializing map:', error);
-          setMapError('Failed to initialize Google Maps');
-        }
-      });
-
-      return () => {
-        // Clean up markers when component unmounts
-        markersRef.current.forEach(marker => marker.map = null);
-      };
-    }, [initializeMap]);
-
-    if (mapError) {
-      return <div className="h-64 flex items-center justify-center bg-gray-100">{mapError}</div>;
-    }
-
-    return <div ref={mapRef} className="w-full h-64" />;
-  });
-
-  MapComponent.displayName = 'MapComponent';
-
-  const MapSkeleton = () => (
-    <Skeleton className="w-full h-64" />
-  );
-
-  const PlaceDetails = ({ place }: { place: any }) => (
-    <div className="flex justify-between items-start py-2">
-      <div>
-        <h4 className="font-semibold">{place.name}</h4>
-        <p className="text-sm text-muted-foreground max-w-[200px]" title={place.vicinity}>
-          {place.vicinity}
-        </p>
-      </div>
-      {place.rating && (
-        <Badge variant="secondary" className="flex items-center">
-          <Star className="h-3 w-3 mr-1 text-yellow-400" />
-          {place.rating} ({place.user_ratings_total})
-        </Badge>
-      )}
-    </div>
-  );
-
-  const MapEmbed = memo(({ location, zoom = 15 }: { location: string, zoom?: number }) => {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    const mapUrl = `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodeURIComponent(location)}&zoom=${zoom}`;
-
-    return (
-      <div className="aspect-video w-full">
-        <iframe
-          width="100%"
-          height="100%"
-          style={{ border: 0 }}
-          loading="lazy"
-          allowFullScreen
-          referrerPolicy="no-referrer-when-downgrade"
-          src={mapUrl}
-          className='rounded-xl'
-        ></iframe>
-      </div>
-    );
-  });
-
-  MapEmbed.displayName = 'MapEmbed';
-
-  const FindPlaceResult = memo(({ result }: { result: any }) => {
-    const place = result.candidates[0];
-    const location = `${place.geometry.location.lat},${place.geometry.location.lng}`;
-
-    return (
-      <Card className="w-full my-4 overflow-hidden shadow-none">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-primary" />
-            <span>{place.name}</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <MapEmbed location={location} />
-          <div className="mt-4 space-y-2">
-            <p><strong>Address:</strong> {place.formatted_address}</p>
-            {place.rating && (
-              <div className="flex items-center">
-                <strong className="mr-2">Rating:</strong>
-                <Badge variant="secondary" className="flex items-center">
-                  <Star className="h-3 w-3 mr-1 text-yellow-400" />
-                  {place.rating}
-                </Badge>
-              </div>
-            )}
-            {place.opening_hours && (
-              <p><strong>Open now:</strong> {place.opening_hours.open_now ? 'Yes' : 'No'}</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  });
-
-  FindPlaceResult.displayName = 'FindPlaceResult';
-
-  const TextSearchResult = memo(({ result }: { result: any }) => {
-    const centerLocation = result.results[0]?.geometry?.location;
-    const mapLocation = centerLocation ? `${centerLocation.lat},${centerLocation.lng}` : '';
-
-    return (
-      <Card className="w-full my-4 overflow-hidden shadow-none">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-primary" />
-            <span>Text Search Results</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {mapLocation && <MapEmbed location={mapLocation} zoom={13} />}
-          <Accordion type="single" collapsible className="w-full mt-4">
-            <AccordionItem value="place-details">
-              <AccordionTrigger>Place Details</AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-4 max-h-64 overflow-y-auto">
-                  {result.results.map((place: any, index: number) => (
-                    <div key={index} className="flex justify-between items-start py-2 border-b last:border-b-0">
-                      <div>
-                        <h4 className="font-semibold">{place.name}</h4>
-                        <p className="text-sm text-muted-foreground max-w-[200px]" title={place.formatted_address}>
-                          {place.formatted_address}
-                        </p>
-                      </div>
-                      {place.rating && (
-                        <Badge variant="secondary" className="flex items-center">
-                          <Star className="h-3 w-3 mr-1 text-yellow-400" />
-                          {place.rating} ({place.user_ratings_total})
-                        </Badge>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </CardContent>
-      </Card>
-    );
-  });
-
-  TextSearchResult.displayName = 'TextSearchResult';
-
-  const TranslationTool: React.FC<{ toolInvocation: ToolInvocation; result: any }> = ({ toolInvocation, result }) => {
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [audioUrl, setAudioUrl] = useState<string | null>(null);
-    const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
-    const audioRef = useRef<HTMLAudioElement | null>(null);
-    const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    const waveRef = useRef<Wave | null>(null);
-
-    useEffect(() => {
-      return () => {
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.src = '';
-        }
-      };
-    }, []);
-
-    useEffect(() => {
-      if (audioUrl && audioRef.current && canvasRef.current) {
-        waveRef.current = new Wave(audioRef.current, canvasRef.current);
-        waveRef.current.addAnimation(new waveRef.current.animations.Lines({
-          lineColor: "rgb(203, 113, 93)",
-          lineWidth: 2,
-          mirroredY: true,
-          count: 100,
-        }));
-      }
-    }, [audioUrl]);
-
-    const handlePlayPause = async () => {
-      if (!audioUrl && !isGeneratingAudio) {
-        setIsGeneratingAudio(true);
-        try {
-          const { audio } = await generateSpeech(result.translatedText, 'alloy');
-          setAudioUrl(audio);
-          setIsGeneratingAudio(false);
-        } catch (error) {
-          console.error("Error generating speech:", error);
-          setIsGeneratingAudio(false);
-        }
-      } else if (audioRef.current) {
-        if (isPlaying) {
-          audioRef.current.pause();
-        } else {
-          audioRef.current.play();
-        }
-        setIsPlaying(!isPlaying);
-      }
-    };
-
-    const handleReset = () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-        setIsPlaying(false);
-      }
-    };
-
-    if (!result) {
-      return (
-        <Card className="w-full my-4">
-          <CardContent className="flex items-center justify-center h-24">
-            <div className="animate-pulse flex items-center">
-              <div className="h-4 w-4 bg-primary rounded-full mr-2"></div>
-              <div className="h-4 w-32 bg-primary rounded"></div>
-            </div>
-          </CardContent>
-        </Card>
-      );
-    }
-
-    return (
-      <Card className="w-full my-4 shadow-none">
-        <CardContent className="p-6">
-          <div className="space-y-4">
-            <div className="w-full h-24 bg-white rounded-lg overflow-hidden">
-              <canvas ref={canvasRef} width="800" height="200" className="w-full h-full bg-neutral-100" />
-            </div>
-            <div className="flex text-left gap-3">
-              <div className="flex justify-center space-x-2">
-                <Button
-                  onClick={handlePlayPause}
-                  disabled={isGeneratingAudio}
-                  variant="outline"
-                  size="sm"
-                  className="text-xs sm:text-sm w-24"
-                >
-                  {isGeneratingAudio ? (
-                    "Generating..."
-                  ) : isPlaying ? (
-                    <><Pause className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Pause</>
-                  ) : (
-                    <><Play className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Play</>
-                  )}
-                </Button>
-              </div>
-              <div
-                className='text-sm text-neutral-800'
-              >
-                The phrase <span className='font-semibold'>{toolInvocation.args.text}</span> translates from <span className='font-semibold'>{result.detectedLanguage}</span> to <span className='font-semibold'>{toolInvocation.args.to}</span> as <span className='font-semibold'>{result.translatedText}</span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-        {audioUrl && (
-          <audio
-            ref={audioRef}
-            src={audioUrl}
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-            onEnded={() => { setIsPlaying(false); handleReset(); }}
-          />
-        )}
-      </Card>
-    );
-  };
-
-  const renderToolInvocation = (toolInvocation: ToolInvocation, index: number) => {
-    const args = JSON.parse(JSON.stringify(toolInvocation.args));
-    const result = 'result' in toolInvocation ? JSON.parse(JSON.stringify(toolInvocation.result)) : null;
-
-    if (toolInvocation.toolName === 'nearby_search') {
-      if (!result) {
-        return (
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-neutral-700 animate-pulse" />
-              <span className="text-neutral-700 text-lg">Searching nearby places...</span>
-            </div>
-            <div className="flex space-x-1">
-              {[0, 1, 2].map((index) => (
-                <motion.div
-                  key={index}
-                  className="w-2 h-2 bg-muted-foreground rounded-full"
-                  initial={{ opacity: 0.3 }}
-                  animate={{ opacity: 1 }}
-                  transition={{
-                    repeat: Infinity,
-                    duration: 0.8,
-                    delay: index * 0.2,
-                    repeatType: "reverse",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        );
-      }
-
-      if (isLoading) {
-        return (
-          <Card className="w-full my-4 overflow-hidden">
-            <CardHeader>
-              <Skeleton className="h-6 w-3/4" />
-            </CardHeader>
-            <CardContent className="p-0 rounded-t-none rounded-b-xl">
-              <MapSkeleton />
-            </CardContent>
-          </Card>
-        );
-      }
-
-      return (
-        <Card className="w-full my-4 overflow-hidden">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-primary" />
-              <span>Nearby {args.type ? args.type.charAt(0).toUpperCase() + args.type.slice(1) + 's' : 'Places'}</span>
-              {args.keyword && <Badge variant="secondary">{args.keyword}</Badge>}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <MapComponent center={result.center} places={result.results} />
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="place-details">
-                <AccordionTrigger className="px-4">Place Details</AccordionTrigger>
-                <AccordionContent>
-                  <div className="px-4 space-y-4 max-h-64 overflow-y-auto">
-                    {result.results.map((place: any, placeIndex: number) => (
-                      <PlaceDetails key={placeIndex} place={place} />
-                    ))}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </CardContent>
-        </Card>
-      );
-    }
-
-    if (toolInvocation.toolName === 'find_place') {
-      if (!result) {
-        return (
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-neutral-700 animate-pulse" />
-              <span className="text-neutral-700 text-lg">Finding place...</span>
-            </div>
-            <motion.div className="flex space-x-1">
-              {[0, 1, 2].map((index) => (
-                <motion.div
-                  key={index}
-                  className="w-2 h-2 bg-muted-foreground rounded-full"
-                  initial={{ opacity: 0.3 }}
-                  animate={{ opacity: 1 }}
-                  transition={{
-                    repeat: Infinity,
-                    duration: 0.8,
-                    delay: index * 0.2,
-                    repeatType: "reverse",
-                  }}
-                />
-              ))}
-            </motion.div>
-          </div>
-        );
-      }
-
-      return <FindPlaceResult result={result} />;
-    }
-
-    if (toolInvocation.toolName === 'text_search') {
-      if (!result) {
-        return (
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-neutral-700 animate-pulse" />
-              <span className="text-neutral-700 text-lg">Searching places...</span>
-            </div>
-            <motion.div className="flex space-x-1">
-              {[0, 1, 2].map((index) => (
-                <motion.div
-                  key={index}
-                  className="w-2 h-2 bg-muted-foreground rounded-full"
-                  initial={{ opacity: 0.3 }}
-                  animate={{ opacity: 1 }}
-                  transition={{
-                    repeat: Infinity,
-                    duration: 0.8,
-                    delay: index * 0.2,
-                    repeatType: "reverse",
-                  }}
-                />
-              ))}
-            </motion.div>
-          </div>
-        );
-      }
-
-      return <TextSearchResult result={result} />;
-    }
-
-    if (toolInvocation.toolName === 'get_weather_data') {
-      if (!result) {
-        return (
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2">
-              <Cloud className="h-5 w-5 text-neutral-700 animate-pulse" />
-              <span className="text-neutral-700 text-lg">Fetching weather data...</span>
-            </div>
-            <div className="flex space-x-1">
-              {[0, 1, 2].map((index) => (
-                <motion.div
-                  key={index}
-                  className="w-2 h-2 bg-muted-foreground rounded-full"
-                  initial={{ opacity: 0.3 }}
-                  animate={{ opacity: 1 }}
-                  transition={{
-                    repeat: Infinity,
-                    duration: 0.8,
-                    delay: index * 0.2,
-                    repeatType: "reverse",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        );
-      }
-
-      if (isLoading) {
-        return (
-          <Card className="my-4 shadow-none">
-            <CardHeader>
-              <CardTitle className="h-6 w-3/4 bg-gray-200 rounded animate-pulse" />
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px] bg-gray-200 rounded animate-pulse" />
-            </CardContent>
-          </Card>
-        );
-      }
-
-      return <WeatherChart result={result} />;
-    }
-
-    if (toolInvocation.toolName === 'programming') {
-      return (
-        <Accordion type="single" collapsible className="w-full mt-4">
-          <AccordionItem value={`item-${index}`} className="border-none">
-            <AccordionTrigger className="hover:no-underline py-2">
-              <div className="flex items-center justify-between w-full">
-                <div className="flex items-center gap-2">
-                  <Code className="h-5 w-5 text-primary" />
-                  <h2 className="text-base font-semibold">Programming</h2>
-                </div>
-                {!result ? (
-                  <Badge variant="secondary" className="mr-2 rounded-full">
-                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                    Executing
-                  </Badge>
-                ) : (
-                  <Badge className="mr-2 rounded-full">
-                    <Check className="h-3 w-3 mr-1 text-green-400" />
-                    Executed
-                  </Badge>
-                )}
-              </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="w-full my-2 border border-gray-200 overflow-hidden rounded-md">
-                <div className="bg-gray-100 p-2 flex items-center">
-                  {args.icon === 'stock' && <TrendingUpIcon className="h-5 w-5 text-primary mr-2" />}
-                  {args.icon === 'default' && <Code className="h-5 w-5 text-primary mr-2" />}
-                  {args.icon === 'date' && <Calendar className="h-5 w-5 text-primary mr-2" />}
-                  {args.icon === 'calculation' && <Calculator className="h-5 w-5 text-primary mr-2" />}
-                  <span className="text-sm font-medium">{args.title}</span>
-                </div>
-                <Tabs defaultValue="code" className="w-full">
-                  <TabsList className="bg-gray-50 p-0 h-auto shadow-sm rounded-none">
-                    <TabsTrigger
-                      value="code"
-                      className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
-                    >
-                      Code
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="output"
-                      className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
-                    >
-                      Output
-                    </TabsTrigger>
-                    {result?.images && result.images.length > 0 && (
-                      <TabsTrigger
-                        value="images"
-                        className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
-                      >
-                        Images
-                      </TabsTrigger>
-                    )}
-                  </TabsList>
-                  <TabsContent value="code" className="p-0 m-0 rounded-none">
-                    <div className="relative">
-                      <SyntaxHighlighter
-                        language="python"
-                        style={oneLight}
-                        customStyle={{
-                          margin: 0,
-                          padding: '1rem',
-                          fontSize: '0.875rem',
-                          borderRadius: 0,
-                        }}
-                      >
-                        {args.code}
-                      </SyntaxHighlighter>
-                      <div className="absolute top-2 right-2">
-                        <CopyButton text={args.code} />
-                      </div>
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="output" className="p-0 m-0 rounded-none">
-                    <div className="relative bg-white p-4">
-                      {result ? (
-                        <>
-                          <pre className="text-sm">
-                            <code>{result.message}</code>
-                          </pre>
-                          <div className="absolute top-2 right-2">
-                            <CopyButton text={result.message} />
-                          </div>
-                        </>
-                      ) : (
-                        <div className="flex items-center justify-center h-20">
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
-                            <span className="text-gray-500 text-sm">Executing code...</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-                  {result?.images && result.images.length > 0 && (
-                    <TabsContent value="images" className="p-0 m-0 bg-white">
-                      <div className="space-y-4 p-4">
-                        {result.images.map((img: { format: string, url: string }, imgIndex: number) => (
-                          <div key={imgIndex} className="space-y-2">
-                            <div className="flex justify-between items-center">
-                              <h4 className="text-sm font-medium">Image {imgIndex + 1}</h4>
-                              {img.url && img.url.trim() !== '' && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="p-0 h-8 w-8"
-                                  onClick={() => {
-                                    window.open(img.url + "?download=1", '_blank');
-                                  }}
-                                >
-                                  <Download className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                            <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
-                              {img.url && img.url.trim() !== '' ? (
-                                <Image
-                                  src={img.url}
-                                  alt={`Generated image ${imgIndex + 1}`}
-                                  layout="fill"
-                                  objectFit="contain"
-                                />
-                              ) : (
-                                <div className="flex items-center justify-center h-full bg-gray-100 text-gray-400">
-                                  Image upload failed or URL is empty
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </TabsContent>
-                  )}
-                </Tabs>
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-      );
-    }
-
-    if (toolInvocation.toolName === 'nearby_search') {
-      if (!result) {
-        return (
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-neutral-700 animate-pulse" />
-              <span className="text-neutral-700 text-lg">Searching nearby places...</span>
-            </div>
-            <div className="flex space-x-1">
-              {[0, 1, 2].map((index) => (
-                <motion.div
-                  key={index}
-                  className="w-2 h-2 bg-muted-foreground rounded-full"
-                  initial={{ opacity: 0.3 }}
-                  animate={{ opacity: 1 }}
-                  transition={{
-                    repeat: Infinity,
-                    duration: 0.8,
-                    delay: index * 0.2,
-                    repeatType: "reverse",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        );
-      }
-
-      const mapUrl = `https://www.google.com/maps/embed/v1/search?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(args.type)}&center=${result.results[0].geometry.location.lat},${result.results[0].geometry.location.lng}&zoom=14`;
-
-      return (
-        <Card className="w-full my-4 overflow-hidden">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-primary" />
-              <span>Nearby {args.type.charAt(0).toUpperCase() + args.type.slice(1)}s</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="aspect-video w-full">
-              <iframe
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                loading="lazy"
-                allowFullScreen
-                referrerPolicy="no-referrer-when-downgrade"
-                src={mapUrl}
-              ></iframe>
-            </div>
-            <div className="p-4 space-y-2">
-              {result.results.map((place: any, placeIndex: number) => (
-                <div key={placeIndex} className="flex justify-between items-center">
-                  <div>
-                    <h4 className="font-semibold">{place.name}</h4>
-                    <p className="text-sm text-muted-foreground">{place.vicinity}</p>
-                  </div>
-                  <Badge variant="secondary" className="flex items-center">
-                    {place.rating} ★ ({place.user_ratings_total})
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      );
-    }
-
-    if (toolInvocation.toolName === 'web_search') {
-      return (
-        <div>
-          {!result ? (
-            <div className="flex items-center justify-between w-full">
-              <div className='flex items-center gap-2'>
-                <Globe className="h-5 w-5 text-neutral-700 animate-spin" />
-                <span className="text-neutral-700 text-lg">Running a search...</span>
-              </div>
-              <div className="flex space-x-1">
-                {[0, 1, 2].map((index) => (
-                  <motion.div
-                    key={index}
-                    className="w-2 h-2 bg-muted-foreground rounded-full"
-                    initial={{ opacity: 0.3 }}
-                    animate={{ opacity: 1 }}
-                    transition={{
-                      repeat: Infinity,
-                      duration: 0.8,
-                      delay: index * 0.2,
-                      repeatType: "reverse",
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-          ) : (
-            <Accordion type="single" collapsible className="w-full mt-4">
-              <AccordionItem value={`item-${index}`} className='border-none'>
-                <AccordionTrigger className="hover:no-underline py-2">
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-2">
-                      <Newspaper className="h-5 w-5 text-primary" />
-                      <h2 className='text-base font-semibold'>Sources Found</h2>
-                    </div>
-                    {result && (
-                      <Badge variant="secondary" className='rounded-full'>{result.results.length} results</Badge>
-                    )}
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  {args?.query && (
-                    <Badge variant="secondary" className="mb-4 text-xs sm:text-sm font-light rounded-full">
-                      <SearchIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                      {args.query}
-                    </Badge>
-                  )}
-                  {result && (
-                    <div className="flex flex-col sm:flex-row gap-4 overflow-x-auto pb-2">
-                      {result.results.map((item: any, itemIndex: number) => (
-                        <div key={itemIndex} className="flex flex-col w-full sm:w-[280px] flex-shrink-0 bg-card border rounded-lg p-3">
-                          <div className="flex items-start gap-3 mb-2">
-                            <Image
-                              width={48}
-                              height={48}
-                              unoptimized
-                              quality={100}
-                              src={`https://www.google.com/s2/favicons?sz=128&domain=${new URL(item.url).hostname}`}
-                              alt="Favicon"
-                              className="w-8 h-8 sm:w-12 sm:h-12 flex-shrink-0 rounded-sm"
-                            />
-                            <div className="flex-grow min-w-0">
-                              <h3 className="text-sm font-semibold line-clamp-2">{item.title}</h3>
-                              <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{item.content}</p>
-                            </div>
-                          </div>
-                          <a
-                            href={item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-primary truncate hover:underline"
-                          >
-                            {item.url}
-                          </a>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          )}
-        </div>
-      );
-    }
-
-    if (toolInvocation.toolName === 'retrieve') {
-      if (!result) {
-        return (
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2">
-              <Globe className="h-5 w-5 text-neutral-700 animate-pulse" />
-              <span className="text-neutral-700 text-lg">Retrieving content...</span>
-            </div>
-            <div className="flex space-x-1">
-              {[0, 1, 2].map((index) => (
-                <motion.div
-                  key={index}
-                  className="w-2 h-2 bg-muted-foreground rounded-full"
-                  initial={{ opacity: 0.3 }}
-                  animate={{ opacity: 1 }}
-                  transition={{
-                    repeat: Infinity,
-                    duration: 0.8,
-                    delay: index * 0.2,
-                    repeatType: "reverse",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        );
-      }
-
-      return (
-        <div className="w-full my-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Globe className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">Retrieved Content</h3>
-          </div>
-          <div className="space-y-2">
-            <h4 className="font-medium text-sm sm:text-base">{result.results[0].title}</h4>
-            <p className="text-xs sm:text-sm text-muted-foreground">{result.results[0].description}</p>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary">{result.results[0].language || 'Unknown language'}</Badge>
-              <a href={result.results[0].url} target="_blank" rel="noopener noreferrer" className="text-xs sm:text-sm text-primary hover:underline">
-                Source
-              </a>
-            </div>
-          </div>
-          <Accordion type="single" collapsible className="w-full mt-4">
-            <AccordionItem value="content" className="border-b-0">
-              <AccordionTrigger>View Content</AccordionTrigger>
-              <AccordionContent>
-                <div className="max-h-[50vh] overflow-y-auto bg-muted p-2 sm:p-4 rounded-lg">
-                  <ReactMarkdown className="text-xs sm:text-sm">
-                    {result.results[0].content}
-                  </ReactMarkdown>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </div>
-      );
-    }
-
-    if (toolInvocation.toolName === 'text_translate') {
-      return <TranslationTool toolInvocation={toolInvocation} result={result} />;
-    }
-
-    return (
-      <div>
-        {!result ? (
-          <div className="flex items-center justify-between w-full">
-            <div
-              className='flex items-center gap-2'
-            >
-              <Globe className="h-5 w-5 text-neutral-700 animate-spin" />
-              <span className="text-neutral-700 text-lg">Running a search...</span>
-            </div>
-            <div className="flex space-x-1">
-              {[0, 1, 2].map((index) => (
-                <motion.div
-                  key={index}
-                  className="w-2 h-2 bg-muted-foreground rounded-full"
-                  initial={{ opacity: 0.3 }}
-                  animate={{ opacity: 1 }}
-                  transition={{
-                    repeat: Infinity,
-                    duration: 0.8,
-                    delay: index * 0.2,
-                    repeatType: "reverse",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        ) :
-          <Accordion type="single" collapsible className="w-full mt-4 !m-0">
-            <AccordionItem value={`item-${index}`} className='border-none'>
-              <AccordionTrigger className="hover:no-underline py-2">
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-2 ">
-                    <Newspaper className="h-5 w-5 text-primary" />
-                    <h2 className='text-base font-semibold'>Sources Found</h2>
-                  </div>
-                  {result && (
-                    <Badge variant="secondary" className='mr-1 rounded-full'>{result.results.length} results</Badge>
-                  )}
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className='pb-2'>
-                {args?.query && (
-                  <Badge variant="secondary" className="mb-2 text-xs sm:text-sm font-light rounded-full">
-                    <SearchIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                    {args.query}
-                  </Badge>
-                )}
-                {result && (
-                  <div className="flex flex-row gap-4 overflow-x-scroll">
-                    {result.results.map((item: any, itemIndex: number) => (
-                      <Card key={itemIndex} className="flex flex-col !size-40 shadow-none !p-0 !m-0">
-                        <CardHeader className="pb-2 p-1">
-                          <Image
-                            width={48}
-                            height={48}
-                            unoptimized
-                            quality={100}
-                            src={`https://www.google.com/s2/favicons?sz=128&domain=${new URL(item.url).hostname}`}
-                            alt="Favicon"
-                            className="w-5 h-5 flex-shrink-0 rounded-full"
-                          />
-                          <CardTitle className="text-sm font-semibold line-clamp-2">{item.title}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex-grow p-1 pb-0">
-                          <p className="text-xs text-muted-foreground line-clamp-3">{item.content}</p>
-                        </CardContent>
-                        <div className="px-1 py-2 bg-muted rounded-b-xl">
-                          <a
-                            href={item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-primary flex items-center"
-                          >
-                            ↪
-                            <span className="ml-1 truncate hover:underline">{item.url}</span>
-                          </a>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>}
-      </div>
-    );
-  };
-
-  interface CitationComponentProps {
-    href: string;
-    children: React.ReactNode;
-    index: number;
-    citationText: string;
-  }
-
-  const CitationComponent: React.FC<CitationComponentProps> = React.memo(({ href, index, citationText }) => {
-    const { hostname } = new URL(href);
-    const faviconUrl = `https://www.google.com/s2/favicons?sz=128&domain=${hostname}`;
-
-    return (
-      <HoverCard>
-        <HoverCardTrigger asChild>
-          <sup>
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="cursor-help text-sm text-primary py-0.5 px-1.5 m-0 bg-secondary rounded-full no-underline"
-            >
-              {index + 1}
-            </a>
-          </sup>
-        </HoverCardTrigger>
-        <HoverCardContent className="w-fit p-2 m-0">
-          <div className="flex items-center justify-between mb-1 m-0">
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center m-0 h-8 hover:no-underline">
-              <Image src={faviconUrl} alt="Favicon" width={16} height={16} className="rounded-sm mr-2" />
-              <span className="text-sm">{hostname}</span>
-            </a>
-          </div>
-          <p className="text-sm font-medium m-0">{citationText}</p>
-        </HoverCardContent>
-      </HoverCard>
-    );
-  });
-
-  CitationComponent.displayName = "CitationComponent";
-
-  interface MarkdownRendererProps {
-    content: string;
-  }
-
-  const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ content }) => {
-    // Escape dollar signs that are likely to be currency
-    const escapedContent = content.replace(/\$(\d+(\.\d{1,2})?)/g, '\\$$1');
-
-    const citationLinks = useMemo(() => {
-      return [...escapedContent.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map(([_, text, link]) => ({
-        text,
-        link,
-      }));
-    }, [escapedContent]);
-
-    const components: Partial<Components> = useMemo(() => ({
-      a: ({ href, children }) => {
-        if (!href) return null;
-        const index = citationLinks.findIndex((link) => link.link === href);
-        return index !== -1 ? (
-          <CitationComponent
-            href={href}
-            index={index}
-            citationText={citationLinks[index].text}
-          >
-            {children}
-          </CitationComponent>
-        ) : (
-          <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-            {children}
-          </a>
-        );
-      },
-    }), [citationLinks]);
-
-    return (
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeKatex]}
-        components={components}
-        className="prose text-sm sm:text-base text-pretty text-left"
-      >
-        {escapedContent}
-      </ReactMarkdown>
-    );
-  });
-
-  MarkdownRenderer.displayName = "MarkdownRenderer";
-
-  const lastUserMessageIndex = useMemo(() => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === 'user') {
-        return i;
-      }
-    }
-    return -1;
-  }, [messages]);
-
-  useEffect(() => {
-    if (bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages, suggestedQuestions]);
-
-  const handleExampleClick = useCallback(async (query: string) => {
-    setLastSubmittedQuery(query.trim());
-    setHasSubmitted(true);
-    setSuggestedQuestions([]);
-    await append({
-      content: query.trim(),
-      role: 'user'
-    });
-  }, [append]);
-
-  const handleSuggestedQuestionClick = useCallback((question: string) => {
-    setHasSubmitted(true);
-    setSuggestedQuestions([]);
-    setInput(question.trim());
-    handleSubmit(new Event('submit') as any);
-  }, [setInput, handleSubmit]);
-
-  const handleFormSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (input.trim()) {
-      setHasSubmitted(true);
-      setSuggestedQuestions([]);
-      handleSubmit(e);
-    } else {
-      toast.error("Please enter a search query.");
-    }
-  }, [input, handleSubmit]);
-
-  const handleMessageEdit = useCallback((index: number) => {
-    setIsEditingMessage(true);
-    setEditingMessageIndex(index);
-    setInput(messages[index].content);
-  }, [messages, setInput]);
-
-  const handleMessageUpdate = useCallback((e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (input.trim()) {
-      const updatedMessages = [...messages];
-      updatedMessages[editingMessageIndex] = { ...updatedMessages[editingMessageIndex], content: input.trim() };
-      setMessages(updatedMessages);
-      setIsEditingMessage(false);
-      setEditingMessageIndex(-1);
-      handleSubmit(e);
-    } else {
-      toast.error("Please enter a valid message.");
-    }
-  }, [input, messages, editingMessageIndex, setMessages, handleSubmit]);
-
-  const suggestionCards = [
-    { icon: <Flame className="w-5 h-5 text-gray-400" />, text: "What's new with XAI's Grok?" },
-    { icon: <Sparkles className="w-5 h-5 text-gray-400" />, text: "Latest updates on OpenAI" },
-    { icon: <Sun className="w-5 h-5 text-gray-400" />, text: "Weather in Doha" },
-    { icon: <Terminal className="w-5 h-5 text-gray-400" />, text: "Count the no. of r's in strawberry?" },
+  Search,
+  Zap,
+  Code,
+  Cloud,
+  Link,
+  MapPin,
+  Globe,
+  Mic,
+  ArrowRight,
+  Github,
+  LucideIcon,
+  Server,
+  Palette,
+  Cpu,
+  ChevronDown,
+  Check,
+  Menu,
+  X
+} from "lucide-react"
+import NextLink from "next/link"
+import {
+  motion,
+  useScroll,
+  useTransform,
+  useSpring,
+  useInView,
+  AnimatePresence,
+  useAnimation
+} from "framer-motion"
+import { cn } from '@/lib/utils';
+import { Tweet } from 'react-tweet'
+import Image from 'next/image';
+
+const TestimonialSection: React.FC = () => {
+  const tweetIds = [
+    "1825543755748782500",
+    "1825876424755941787",
+    "1827580223606669661",
+    "1825574082345136506",
+    "1825973306924872143",
+    "1825821083817103852"
   ];
 
-  const Navbar = () => (
-    <div className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center p-4 bg-background">
-      <Link href="/new">
-        <Button
-          type="button"
-          variant={'secondary'}
-          className="rounded-full bg-secondary/80 group transition-all hover:scale-105 pointer-events-auto"
-        >
-          <Plus size={18} className="group-hover:rotate-90 transition-all" />
-          <span className="text-sm ml-2 group-hover:block hidden animate-in fade-in duration-300">
-            New
-          </span>
-        </Button>
-      </Link>
-      <div
-        className='flex items-center space-x-2'
-      >
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => window.open("https://git.new/mplx", "_blank")}
-          className="flex items-center space-x-2"
-        >
-          <GitHubLogoIcon className="h-4 w-4 text-primary" />
-          <span>GitHub</span>
-        </Button>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="sm"
-                onClick={() => window.open("https://github.com/sponsors/zaidmukaddam", "_blank")}
-                className="flex items-center space-x-2"
-              >
-                <Heart className="h-4 w-4 text-red-500" />
-                <span>Sponsor</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Sponsor this project on GitHub</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-    </div>
-  );
+  const [isSmallScreen, setIsSmallScreen] = useState(false);
+  const controls = useAnimation();
+
+  useEffect(() => {
+    const checkScreenSize = () => setIsSmallScreen(window.innerWidth < 768);
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
+  useEffect(() => {
+    if (isSmallScreen) {
+      controls.start({
+        x: [0, -200 + '%'],
+        transition: {
+          x: {
+            repeat: Infinity,
+            repeatType: "loop",
+            duration: 30,
+            ease: "linear",
+          },
+        },
+      });
+    } else {
+      controls.stop();
+    }
+  }, [isSmallScreen, controls]);
 
   return (
-    <div className="flex flex-col font-sans items-center justify-center p-2 sm:p-4 bg-background text-foreground transition-all duration-500">
-      <Navbar />
+    <section id="testimonials" className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-background to-muted overflow-hidden">
+      <div className="container px-4 md:px-6">
+        <h2 className="font-serif text-4xl font-bold sm:text-5xl md:text-6xl lg:text-7xl tracking-tight text-center mb-12">
+          What People Are Saying
+        </h2>
+        <div className="md:hidden relative h-[400px] overflow-hidden">
+          <motion.div
+            className="flex absolute top-0 left-0 gap-6"
+            animate={controls}
+          >
+            {[...tweetIds, ...tweetIds].map((id, index) => (
+              <div key={index} className="w-[300px] flex-shrink-0">
+                <Tweet id={id} />
+              </div>
+            ))}
+          </motion.div>
+        </div>
+        <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-min">
+          {tweetIds.map((id) => (
+            <div key={id} className="tweet-container">
+              <Tweet id={id} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
 
-      <div className={`w-full max-w-[90%] sm:max-w-2xl space-y-6 p-1 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[26vh] sm:mt-[30vh]'}`}>
-        {!hasSubmitted && (
-          <div className="text-center">
-            <h1 className="text-4xl sm:text-6xl mb-1 text-gray-800 font-serif">MiniPerplx</h1>
-            <h2 className='text-xl sm:text-2xl font-serif text-balance text-center mb-6 text-gray-600'>
-              In search for minimalism and simplicity
-            </h2>
-            <div className="flex justify-center items-center space-x-4 mb-6">
-              <Link href="https://www.producthunt.com/posts/miniperplx?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-miniperplx" target="_blank" rel="noopener noreferrer" passHref>
+const AboutUsSection: React.FC = () => {
+  const aboutPoints = [
+    {
+      icon: Search,
+      title: "Minimalistic Search",
+      description: "We strip away the clutter to focus on what matters most - delivering accurate and relevant results."
+    },
+    {
+      icon: Code,
+      title: "AI-Powered",
+      description: "Leveraging cutting-edge AI technology to understand and respond to your queries with precision."
+    },
+    {
+      icon: Zap,
+      title: "Lightning Fast",
+      description: "Designed for speed, MiniPerplx provides instant answers to keep up with your pace of work."
+    }
+  ];
+
+  return (
+    <section id="about-us" className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-background to-muted">
+      <div className="container px-4 md:px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-12"
+        >
+          <h2 className="font-serif text-4xl font-bold sm:text-5xl md:text-6xl lg:text-7xl tracking-tight mb-4">
+            About MiniPerplx
+          </h2>
+          <p className="mx-auto max-w-[700px] text-muted-foreground text-lg md:text-xl">
+            MiniPerplx is reimagining the way you search and interact with information online.
+          </p>
+        </motion.div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {aboutPoints.map((point, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+            >
+              <Card className="h-full">
+                <CardContent className="flex flex-col items-center text-center p-6">
+                  <point.icon className="h-12 w-12 text-primary mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">{point.title}</h3>
+                  <p className="text-muted-foreground">{point.description}</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+
+const MarqueeTestimonials: React.FC = () => {
+  const testimonials = [
+    "Absolutely love MiniPerplx! 🚀",
+    "Game-changer for my workflow. 💼",
+    "Simplicity at its finest. ✨",
+    "Can't imagine working without it now. 🙌",
+    "MiniPerplx is a must-have tool! 🛠️",
+  ];
+
+  return (
+    <div className="bg-primary py-4 overflow-hidden">
+      <motion.div
+        className="flex whitespace-nowrap"
+        animate={{ x: ["0%", "-50%"] }}
+        transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
+      >
+        {testimonials.concat(testimonials).map((text, index) => (
+          <span key={index} className="text-white text-xl font-bold mx-8">
+            {text}
+          </span>
+        ))}
+      </motion.div>
+    </div>
+  )
+}
+
+interface FeatureCardProps {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+}
+
+const FeatureCard: React.FC<FeatureCardProps> = ({ icon: Icon, title, description }) => (
+  <Card className="h-full transition-all duration-300 shadow-sm hover:shadow-md hover:shadow-primary/20 hover:-translate-y-1">
+    <CardHeader>
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 0.2, type: "spring", stiffness: 100 }}
+        className="rounded-full p-2 inline-block"
+      >
+        <Icon className="w-8 h-8 text-primary" />
+      </motion.div>
+      <CardTitle className="text-xl sm:text-2xl mt-4">{title}</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <p className="text-sm sm:text-base text-muted-foreground">{description}</p>
+    </CardContent>
+  </Card>
+)
+
+interface Star {
+  x: number;
+  y: number;
+  size: number;
+  name: string;
+  category: string;
+}
+
+const TechConstellation: React.FC = () => {
+  const [stars, setStars] = useState<Star[]>([])
+  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null)
+  const constellationRef = useRef<HTMLDivElement>(null)
+
+  const techStack = [
+    {
+      category: "Core Technologies",
+      icon: Server,
+      items: ["Next.js", "React", "TypeScript", "Vercel AI SDK", "Tailwind CSS"]
+    },
+    {
+      category: "UI & Styling",
+      icon: Palette,
+      items: ["shadcn/ui", "Framer Motion", "Lucide Icons"]
+    },
+    {
+      category: "AI Services & APIs",
+      icon: Cpu,
+      items: ["Azure OpenAI", "Tavily AI", "e2b.dev", "OpenWeatherMap", "Google Maps API", "Firecrawl"]
+    }
+  ];
+
+  useEffect(() => {
+    if (constellationRef.current) {
+      const { width, height } = constellationRef.current.getBoundingClientRect()
+      const newStars: Star[] = []
+      const centerX = width / 2
+      const centerY = height / 2
+      const maxRadius = Math.min(width, height) * 0.4 // 40% of the smaller dimension
+
+      techStack.forEach((category, categoryIndex) => {
+        const categoryAngle = (categoryIndex / techStack.length) * Math.PI * 2
+        const categoryRadius = maxRadius * 0.8 // 80% of maxRadius for category centers
+
+        const categoryCenterX = centerX + Math.cos(categoryAngle) * categoryRadius
+        const categoryCenterY = centerY + Math.sin(categoryAngle) * categoryRadius
+
+        category.items.forEach((item, index) => {
+          const itemAngle = categoryAngle + (index / category.items.length - 0.5) * Math.PI * 0.5
+          const itemRadius = Math.random() * maxRadius * 0.3 + maxRadius * 0.1 // Between 10% and 40% of maxRadius
+
+          const x = categoryCenterX + Math.cos(itemAngle) * itemRadius
+          const y = categoryCenterY + Math.sin(itemAngle) * itemRadius
+
+          newStars.push({
+            x,
+            y,
+            size: Math.random() * 2 + 2,
+            name: item,
+            category: category.category
+          })
+        })
+      })
+
+      setStars(newStars)
+    }
+  }, [])
+
+  const getStarColor = (category: string) => {
+    switch (category) {
+      case "Core Technologies":
+        return "#FFD700"
+      case "UI & Styling":
+        return "#00CED1"
+      case "AI Services & APIs":
+        return "#FF69B4"
+      default:
+        return "#FFFFFF"
+    }
+  }
+
+  return (
+    <TooltipProvider delayDuration={0}>
+      <div className="relative w-full h-[600px] bg-gradient-to-b from-gray-900 to-gray-800 rounded-lg overflow-hidden" ref={constellationRef}>
+        <AnimatePresence>
+          {stars.map((star, index) => (
+            <Tooltip key={index}>
+              <TooltipTrigger asChild>
+                <motion.div
+                  className="absolute rounded-full cursor-pointer"
+                  style={{
+                    left: star.x,
+                    top: star.y,
+                    width: star.size,
+                    height: star.size,
+                    backgroundColor: getStarColor(star.category),
+                  }}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.05 }}
+                  whileHover={{ scale: 2, boxShadow: `0 0 10px ${getStarColor(star.category)}` }}
+                />
+              </TooltipTrigger>
+              <TooltipContent
+                side="top"
+                className="border-none p-2 rounded-lg shadow-lg"
+                style={{
+                  backgroundColor: getStarColor(star.category),
+                  color: star.category === "Core Technologies" ? "#000" : "#fff"
+                }}
+              >
+                <div className="text-sm font-bold">{star.name}</div>
+                <div className="text-xs opacity-80">{star.category}</div>
+              </TooltipContent>
+            </Tooltip>
+          ))}
+        </AnimatePresence>
+        {hoveredCategory && (
+          <svg className="absolute inset-0 w-full h-full pointer-events-none">
+            {stars
+              .filter((star) => star.category === hoveredCategory)
+              .map((star, index, filteredStars) => {
+                const nextStar = filteredStars[(index + 1) % filteredStars.length]
+                return (
+                  <motion.line
+                    key={index}
+                    x1={star.x}
+                    y1={star.y}
+                    x2={nextStar.x}
+                    y2={nextStar.y}
+                    stroke={getStarColor(star.category)}
+                    strokeWidth="1"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 0.5 }}
+                    exit={{ pathLength: 0, opacity: 0 }}
+                    transition={{ duration: 1, delay: index * 0.1 }}
+                  />
+                )
+              })}
+          </svg>
+        )}
+        <div className="absolute top-4 right-4 flex flex-col gap-2">
+          {techStack.map((category, index) => (
+            <motion.div
+              key={index}
+              className="flex items-center gap-2 text-white cursor-pointer"
+              whileHover={{ scale: 1.05 }}
+              onMouseEnter={() => setHoveredCategory(category.category)}
+              onMouseLeave={() => setHoveredCategory(null)}
+            >
+              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: getStarColor(category.category) }} />
+              <span>{category.category}</span>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </TooltipProvider>
+  )
+}
+
+interface AnimatedSectionProps {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+}
+
+const AnimatedSection: React.FC<AnimatedSectionProps> = ({ children, className, delay = 0 }) => {
+  const ref = useRef<HTMLDivElement>(null)
+  const isInView = useInView(ref, { once: true, margin: "-100px" })
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 50 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.5, delay }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
+const TryButton: React.FC = () => {
+  return (
+    <NextLink
+      href="/search"
+      className={cn(
+        "rounded-full bg-zinc-800 hover:bg-zinc-800/90 transition hover:scale-105 hover:rotate-3 px-6 py-3 flex gap-x-2 items-center justify-center text-white font-semibold w-fit h-fit",
+        "homeBtn"
+      )}
+    >
+      Try MiniPerplx
+      <ArrowRight width={20} height={20} />
+    </NextLink>
+  )
+}
+
+const ScrollProgress: React.FC = () => {
+  const { scrollYProgress } = useScroll()
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001
+  })
+  return (
+    <motion.div
+      className="fixed top-0 left-0 right-0 h-1 bg-primary z-50 origin-left"
+      style={{ scaleX }}
+    />
+  )
+}
+
+const FloatingIcon: React.FC<{ Icon: LucideIcon }> = ({ Icon }) => (
+  <motion.div
+    className="absolute text-primary opacity-10"
+    initial={{ x: `${Math.random() * 100}vw`, y: -50 }}
+    animate={{
+      y: '100vh',
+      rotate: Math.random() * 360,
+    }}
+    transition={{
+      duration: Math.random() * 20 + 10,
+      repeat: Infinity,
+      ease: "linear",
+    }}
+  >
+    <Icon className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 lg:w-10 lg:h-10" />
+  </motion.div>
+)
+
+const FloatingIcons: React.FC = () => {
+  const icons = [Search, Zap, Code, Cloud, Link, MapPin, Globe, Mic];
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div className="hidden sm:block">
+        {icons.map((Icon, index) => (
+          <FloatingIcon key={index} Icon={Icon} />
+        ))}
+      </div>
+      <div className="sm:hidden">
+        {icons.slice(0, 4).map((Icon, index) => (
+          <FloatingIcon key={index} Icon={Icon} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+
+const NavItem: React.FC<{ href: string; children: React.ReactNode }> = ({ href, children }) => {
+  return (
+    <li>
+      <NavigationMenuLink asChild>
+        <NextLink
+          href={href}
+          className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+        >
+          {children}
+        </NextLink>
+      </NavigationMenuLink>
+    </li>
+  )
+}
+
+
+const MobileNavItem: React.FC<{ href: string; children: React.ReactNode; onClick: () => void }> = ({ href, children, onClick }) => {
+  return (
+    <li>
+      <NextLink
+        href={href}
+        className="block py-2 text-foreground hover:text-primary transition-colors"
+        onClick={onClick}
+      >
+        {children}
+      </NextLink>
+    </li>
+  )
+}
+
+const EnhancedLandingPage: React.FC = () => {
+  const { scrollYProgress } = useScroll()
+  const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0])
+  const scale = useTransform(scrollYProgress, [0, 0.2], [1, 0.95])
+  const y = useTransform(scrollYProgress, [0, 0.2], [0, -50])
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen)
+
+
+  const [mounted, setMounted] = useState<boolean>(false)
+  useEffect(() => setMounted(true), [])
+  React.useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isMenuOpen])
+
+  useEffect(() => {
+    document.documentElement.style.scrollBehavior = 'smooth';
+
+    return () => {
+      document.documentElement.style.scrollBehavior = '';
+    };
+  }, []);
+
+  if (!mounted) return null
+
+  const features = [
+    { icon: Globe, title: "Web Search", description: "Powered by Tavily AI for comprehensive web results." },
+    { icon: Code, title: "Code Interpreter", description: "Utilize e2b.dev for advanced code interpretation and execution." },
+    { icon: Cloud, title: "Weather Forecast", description: "Get accurate weather information via OpenWeatherMap." },
+    { icon: Link, title: "URL Summary", description: "Summarize web content quickly with Jina AI Reader." },
+    { icon: MapPin, title: "Location Search", description: "Find places and nearby locations using Google Maps API." },
+    { icon: Mic, title: "Translation & TTS", description: "Translate text and convert to speech with OpenAI TTS." },
+  ]
+
+
+  return (
+    <div className="flex flex-col min-h-screen bg-background font-sans" id='start'>
+      <ScrollProgress />
+      <header className="px-4 lg:px-6 h-16 flex items-center justify-between sm:justify-center sm:gap-5 sticky top-0 bg-background/80 backdrop-blur-sm z-40">
+        <NextLink className="flex items-center justify-center group" href="#start">
+          <span className="font-serif font-bold text-xl group-hover:text-primary transition-colors tracking-tight">MiniPerplx</span>
+        </NextLink>
+        <NavigationMenu className="hidden md:block">
+          <NavigationMenuList>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>Explore</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="p-4 space-y-2 grid grid-cols-2 max-w-sm w-[400px]">
+                  <NavItem href="#about-us">
+                    <div className="text-sm font-medium">About Us</div>
+                    <p className="text-sm text-muted-foreground">Learn more about MiniPerplx and our mission.</p>
+                  </NavItem>
+                  <NavItem href="#features">
+                    <div className="text-sm font-medium">Features</div>
+                    <p className="text-sm text-muted-foreground">Discover the powerful capabilities of MiniPerplx.</p>
+                  </NavItem>
+                  <NavItem href="#tech-stack">
+                    <div className="text-sm font-medium">Tech Stack</div>
+                    <p className="text-sm text-muted-foreground">Explore the technologies powering MiniPerplx.</p>
+                  </NavItem>
+                  <NavItem href="#testimonials">
+                    <div className="text-sm font-medium">Testimonials</div>
+                    <p className="text-sm text-muted-foreground">See what others are saying about MiniPerplx.</p>
+                  </NavItem>
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NextLink href="#try-it" legacyBehavior passHref>
+                <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                  Try It
+                </NavigationMenuLink>
+              </NextLink>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
+        <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)} aria-label="Toggle menu">
+          {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </Button>
+      </header>
+
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-x-0 top-16 bg-background border-b border-border z-30 md:hidden overflow-hidden"
+          >
+            <nav className="container px-4 py-4">
+              <ul className="space-y-4">
+                <MobileNavItem href="#about-us" onClick={() => setIsMenuOpen(false)}>About Us</MobileNavItem>
+                <MobileNavItem href="#features" onClick={() => setIsMenuOpen(false)}>Features</MobileNavItem>
+                <MobileNavItem href="#tech-stack" onClick={() => setIsMenuOpen(false)}>Tech Stack</MobileNavItem>
+                <MobileNavItem href="#testimonials" onClick={() => setIsMenuOpen(false)}>Testimonials</MobileNavItem>
+                <MobileNavItem href="#try-it" onClick={() => setIsMenuOpen(false)}>Try It</MobileNavItem>
+              </ul>
+            </nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <main className="flex-1">
+        <section className="w-full py-48 bg-gradient-to-b from-background to-muted relative overflow-hidden">
+          <FloatingIcons />
+          <motion.div
+            className="container px-4 md:px-6 relative z-10"
+            style={{ opacity, scale, y }}
+          >
+            <div className="text-center space-y-4">
+              <AnimatedSection>
+                <h1 className="font-serif font-bold text-6xl md:text-7xl lg:text-8xl bg-clip-text text-transparent bg-black leading-[1.1] tracking-tight pb-2">
+                  Introducing MiniPerplx
+                </h1>
+              </AnimatedSection>
+              <AnimatedSection delay={0.2}>
+                <p className="mx-auto max-w-[700px] text-muted-foreground text-xl md:text-2xl text-balance font-serif tracking-normal">
+                  A minimalistic AI search engine designed to deliver answers in the simplest and most elegant way possible.✨
+                </p>
+              </AnimatedSection>
+              <AnimatedSection delay={0.4} className="flex justify-center">
+                <TryButton />
+              </AnimatedSection>
+            </div>
+          </motion.div>
+          <div className="container pt-6">
+            <motion.div
+              className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <NextLink href="https://www.producthunt.com/posts/miniperplx?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-miniperplx" target="_blank" rel="noopener noreferrer" passHref>
                 <Image
                   src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=481378&theme=light"
                   alt="MiniPerplx - A minimalistic AI-powered search engine. | Product Hunt"
@@ -1467,8 +663,8 @@ export default function Home() {
                   height={54}
                   className="h-12 w-auto"
                 />
-              </Link>
-              <Link href="https://peerlist.io/zaidmukaddam/project/miniperplx" target="_blank" rel="noopener noreferrer" passHref>
+              </NextLink>
+              <NextLink href="https://peerlist.io/zaidmukaddam/project/miniperplx" target="_blank" rel="noopener noreferrer" passHref>
                 <Image
                   src="/Launch_SVG_Light.svg"
                   alt="Peerlist"
@@ -1476,196 +672,137 @@ export default function Home() {
                   height={32}
                   className="h-12 w-auto"
                 />
-              </Link>
-            </div>
-          </div>
-        )}
-        <AnimatePresence>
-          {!hasSubmitted && (
-            <motion.div
-              initial={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{ duration: 0.5 }}
-            >
-              <form onSubmit={handleFormSubmit} className="flex items-center space-x-2 px-2 mb-4 sm:mb-6">
-                <div className="relative flex-1">
-                  <Input
-                    ref={inputRef}
-                    name="search"
-                    placeholder="Ask a question..."
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    disabled={isLoading}
-                    className="w-full min-h-12 py-3 px-4 bg-muted border border-input rounded-full pr-12 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-200 focus-visible:ring-offset-2 text-sm sm:text-base"
-                  />
-                  <Button
-                    type="submit"
-                    size={'icon'}
-                    variant={'ghost'}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                    disabled={input.length === 0}
-                  >
-                    <ArrowRight size={20} />
-                  </Button>
-                </div>
-              </form>
-
-              <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2 sm:space-x-4 mt-6">
-                {suggestionCards.map((card, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleExampleClick(card.text)}
-                    className="flex items-center space-x-2 p-3 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors duration-200 text-left"
-                  >
-                    <span>{card.icon}</span>
-                    <span className="text-xs font-medium text-gray-700 line-clamp-2">{card.text}</span>
-                  </button>
-                ))}
-              </div>
+              </NextLink>
             </motion.div>
-          )}
-        </AnimatePresence>
-
-
-        <div className="space-y-4 sm:space-y-6 mb-24">
-          {messages.map((message, index) => (
-            <div key={index}>
-              {message.role === 'user' && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                  className="flex items-center space-x-2 mb-4"
-                >
-                  <User2 className="size-5 sm:size-6 text-primary flex-shrink-0" />
-                  <div className="flex-grow min-w-0">
-                    {isEditingMessage && editingMessageIndex === index ? (
-                      <form onSubmit={handleMessageUpdate} className="flex items-center space-x-2">
-                        <Input
-                          value={input}
-                          onChange={(e) => setInput(e.target.value)}
-                          className="flex-grow"
-                        />
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          type="button"
-                          onClick={() => {
-                            setIsEditingMessage(false)
-                            setEditingMessageIndex(-1)
-                            setInput('')
-                          }}
-                          disabled={isLoading}
-                        >
-                          <X size={16} />
-                        </Button>
-                        <Button type="submit" size="sm">
-                          <ArrowRight size={16} />
-                        </Button>
-                      </form>
-                    ) : (
-                      <p className="text-xl sm:text-2xl font-medium font-serif truncate">
-                        {message.content}
-                      </p>
-                    )}
-                  </div>
-                  {!isEditingMessage && index === lastUserMessageIndex && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleMessageEdit(index)}
-                      className="ml-2"
-                      disabled={isLoading}
-                    >
-                      <Edit2 size={16} />
-                    </Button>
-                  )}
-                </motion.div>
-              )}
-              {message.role === 'assistant' && message.content && (
-                <div>
-                  <div className='flex items-center justify-between mb-2'>
-                    <div className='flex items-center gap-2'>
-                      <Sparkles className="size-5 text-primary" />
-                      <h2 className="text-base font-semibold">Answer</h2>
-                    </div>
-                    <CopyButton text={message.content} />
-                  </div>
-                  <div>
-                    <MarkdownRenderer content={message.content} />
-                  </div>
-                </div>
-              )}
-              {message.toolInvocations?.map((toolInvocation: ToolInvocation, toolIndex: number) => (
-                <div key={`tool-${toolIndex}`}>
-                  {renderToolInvocation(toolInvocation, toolIndex)}
-                </div>
+          </div>
+        </section>
+        <AboutUsSection />
+        <section id="features" className="w-full py-12 md:py-24 lg:py-32">
+          <div className="container px-4 md:px-6">
+            <h2 className="font-serif text-4xl font-bold sm:text-5xl md:text-6xl lg:text-7xl tracking-tight text-center mb-12">
+              Powerful Features
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-12">
+              {features.map((feature, index) => (
+                <FeatureCard key={index} {...feature} />
               ))}
             </div>
-          ))}
-          {suggestedQuestions.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{ duration: 0.5 }}
-              className="w-full max-w-xl sm:max-w-2xl"
-            >
-              <div className="flex items-center gap-2 mb-4">
-                <AlignLeft className="w-5 h-5 text-primary" />
-                <h2 className="font-semibold text-base">Suggested questions</h2>
-              </div>
-              <div className="space-y-2 flex flex-col">
-                {suggestedQuestions.map((question, index) => (
-                  <Button
-                    key={index}
-                    variant="ghost"
-                    className="w-fit font-light rounded-2xl p-1 justify-start text-left h-auto py-2 px-4 bg-neutral-100 text-neutral-950 hover:bg-muted-foreground/10 whitespace-normal"
-                    onClick={() => handleSuggestedQuestionClick(question)}
-                  >
-                    {question}
-                  </Button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </div>
-        <div ref={bottomRef} />
-      </div>
+          </div>
+        </section>
 
-      <AnimatePresence>
-        {hasSubmitted && (
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            transition={{ duration: 0.5 }}
-            className="fixed bottom-4 transform -translate-x-1/2 w-full max-w-[90%] md:max-w-2xl mt-3"
-          >
-            <form onSubmit={handleFormSubmit} className="flex items-center space-x-2">
-              <div className="relative flex-1">
-                <Input
-                  name="search"
-                  placeholder="Ask a new question..."
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  disabled={isLoading}
-                  className="w-full min-h-12 py-3 px-4 bg-muted border border-input rounded-full pr-12 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-200 focus-visible:ring-offset-2 text-sm sm:text-base"
-                />
-                <Button
-                  type="submit"
-                  size={'icon'}
-                  variant={'ghost'}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                  disabled={input.length === 0 || isLoading}
-                >
-                  <ArrowRight size={20} />
+        <section id="tech-stack" className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-muted to-background overflow-hidden">
+          <div className="container px-4 md:px-6">
+            <h2 className="font-serif text-4xl font-bold sm:text-5xl md:text-6xl lg:text-7xl tracking-tight text-center mb-12 text-balance">
+              Our Tech Constellation
+            </h2>
+            <p className="text-center text-lg sm:text-xl md:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto font-serif tracking-normal">
+              Explore the universe of technologies powering MiniPerplx. Hover over the stars to discover the constellations of our tech stack.
+            </p>
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="max-w-4xl mx-auto"
+            >
+              <TechConstellation />
+            </motion.div>
+          </div>
+        </section>
+
+        <TestimonialSection />
+        <MarqueeTestimonials />
+
+        <div className="border-b"></div>
+        <section id="try-it" className="w-full py-12 md:py-24 lg:py-32 relative overflow-hidden bg-opacity-85">
+          <div className="container px-4 md:px-6 relative z-10">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center">
+              <AnimatedSection>
+                <h2 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
+                  Ready to Experience MiniPerplx?
+                </h2>
+              </AnimatedSection>
+              <AnimatedSection delay={0.2}>
+                <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed font-serif tracking-normal">
+                  Discover the power of minimalistic AI search.
+                </p>
+              </AnimatedSection>
+              <AnimatedSection delay={0.4} className="flex flex-col sm:flex-row gap-4">
+                <Button size="lg" asChild className="group transition-all duration-300 hover:shadow-lg hover:shadow-primary/20">
+                  <NextLink href="/search">
+                    Try MiniPerplx
+                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </NextLink>
                 </Button>
-              </div>
-            </form>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                <Button variant="outline" size="lg" asChild className="group transition-all duration-300 hover:shadow-lg hover:shadow-primary/20">
+                  <NextLink href="https://git.new/mplx" target="_blank" rel="noopener noreferrer">
+                    <Github className="mr-2 h-4 w-4 group-hover:rotate-12 transition-transform" />
+                    View on GitHub
+                  </NextLink>
+                </Button>
+              </AnimatedSection>
+            </div>
+          </div>
+          <motion.div
+            className="absolute inset-0 z-0 opacity-30"
+            initial={{ backgroundPosition: '0% 0%' }}
+            animate={{ backgroundPosition: '100% 100%' }}
+            transition={{ repeat: Infinity, duration: 20, ease: 'linear' }}
+            style={{
+              backgroundImage: 'url("data:image/svg+xml,%3Csvg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="%239C92AC" fill-opacity="0.4"%3E%3Cpath d="M0 0h20L0 20z"/%3E%3C/g%3E%3C/svg%3E")',
+              backgroundSize: '20px 20px',
+            }}
+          />
+        </section>
+      </main>
+      <footer className="w-full py-12 md:py-24 bg-gradient-to-t from-background to-muted relative overflow-hidden">
+        <AnimatePresence>
+          <div className="container px-4 md:px-6 relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="text-center"
+            >
+              <h2 className="font-serif text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-bold text-neutral-500">
+                MiniPerplx
+              </h2>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+              className="mt-8 text-center"
+            >
+              <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} MiniPerplx. All rights reserved.</p>
+            </motion.div>
+          </div>
+          <div className="absolute inset-0 z-0">
+            {[...Array(20)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute rounded-full bg-primary/10"
+                style={{
+                  width: Math.random() * 50 + 25,
+                  height: Math.random() * 50 + 25,
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                }}
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.3, 0.6, 0.3],
+                }}
+                transition={{
+                  duration: Math.random() * 5 + 5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+            ))}
+          </div>
+        </AnimatePresence>
+      </footer>
     </div>
-  );
+  )
 }
+
+export default EnhancedLandingPage
