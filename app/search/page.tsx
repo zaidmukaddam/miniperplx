@@ -1440,6 +1440,7 @@ export default function Home() {
     }, [messages, suggestedQuestions]);
 
     const handleExampleClick = useCallback(async (query: string) => {
+        track("search example", { query });
         setLastSubmittedQuery(query.trim());
         setHasSubmitted(true);
         setSuggestedQuestions([]);
@@ -1449,12 +1450,15 @@ export default function Home() {
         });
     }, [append]);
 
-    const handleSuggestedQuestionClick = useCallback((question: string) => {
+    const handleSuggestedQuestionClick = useCallback(async (question: string) => {
         setHasSubmitted(true);
         setSuggestedQuestions([]);
         setInput(question.trim());
-        handleSubmit(new Event('submit') as any);
-    }, [setInput, handleSubmit]);
+        await append({
+            content: question.trim(),
+            role: 'user'
+        });
+    }, [setInput, append]);
 
     const handleFormSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
