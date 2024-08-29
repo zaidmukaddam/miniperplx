@@ -73,7 +73,7 @@ dependencies:
     version: 1.4.0
   ai:
     specifier: latest
-    version: 3.3.19(openai@4.56.0)(react@18.3.1)(svelte@4.2.18)(vue@3.4.35)(zod@3.23.8)
+    version: 3.3.20(openai@4.56.0)(react@18.3.1)(svelte@4.2.18)(vue@3.4.35)(zod@3.23.8)
   class-variance-authority:
     specifier: ^0.7.0
     version: 0.7.0
@@ -1817,8 +1817,8 @@ packages:
       humanize-ms: 1.2.1
     dev: false
 
-  /ai@3.3.19(openai@4.56.0)(react@18.3.1)(svelte@4.2.18)(vue@3.4.35)(zod@3.23.8):
-    resolution: {integrity: sha512-Q3K3cubOYqLVK/5P6oWu5kjjPgAo4Lr+zzLZCCG0HX9b8QemgQCPmZGRNgLNf3a2y6m4NwpjJjAPYHPlb3ytwQ==}
+  /ai@3.3.20(openai@4.56.0)(react@18.3.1)(svelte@4.2.18)(vue@3.4.35)(zod@3.23.8):
+    resolution: {integrity: sha512-GKiL34BPVGgSEDkUlt8nyVRZkx1btnbXyw/bZKj1Jx5sCn/OY/qgiACzakhRzC/90UlxmrMsU1rZGW+Xr8+kFA==}
     engines: {node: '>=18'}
     peerDependencies:
       openai: ^4.42.0

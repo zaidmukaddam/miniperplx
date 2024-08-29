@@ -15,6 +15,7 @@ import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import { track } from '@vercel/analytics';
 import 'katex/dist/katex.min.css';
 import { useChat } from 'ai/react';
 import { ToolInvocation } from 'ai';
@@ -1458,6 +1459,7 @@ export default function Home() {
     const handleFormSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (input.trim()) {
+            track("search enter", { query: input.trim() });
             setHasSubmitted(true);
             setSuggestedQuestions([]);
             handleSubmit(e);
