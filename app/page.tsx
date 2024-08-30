@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Tooltip,
   TooltipContent,
@@ -18,7 +18,7 @@ import {
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import MovingGradient from "@/components/animata/background/moving-gradient";
 import {
   Search,
   Zap,
@@ -34,10 +34,10 @@ import {
   Server,
   Palette,
   Cpu,
-  ChevronDown,
-  Check,
   Menu,
-  X
+  X,
+  BarChart,
+  CircleDot
 } from "lucide-react"
 import NextLink from "next/link"
 import {
@@ -52,6 +52,41 @@ import {
 import { cn } from '@/lib/utils';
 import { Tweet } from 'react-tweet'
 import Image from 'next/image';
+
+function BentoCard({
+  title,
+  icon: Icon,
+  description,
+  children,
+  gradient,
+  className,
+}: {
+  title: string;
+  icon: React.ElementType;
+  description: string;
+  children?: React.ReactNode;
+  gradient?: string;
+  className?: string;
+}) {
+  return (
+    <MovingGradient
+      animated={false}
+      className={cn("rounded-md", className)}
+      gradientClassName={cn("opacity-10", gradient)}
+    >
+      <section className="flex h-full flex-col gap-2 p-4">
+        <header>
+          <div className="mb-2 flex items-center gap-2">
+            <Icon size={20} className="sm:w-6 sm:h-6" />
+            <p className="text-sm sm:text-md line-clamp-1 font-bold">{title}</p>
+          </div>
+        </header>
+        <div className="flex-1 text-xs sm:text-sm font-medium text-opacity-80">{description}</div>
+        {children}
+      </section>
+    </MovingGradient>
+  );
+}
 
 const TestimonialSection: React.FC = () => {
   const tweetIds = [
@@ -121,58 +156,113 @@ const TestimonialSection: React.FC = () => {
   );
 };
 
-const AboutUsSection: React.FC = () => {
-  const aboutPoints = [
-    {
-      icon: Search,
-      title: "Minimalistic Search",
-      description: "We strip away the clutter to focus on what matters most - delivering accurate and relevant results."
-    },
-    {
-      icon: Code,
-      title: "AI-Powered",
-      description: "Leveraging cutting-edge AI technology to understand and respond to your queries with precision."
-    },
-    {
-      icon: Zap,
-      title: "Lightning Fast",
-      description: "Designed for speed, MiniPerplx provides instant answers to keep up with your pace of work."
-    }
-  ];
-
+function GetStarted() {
   return (
-    <section id="about-us" className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-background to-muted">
+    <BentoCard
+      title="Get Started"
+      icon={BarChart}
+      description={"Experience the power of minimalistic AI search with MiniPerplx."}
+      className="col-span-full sm:col-span-1 sm:row-span-2"
+      gradient="from-blue-700 via-60% via-blue-600 to-cyan-600"
+    >
+      <div className="group relative flex cursor-pointer flex-col justify-end rounded-md bg-zinc-900 p-2 text-xl sm:text-2xl md:text-4xl tracking-tight text-gray-100">
+        <div className="font-light italic">Try</div>
+        <div className="-mt-1 sm:-mt-2 font-bold font-serif">MiniPerplx</div>
+        <NextLink href="/search" className="absolute bottom-2 right-2">
+          <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full border bg-primary transition-all duration-700 group-hover:rotate-[360deg]">
+            <ArrowRight size={14} className="text-background sm:w-4 sm:h-4" />
+          </div>
+        </NextLink>
+        <div className="absolute right-2 top-2 h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-primary opacity-50 transition-all duration-700 group-hover:opacity-25" />
+      </div>
+    </BentoCard>
+  );
+}
+
+function MinimalisticSearch() {
+  return (
+    <BentoCard
+      title="Minimalistic Search"
+      icon={Search}
+      description="We strip away the clutter to focus on what matters most - delivering accurate and relevant results."
+      gradient="from-red-700 via-60% via-red-600 to-rose-600"
+      className="group col-span-full sm:col-span-1"
+    >
+      <div className="mt-2 sm:mt-4 space-y-1 sm:space-y-2">
+        <div className="flex items-center">
+          <CircleDot size={12} className="text-red-400 mr-1 sm:mr-2 sm:w-4 sm:h-4" />
+          <span className="text-xs sm:text-sm">Clean interface</span>
+        </div>
+        <div className="flex items-center">
+          <CircleDot size={12} className="text-red-400 mr-1 sm:mr-2 sm:w-4 sm:h-4" />
+          <span className="text-xs sm:text-sm">Focused results</span>
+        </div>
+        <div className="flex items-center">
+          <CircleDot size={12} className="text-red-400 mr-1 sm:mr-2 sm:w-4 sm:h-4" />
+          <span className="text-xs sm:text-sm">Distraction-free</span>
+        </div>
+      </div>
+    </BentoCard>
+  );
+}
+
+function AIPowered() {
+  return (
+    <BentoCard
+      title="AI-Powered"
+      icon={Code}
+      description="Leveraging cutting-edge AI technology to understand and respond to your queries with precision."
+      gradient="from-emerald-700 via-60% via-emerald-600 to-green-600"
+      className="group col-span-full sm:col-span-1"
+    >
+      <div className="mt-2 sm:mt-4 space-y-1 sm:space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs sm:text-sm">Natural Language</span>
+          <div className="w-1/2 bg-emerald-200 rounded-full h-1.5 sm:h-2">
+            <div className="bg-emerald-500 h-1.5 sm:h-2 rounded-full" style={{ width: '90%' }}></div>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-xs sm:text-sm">Context Understanding</span>
+          <div className="w-1/2 bg-emerald-200 rounded-full h-1.5 sm:h-2">
+            <div className="bg-emerald-500 h-1.5 sm:h-2 rounded-full" style={{ width: '85%' }}></div>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-xs sm:text-sm">Adaptive Learning</span>
+          <div className="w-1/2 bg-emerald-200 rounded-full h-1.5 sm:h-2">
+            <div className="bg-emerald-500 h-1.5 sm:h-2 rounded-full" style={{ width: '80%' }}></div>
+          </div>
+        </div>
+      </div>
+    </BentoCard>
+  );
+}
+
+function LightningFast() {
+  return (
+    <BentoCard
+      title="Lightning Fast"
+      icon={Zap}
+      description="Designed for speed, MiniPerplx provides instant answers to keep up with your pace of work."
+      gradient="from-purple-700 via-60% via-purple-600 to-fuchsia-600"
+      className="col-span-full sm:col-span-2"
+    />
+  );
+}
+
+const AboutUsSection: React.FC = () => {
+  return (
+    <section id="about-us" className="w-full py-8 sm:py-12 md:py-24 lg:py-32 bg-gradient-to-b from-background to-muted">
       <div className="container px-4 md:px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-12"
-        >
-          <h2 className="font-serif text-4xl font-bold sm:text-5xl md:text-6xl lg:text-7xl tracking-tight mb-4">
-            About MiniPerplx
-          </h2>
-          <p className="mx-auto max-w-[700px] text-muted-foreground text-lg md:text-xl">
-            MiniPerplx is reimagining the way you search and interact with information online.
-          </p>
-        </motion.div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {aboutPoints.map((point, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-            >
-              <Card className="h-full">
-                <CardContent className="flex flex-col items-center text-center p-6">
-                  <point.icon className="h-12 w-12 text-primary mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">{point.title}</h3>
-                  <p className="text-muted-foreground">{point.description}</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+        <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-center mb-8 sm:mb-12">
+          About MiniPerplx
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-foreground max-w-5xl mx-auto">
+          <GetStarted />
+          <MinimalisticSearch />
+          <AIPowered />
+          <LightningFast />
         </div>
       </div>
     </section>
@@ -551,7 +641,7 @@ const LandingPage: React.FC = () => {
     { icon: Globe, title: "Web Search", description: "Powered by Tavily AI for comprehensive web results." },
     { icon: Code, title: "Code Interpreter", description: "Utilize e2b.dev for advanced code interpretation and execution." },
     { icon: Cloud, title: "Weather Forecast", description: "Get accurate weather information via OpenWeatherMap." },
-    { icon: Link, title: "URL Summary", description: "Summarize web content quickly with Jina AI Reader." },
+    { icon: Link, title: "URL Summary", description: "Summarize web content quickly with FireCrawl." },
     { icon: MapPin, title: "Location Search", description: "Find places and nearby locations using Google Maps API." },
     { icon: Mic, title: "Translation & TTS", description: "Translate text and convert to speech with OpenAI TTS." },
   ]
