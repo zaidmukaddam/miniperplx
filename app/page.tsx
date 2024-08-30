@@ -641,7 +641,7 @@ const LandingPage: React.FC = () => {
     { icon: Globe, title: "Web Search", description: "Powered by Tavily AI for comprehensive web results." },
     { icon: Code, title: "Code Interpreter", description: "Utilize e2b.dev for advanced code interpretation and execution." },
     { icon: Cloud, title: "Weather Forecast", description: "Get accurate weather information via OpenWeatherMap." },
-    { icon: Link, title: "URL Summary", description: "Summarize web content quickly with FireCrawl." },
+    { icon: Link, title: "URL Summary", description: "Summarize web content quickly with FireCrawl's Scrape API." },
     { icon: MapPin, title: "Location Search", description: "Find places and nearby locations using Google Maps API." },
     { icon: Mic, title: "Translation & TTS", description: "Translate text and convert to speech with OpenAI TTS." },
   ]
