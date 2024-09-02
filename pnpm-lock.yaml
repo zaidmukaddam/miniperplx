@@ -72,7 +72,7 @@ dependencies:
     specifier: ^1.4.0
     version: 1.4.0
   ai:
-    specifier: latest
+    specifier: ^3.3.20
     version: 3.3.20(openai@4.56.0)(react@18.3.1)(svelte@4.2.18)(vue@3.4.35)(zod@3.23.8)
   class-variance-authority:
     specifier: ^0.7.0

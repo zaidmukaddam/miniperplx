@@ -54,8 +54,8 @@ import {
     TrendingUpIcon,
     Calendar,
     Calculator,
-    PlusCircle,
-    ImageIcon
+    ImageIcon,
+    Paperclip
 } from 'lucide-react';
 import {
     HoverCard,
@@ -96,7 +96,7 @@ import {
 import { GitHubLogoIcon, PlusCircledIcon } from '@radix-ui/react-icons';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 export const maxDuration = 60;
@@ -108,16 +108,28 @@ declare global {
     }
 }
 
+const MAX_IMAGES = 3;
+
+interface Attachment {
+    name: string;
+    contentType: string;
+    url: string;
+    size: number;
+}
+
 export default function Home() {
-    const inputRef = useRef<HTMLInputElement>(null);
     const [lastSubmittedQuery, setLastSubmittedQuery] = useState("");
     const [hasSubmitted, setHasSubmitted] = useState(false);
     const bottomRef = useRef<HTMLDivElement>(null);
     const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
     const [isEditingMessage, setIsEditingMessage] = useState(false);
     const [editingMessageIndex, setEditingMessageIndex] = useState(-1);
+    const [files, setFiles] = useState<FileList | undefined>(undefined);
+    const [attachments, setAttachments] = useState<Attachment[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
-    const { isLoading, input, messages, setInput, append, handleSubmit, setMessages } = useChat({
+    const { isLoading, input, messages, setInput, handleInputChange, append, handleSubmit, setMessages } = useChat({
         api: '/api/chat',
         maxToolRoundtrips: 1,
         onFinish: async (message, { finishReason }) => {
@@ -1439,16 +1451,17 @@ export default function Home() {
         }
     }, [messages, suggestedQuestions]);
 
-    const handleExampleClick = useCallback(async (query: string) => {
-        track("search example", { query });
-        setLastSubmittedQuery(query.trim());
+    const handleExampleClick = useCallback(async (card: typeof suggestionCards[number]) => {
+        track("search example", { query: card.text });
+        setLastSubmittedQuery(card.text.trim());
         setHasSubmitted(true);
         setSuggestedQuestions([]);
         await append({
-            content: query.trim(),
-            role: 'user'
+            content: card.text.trim(),
+            role: 'user',
+            experimental_attachments: card.attachment ? [card.attachment] : undefined,
         });
-    }, [append]);
+    }, [append, setLastSubmittedQuery, setHasSubmitted, setSuggestedQuestions]);
 
     const handleSuggestedQuestionClick = useCallback(async (question: string) => {
         setHasSubmitted(true);
@@ -1459,18 +1472,6 @@ export default function Home() {
             role: 'user'
         });
     }, [setInput, append]);
-
-    const handleFormSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        if (input.trim()) {
-            track("search enter", { query: input.trim() });
-            setHasSubmitted(true);
-            setSuggestedQuestions([]);
-            handleSubmit(e);
-        } else {
-            toast.error("Please enter a search query.");
-        }
-    }, [input, handleSubmit]);
 
     const handleMessageEdit = useCallback((index: number) => {
         setIsEditingMessage(true);
@@ -1493,6 +1494,15 @@ export default function Home() {
     }, [input, messages, editingMessageIndex, setMessages, handleSubmit]);
 
     const suggestionCards = [
+        {
+            icon: <ImageIcon className="w-5 h-5 text-gray-400" />,
+            text: "Where is this place?",
+            attachment: {
+                name: 'taj_mahal.jpg',
+                contentType: 'image/jpeg',
+                url: 'https://metwm7frkvew6tn1.public.blob.vercel-storage.com/taj-mahal.jpg',
+            }
+        },
         { icon: <Flame className="w-5 h-5 text-gray-400" />, text: "What's new with XAI's Grok?" },
         { icon: <Sparkles className="w-5 h-5 text-gray-400" />, text: "Latest updates on OpenAI" },
         { icon: <Sun className="w-5 h-5 text-gray-400" />, text: "Weather in Doha" },
@@ -1546,11 +1556,367 @@ export default function Home() {
         </div>
     );
 
+    interface UploadingAttachment {
+        file: File;
+        progress: number;
+    }
+
+    interface AttachmentPreviewProps {
+        attachment: Attachment | UploadingAttachment;
+        onRemove: () => void;
+        isUploading: boolean;
+    }
+
+    const AttachmentPreview: React.FC<AttachmentPreviewProps> = React.memo(({ attachment, onRemove, isUploading }) => {
+        const formatFileSize = (bytes: number): string => {
+            if (bytes < 1024) return bytes + ' bytes';
+            else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            else return (bytes / 1048576).toFixed(1) + ' MB';
+        };
+
+        const isUploadingAttachment = (attachment: Attachment | UploadingAttachment): attachment is UploadingAttachment => {
+            return 'progress' in attachment;
+        };
+
+        return (
+            <HoverCard>
+                <HoverCardTrigger asChild>
+                    <motion.div
+                        layout
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ duration: 0.2 }}
+                        className="relative flex items-center bg-background border border-input rounded-2xl p-2 pr-8 gap-2 cursor-pointer shadow-sm z-10"
+                    >
+                        {isUploading ? (
+                            <div className="w-10 h-10 flex items-center justify-center">
+                                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                            </div>
+                        ) : isUploadingAttachment(attachment) ? (
+                            <div className="w-10 h-10 flex items-center justify-center">
+                                <div className="relative w-8 h-8">
+                                    <svg className="w-full h-full" viewBox="0 0 100 100">
+                                        <circle
+                                            className="text-muted-foreground stroke-current"
+                                            strokeWidth="10"
+                                            cx="50"
+                                            cy="50"
+                                            r="40"
+                                            fill="transparent"
+                                        ></circle>
+                                        <circle
+                                            className="text-primary stroke-current"
+                                            strokeWidth="10"
+                                            strokeLinecap="round"
+                                            cx="50"
+                                            cy="50"
+                                            r="40"
+                                            fill="transparent"
+                                            strokeDasharray={`${attachment.progress * 251.2}, 251.2`}
+                                            transform="rotate(-90 50 50)"
+                                        ></circle>
+                                    </svg>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <span className="text-xs font-semibold">{Math.round(attachment.progress * 100)}%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <img
+                                src={(attachment as Attachment).url}
+                                alt={`Preview of ${attachment.name}`}
+                                width={40}
+                                height={40}
+                                className="rounded-lg h-10 w-10 object-cover"
+                            />
+                        )}
+                        <div className="flex-grow min-w-0">
+                            {isUploadingAttachment(attachment) ? null : (
+                                <p className="text-sm font-medium truncate">{attachment.name}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                                {isUploadingAttachment(attachment)
+                                    ? 'Uploading...'
+                                    : formatFileSize((attachment as Attachment).size)}
+                            </p>
+                        </div>
+                        <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+                            className="absolute -top-2 -right-2 p-0.5 m-0 rounded-full bg-background border border-input shadow-sm hover:bg-muted transition-colors z-20"
+                        >
+                            <X size={14} />
+                        </motion.button>
+                    </motion.div>
+                </HoverCardTrigger>
+                {!isUploadingAttachment(attachment) && (
+                    <HoverCardContent className="w-fit p-1 bg-black border-none rounded-xl z-30">
+                        <Image
+                            src={(attachment as Attachment).url}
+                            alt={`Full preview of ${attachment.name}`}
+                            width={300}
+                            height={300}
+                            objectFit="contain"
+                            className="rounded-md"
+                        />
+                    </HoverCardContent>
+                )}
+            </HoverCard>
+        );
+    });
+
+    AttachmentPreview.displayName = 'AttachmentPreview';
+
+    interface FormComponentProps {
+        input: string;
+        setInput: (input: string) => void;
+        attachments: Attachment[];
+        setAttachments: React.Dispatch<React.SetStateAction<Attachment[]>>;
+        hasSubmitted: boolean;
+        setHasSubmitted: (value: boolean) => void;
+        isLoading: boolean;
+        handleSubmit: (event: React.FormEvent<HTMLFormElement>, options?: { experimental_attachments?: Attachment[] }) => void;
+        fileInputRef: React.RefObject<HTMLInputElement>;
+        inputRef: React.RefObject<HTMLInputElement>;
+    }
+
+    const FormComponent: React.FC<FormComponentProps> = ({
+        input,
+        setInput,
+        attachments,
+        setAttachments,
+        hasSubmitted,
+        setHasSubmitted,
+        isLoading,
+        handleSubmit,
+        fileInputRef,
+        inputRef,
+    }) => {
+        const [uploadingAttachments, setUploadingAttachments] = useState<UploadingAttachment[]>([]);
+
+        const uploadFile = async (file: File): Promise<Attachment> => {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to upload file');
+            }
+
+            return await response.json();
+        };
+
+        const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+            const selectedFiles = event.target.files;
+            if (selectedFiles) {
+                const imageFiles = Array.from(selectedFiles).filter(file => file.type.startsWith('image/'));
+                if (imageFiles.length > 0) {
+                    if (imageFiles.length + attachments.length + uploadingAttachments.length > MAX_IMAGES) {
+                        toast.error(`You can only attach up to ${MAX_IMAGES} images.`);
+                        return;
+                    }
+
+                    const newUploadingAttachments = imageFiles.map(file => ({ file, progress: 0 }));
+                    setUploadingAttachments(prev => [...prev, ...newUploadingAttachments]);
+
+                    for (const file of imageFiles) {
+                        try {
+                            const uploadedFile = await uploadFile(file);
+                            setAttachments(prev => [...prev, uploadedFile]);
+                            setUploadingAttachments(prev => prev.filter(ua => ua.file !== file));
+                        } catch (error) {
+                            console.error("Error uploading file:", error);
+                            toast.error(`Failed to upload ${file.name}`);
+                            setUploadingAttachments(prev => prev.filter(ua => ua.file !== file));
+                        }
+                    }
+                } else {
+                    toast.error("Please select image files only.");
+                }
+            }
+        };
+
+        const removeAttachment = (index: number) => {
+            setAttachments(prev => prev.filter((_, i) => i !== index));
+        };
+
+        const removeUploadingAttachment = (index: number) => {
+            setUploadingAttachments(prev => prev.filter((_, i) => i !== index));
+        };
+
+        const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+            setInput(e.target.value);
+        }, [setInput]);
+
+        useEffect(() => {
+            if (inputRef.current) {
+                inputRef.current.focus();
+            }
+        }, [inputRef]);
+
+        const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (input.trim() || attachments.length > 0) {
+                setHasSubmitted(true);
+                handleSubmit(event, {
+                    experimental_attachments: attachments,
+                });
+                setAttachments([]);
+                setUploadingAttachments([]);
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+            } else {
+                toast.error("Please enter a search query or attach an image.");
+            }
+        };
+
+        return (
+            <motion.form
+                layout
+                onSubmit={onSubmit}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        onSubmit(e);
+                    }
+                }}
+                className={`
+                    ${hasSubmitted ? 'fixed bottom-4 left-1/2 transform -translate-x-1/2 max-w-[90%] sm:max-w-2xl' : 'max-w-full'}
+                    ${attachments.length > 0 || uploadingAttachments.length > 0 ? 'rounded-2xl' : 'rounded-full'}
+                    w-full 
+                    bg-background border border-input
+                    overflow-hidden mb-4
+                    transition-all duration-300 ease-in-out
+                    z-50
+                `}
+            >
+                <div className={`space-y-2 ${attachments.length > 0 || uploadingAttachments.length > 0 ? 'p-2' : 'p-0'}`}>
+                    <AnimatePresence initial={false}>
+                        {(attachments.length > 0 || uploadingAttachments.length > 0) && (
+                            <motion.div
+                                key="file-previews"
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                transition={{ duration: 0.3 }}
+                                className="flex flex-wrap gap-2 z-10"
+                            >
+                                {uploadingAttachments.map((attachment, index) => (
+                                    <AttachmentPreview
+                                        key={`uploading-${index}`}
+                                        attachment={attachment}
+                                        onRemove={() => removeUploadingAttachment(index)}
+                                        isUploading={true}
+                                    />
+                                ))}
+                                {attachments.map((attachment, index) => (
+                                    <AttachmentPreview
+                                        key={attachment.url}
+                                        attachment={attachment}
+                                        onRemove={() => removeAttachment(index)}
+                                        isUploading={false}
+                                    />
+                                ))}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                    <div className="relative flex items-center z-20">
+                        <Input
+                            ref={inputRef}
+                            name="search"
+                            placeholder={hasSubmitted ? "Ask a new question..." : "Ask a question..."}
+                            value={input}
+                            onChange={handleInputChange}
+                            disabled={isLoading}
+                            className="w-full h-12 pl-10 pr-12 bg-muted border border-input rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 text-sm sm:text-base"
+                        />
+                        <label
+                            htmlFor={hasSubmitted ? "file-upload-bottom" : "file-upload-top"}
+                            className={`absolute left-3 cursor-pointer ${attachments.length + uploadingAttachments.length >= MAX_IMAGES ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                            <Paperclip className="h-5 w-5 text-muted-foreground" />
+                            <input
+                                id={hasSubmitted ? "file-upload-bottom" : "file-upload-top"}
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={handleFileChange}
+                                className="hidden"
+                                disabled={attachments.length + uploadingAttachments.length >= MAX_IMAGES}
+                                ref={fileInputRef}
+                            />
+                        </label>
+                        <Button
+                            type="submit"
+                            size="icon"
+                            variant="ghost"
+                            className="absolute right-2"
+                            disabled={(input.trim().length === 0 && attachments.length === 0) || isLoading || uploadingAttachments.length > 0}
+                        >
+                            <ArrowRight size={20} />
+                        </Button>
+                    </div>
+                </div>
+            </motion.form>
+        );
+    };
+
+
+    const SuggestionCards: React.FC = () => {
+        return (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-1 sm:row-span-2">
+                    <button
+                        onClick={() => handleExampleClick(suggestionCards[0])}
+                        className="bg-gray-100 rounded-xl px-2 py-4 text-left w-full sm:h-40 h-full flex flex-col items-center hover:bg-gray-200"
+                    >
+                        <div className="flex items-center space-x-2 text-gray-700">
+                            <span>{suggestionCards[0].icon}</span>
+                            <span className="text-sm font-medium">{suggestionCards[0].text}</span>
+                        </div>
+                        {suggestionCards[0].attachment && (
+                            <div className="mt-2 rounded-lg overflow-hidden w-full">
+                                <img
+                                    src={suggestionCards[0].attachment.url}
+                                    alt={suggestionCards[0].attachment.name}
+                                    className="w-full h-auto object-cover sm:h-30 sm:object-fill"
+                                />
+                            </div>
+                        )}
+                    </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:gap-3 sm:w-[28rem]">
+                    {suggestionCards.slice(1).map((card, index) => (
+                        <button
+                            key={index}
+                            onClick={() => handleExampleClick(card)}
+                            className="bg-gray-100 rounded-xl p-4 text-left hover:bg-gray-200"
+                        >
+                            <div className="flex items-center space-x-2 text-gray-700">
+                                <span>{card.icon}</span>
+                                <span className="text-sm font-medium">{card.text}</span>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="flex flex-col font-sans items-center justify-center p-2 sm:p-4 bg-background text-foreground transition-all duration-500">
             <Navbar />
 
-            <div className={`w-full max-w-[90%] sm:max-w-2xl space-y-6 p-1 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[26vh] sm:mt-[30vh]'}`}>
+            <div className={`w-full max-w-[90%] sm:max-w-2xl space-y-6 p-1 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[20vh] sm:mt-[30vh]'}`}>
                 {!hasSubmitted && (
                     <div className="text-center">
                         <h1 className="text-4xl sm:text-6xl mb-1 text-gray-800 font-serif">MiniPerplx</h1>
@@ -1566,47 +1932,25 @@ export default function Home() {
                             exit={{ opacity: 0, y: 20 }}
                             transition={{ duration: 0.5 }}
                         >
-                            <form onSubmit={handleFormSubmit} className="flex items-center space-x-2 px-2 mb-4 sm:mb-6">
-                                <div className="relative flex-1">
-                                    <Input
-                                        ref={inputRef}
-                                        name="search"
-                                        placeholder="Ask a question..."
-                                        value={input}
-                                        onChange={(e) => setInput(e.target.value)}
-                                        disabled={isLoading}
-                                        className="w-full min-h-12 py-3 px-4 bg-muted border border-input rounded-full pr-12 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-200 focus-visible:ring-offset-2 text-sm sm:text-base"
-                                    />
-                                    <Button
-                                        type="submit"
-                                        size={'icon'}
-                                        variant={'ghost'}
-                                        className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                                        disabled={input.length === 0}
-                                    >
-                                        <ArrowRight size={20} />
-                                    </Button>
-                                </div>
-                            </form>
-
-                            <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2 sm:space-x-4 mt-6">
-                                {suggestionCards.map((card, index) => (
-                                    <button
-                                        key={index}
-                                        onClick={() => handleExampleClick(card.text)}
-                                        className="flex items-center space-x-2 p-3 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors duration-200 text-left"
-                                    >
-                                        <span>{card.icon}</span>
-                                        <span className="text-xs font-medium text-gray-700 line-clamp-2">{card.text}</span>
-                                    </button>
-                                ))}
-                            </div>
+                            <FormComponent
+                                input={input}
+                                setInput={setInput}
+                                attachments={attachments}
+                                setAttachments={setAttachments}
+                                hasSubmitted={hasSubmitted}
+                                setHasSubmitted={setHasSubmitted}
+                                handleSubmit={handleSubmit}
+                                isLoading={isLoading}
+                                fileInputRef={fileInputRef}
+                                inputRef={inputRef}
+                            />
+                            <SuggestionCards />
                         </motion.div>
                     )}
                 </AnimatePresence>
 
 
-                <div className="space-y-4 sm:space-y-6 mb-24">
+                <div className="space-y-4 sm:space-y-6 mb-32">
                     {messages.map((message, index) => (
                         <div key={index}>
                             {message.role === 'user' && (
@@ -1614,9 +1958,9 @@ export default function Home() {
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.5 }}
-                                    className="flex items-center space-x-2 mb-4"
+                                    className="flex items-start space-x-2 mb-4"
                                 >
-                                    <User2 className="size-5 sm:size-6 text-primary flex-shrink-0" />
+                                    <User2 className="size-5 sm:size-6 text-primary flex-shrink-0 mt-1" />
                                     <div className="flex-grow min-w-0">
                                         {isEditingMessage && editingMessageIndex === index ? (
                                             <form onSubmit={handleMessageUpdate} className="flex items-center space-x-2">
@@ -1643,9 +1987,26 @@ export default function Home() {
                                                 </Button>
                                             </form>
                                         ) : (
-                                            <p className="text-xl sm:text-2xl font-medium font-serif truncate">
-                                                {message.content}
-                                            </p>
+                                            <div>
+                                                <p className="text-xl sm:text-2xl font-medium font-serif break-words">
+                                                    {message.content}
+                                                </p>
+                                                <div
+                                                    className='flex flex-row gap-2'
+                                                >
+                                                    {message.experimental_attachments?.map((attachment, attachmentIndex) => (
+                                                        <div key={attachmentIndex} className="mt-2">
+                                                            {attachment.contentType!.startsWith('image/') && (
+                                                                <img
+                                                                    src={attachment.url}
+                                                                    alt={attachment.name || `Attachment ${attachmentIndex + 1}`}
+                                                                    className="max-w-full h-32 object-fill rounded-lg"
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
                                     {!isEditingMessage && index === lastUserMessageIndex && (
@@ -1714,35 +2075,18 @@ export default function Home() {
 
             <AnimatePresence>
                 {hasSubmitted && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 50 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 50 }}
-                        transition={{ duration: 0.5 }}
-                        className="fixed bottom-4 transform -translate-x-1/2 w-full max-w-[90%] md:max-w-2xl mt-3"
-                    >
-                        <form onSubmit={handleFormSubmit} className="flex items-center space-x-2">
-                            <div className="relative flex-1">
-                                <Input
-                                    name="search"
-                                    placeholder="Ask a new question..."
-                                    value={input}
-                                    onChange={(e) => setInput(e.target.value)}
-                                    disabled={isLoading}
-                                    className="w-full min-h-12 py-3 px-4 bg-muted border border-input rounded-full pr-12 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-200 focus-visible:ring-offset-2 text-sm sm:text-base"
-                                />
-                                <Button
-                                    type="submit"
-                                    size={'icon'}
-                                    variant={'ghost'}
-                                    className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                                    disabled={input.length === 0 || isLoading}
-                                >
-                                    <ArrowRight size={20} />
-                                </Button>
-                            </div>
-                        </form>
-                    </motion.div>
+                    <FormComponent
+                        input={input}
+                        setInput={setInput}
+                        attachments={attachments}
+                        setAttachments={setAttachments}
+                        hasSubmitted={hasSubmitted}
+                        setHasSubmitted={setHasSubmitted}
+                        handleSubmit={handleSubmit}
+                        isLoading={isLoading}
+                        fileInputRef={fileInputRef}
+                        inputRef={inputRef}
+                    />
                 )}
             </AnimatePresence>
         </div>

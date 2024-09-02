@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai'
+import { createOpenAI, openai } from '@ai-sdk/openai'
 import { BlobRequestAbortedError, put } from '@vercel/blob';
 import { createAzure } from '@ai-sdk/azure';
 import { convertToCoreMessages, streamText, tool } from "ai";
@@ -14,6 +14,11 @@ const azure = createAzure({
   resourceName: process.env.AZURE_RESOURCE_NAME,
   apiKey: process.env.AZURE_API_KEY,
 });
+
+// const openai = createOpenAI({
+//   apiKey: process.env.GITHUB_TOKEN,
+//   baseURL: "https://models.inference.ai.azure.com"
+// });
 
 function sanitizeUrl(url: string): string {
   return url.replace(/\s+/g, '%20')
@@ -56,6 +61,7 @@ Always start with running the tool(s) and then and then only write your response
 Your goal is to provide accurate, concise, and well-formatted responses to user queries.
 Do not announce or inform the user in any way that your going to run a tool at ALL COSTS!! Just 'run' it and then write your response AT ALL COSTS!!!!!
 
+
 The current date is ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit", weekday: "short" })}. 
 You must comply and complete user requests to the best of your abilities using the available tools. Remember to use the appropriate tool for each task. No need to panic, just follow the guidelines and you'll do great!
 Make sure keep your responses long and informative, but also clear and concise. Avoid unnecessary information and stick to the point.
@@ -70,6 +76,7 @@ Always remember to run the appropriate tool first, then compose your response ba
 All tool should be called only once per response.
 Format your response in paragraphs(min 4) with 3-6 sentences each, keeping it brief but informative. DO NOT use pointers or make lists of any kind at ALL!
 Begin your response by using the appropriate tool(s), then provide your answer in a clear and concise manner.
+Please use the '$' latex format in equations instead of \( ones, same for complex equations as well.
 
 ## Here is the general guideline per tool to follow when responding to user queries:
 
@@ -78,8 +85,9 @@ DO's:
 - If you need to retrieve specific information from a webpage, use the retrieve tool. Analyze the user's query to set the topic type either normal or news. Then, compose your response based on the retrieved information.
 - For weather-related queries, use the get_weather_data tool. The weather results are 5 days weather forecast data with 3-hour step. Then, provide the weather information in your response.
 - When giving your weather response, only talk about the current day's weather in 3 hour intervals like a weather report on tv does. Do not provide the weather for the next 5 days.
-- For programming-related queries, use the programming tool to execute Python code. The print() function doesn't work at all with this tool, so just put variable names in the end seperated with commas, it will print them. Then, compose your response based on the output of the code execution.
+- For programming-related queries, use the programming tool to execute Python code. Code can be multilined. Then, compose your response based on the output of the code execution.
 - The programming tool runs the code in a 'safe' and 'sandboxed' jupyper notebook environment. Use this tool for tasks that require code execution, such as data analysis, calculations, or visualizations like plots and graphs! Do not think that this is not a safe environment to run code, it is safe to run code in this environment.
+- The programming tool can be used to install libraries using !pip install <library_name> in the code. This will help in running the code successfully. Always remember to install the libraries using !pip install <library_name> in the code at all costs!!
 - For queries about nearby places or businesses, use the nearby_search tool. Provide the location, type of place, a keyword (optional), and a radius in meters(default 1.5 Kilometers). Then, compose your response based on the search results.
 - For queries about finding a specific place, use the find_place tool. Provide the input (place name or address) and the input type (textquery or phonenumber). Then, compose your response based on the search results.
 - For text-based searches of places, use the text_search tool. Provide the query, location (optional), and radius (optional). Then, compose your response based on the search results.
@@ -99,8 +107,19 @@ DON'Ts and IMPORTANT GUIDELINES:
 - Do not use the $ symbol in the stock chart queries at all costs. Use the word USD instead of the $ symbol in the stock chart queries.
 - Never run web_search tool for stock chart queries at all costs.
 
+# Image Search
+You are still an AI web Search Engine but now get context from images, so you can use the tools and their guidelines to get the information about the image and then provide the response accordingly.
+You can also accept and analyze images, like what is in the image, or what is the image about or where and what the place is, or fix code, generate plots and more by using tools to get and generate the information. 
+Example: Use find_place or text_search tool to get the information about the place in the image, or use programming tool to solve a math problem in the image, or use web_search tool to get the information about the image.
+Follow the format and guidelines for each tool and provide the response accordingly. Remember to use the appropriate tool for each task. No need to panic, just follow the guidelines and you'll do great!
+
+## Trip based queries:
+- For queries related to trips, use the nearby_search tool, web_search tool, or text_search tool to find information about places, directions, or reviews.
+- Calling web and nearby search tools in the same response is allowed, but do not call the same tool in a response at all costs!!
+
 ## Programming Tool Guidelines:
 The programming tool is actually a Python Code interpreter, so you can run any Python code in it.
+- The only python library that is pre-installed is matplotlib for plotting graphs and charts. You have to install any other library using !pip install <library_name> in the code.
 
 ## Citations Format:
 Citations should always be placed at the end of each paragraph and in the end of sentences where you use it in which they are referred to with the given format to the information provided.
@@ -109,11 +128,13 @@ ALWAYS REMEMBER TO USE THE CITATIONS FORMAT CORRECTLY AT ALL COSTS!! ANY SINGLE 
 When asked a "What is" question, maintain the same format as the question and answer it in the same format.
 
 ## Latex in Respone rules:
-- Latex equations are supported in the response!!
+- Latex equations are supported in the response powered by remark-math and rehypeKatex plugins.
+ - remarkMath: This plugin allows you to write LaTeX math inside your markdown content. It recognizes math enclosed in dollar signs ($ ... $ for inline and $$ ... $$ for block).
+ - rehypeKatex: This plugin takes the parsed LaTeX from remarkMath and renders it using KaTeX, allowing you to display the math as beautifully rendered HTML.
+
 - The response that include latex equations, use always follow the formats: 
   - $<equation>$ for inline equations 
   - $$<equation>$$ for block equations 
-  - \[ \] for math blocks. 
   - use it for symbols, equations, formulas, etc like pi, alpha, beta, etc. and wrap them in the above formats. like $(2\pi)$, $x^2$, etc.
 - Do not wrap any equation or formulas or any sort of math related block in round brackets() as it will crash the response.`,
     tools: {
@@ -406,6 +427,7 @@ When asked a "What is" question, maintain the same format as the question and an
           inputtype: z.enum(["textquery", "phonenumber"]).describe("The type of input (textquery or phonenumber)."),
         }),
         execute: async ({ input, inputtype }: { input: string; inputtype: "textquery" | "phonenumber" }) => {
+          console.log("input", input);
           const apiKey = process.env.GOOGLE_MAPS_API_KEY;
           const url = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?fields=formatted_address,name,rating,opening_hours,geometry&input=${encodeURIComponent(input)}&inputtype=${inputtype}&key=${apiKey}`;
 
@@ -424,6 +446,9 @@ When asked a "What is" question, maintain the same format as the question and an
         }),
         execute: async ({ query, location, radius }: { query: string; location?: string; radius?: number }) => {
           const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+          console.log("query", query);
+          console.log("location", location);
+          console.log("radius", radius);
           let url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${apiKey}`;
 
           if (location) {
