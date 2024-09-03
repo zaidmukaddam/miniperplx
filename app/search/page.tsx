@@ -1254,93 +1254,7 @@ export default function Home() {
             return <TranslationTool toolInvocation={toolInvocation} result={result} />;
         }
 
-        return (
-            <div>
-                {!result ? (
-                    <div className="flex items-center justify-between w-full">
-                        <div
-                            className='flex items-center gap-2'
-                        >
-                            <Globe className="h-5 w-5 text-neutral-700 animate-spin" />
-                            <span className="text-neutral-700 text-lg">Running a search...</span>
-                        </div>
-                        <div className="flex space-x-1">
-                            {[0, 1, 2].map((index) => (
-                                <motion.div
-                                    key={index}
-                                    className="w-2 h-2 bg-muted-foreground rounded-full"
-                                    initial={{ opacity: 0.3 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{
-                                        repeat: Infinity,
-                                        duration: 0.8,
-                                        delay: index * 0.2,
-                                        repeatType: "reverse",
-                                    }}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                ) :
-                    <Accordion type="single" collapsible className="w-full mt-4 !m-0">
-                        <AccordionItem value={`item-${index}`} className='border-none'>
-                            <AccordionTrigger className="hover:no-underline py-2">
-                                <div className="flex items-center justify-between w-full">
-                                    <div className="flex items-center gap-2 ">
-                                        <Newspaper className="h-5 w-5 text-primary" />
-                                        <h2 className='text-base font-semibold'>Sources Found</h2>
-                                    </div>
-                                    {result && (
-                                        <Badge variant="secondary" className='mr-1 rounded-full'>{result.results.length} results</Badge>
-                                    )}
-                                </div>
-                            </AccordionTrigger>
-                            <AccordionContent className='pb-2'>
-                                {args?.query && (
-                                    <Badge variant="secondary" className="mb-2 text-xs sm:text-sm font-light rounded-full">
-                                        <SearchIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                                        {args.query}
-                                    </Badge>
-                                )}
-                                {result && (
-                                    <div className="flex flex-row gap-4 overflow-x-scroll">
-                                        {result.results.map((item: any, itemIndex: number) => (
-                                            <Card key={itemIndex} className="flex flex-col !size-40 shadow-none !p-0 !m-0">
-                                                <CardHeader className="pb-2 p-1">
-                                                    <Image
-                                                        width={48}
-                                                        height={48}
-                                                        unoptimized
-                                                        quality={100}
-                                                        src={`https://www.google.com/s2/favicons?sz=128&domain=${new URL(item.url).hostname}`}
-                                                        alt="Favicon"
-                                                        className="w-5 h-5 flex-shrink-0 rounded-full"
-                                                    />
-                                                    <CardTitle className="text-sm font-semibold line-clamp-2">{item.title}</CardTitle>
-                                                </CardHeader>
-                                                <CardContent className="flex-grow p-1 pb-0">
-                                                    <p className="text-xs text-muted-foreground line-clamp-3">{item.content}</p>
-                                                </CardContent>
-                                                <div className="px-1 py-2 bg-muted rounded-b-xl">
-                                                    <a
-                                                        href={item.url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-xs text-primary flex items-center"
-                                                    >
-                                                        ↪
-                                                        <span className="ml-1 truncate hover:underline">{item.url}</span>
-                                                    </a>
-                                                </div>
-                                            </Card>
-                                        ))}
-                                    </div>
-                                )}
-                            </AccordionContent>
-                        </AccordionItem>
-                    </Accordion>}
-            </div>
-        );
+        return null;
     };
 
     interface CitationComponentProps {
@@ -1894,16 +1808,16 @@ export default function Home() {
                         )}
                     </button>
                 </div>
-                <div className="grid grid-cols-2 gap-2 sm:gap-3 sm:w-[28rem]">
+                <div className="grid grid-cols-2 gap-2 sm:gap-4 sm:w-[28rem]">
                     {suggestionCards.slice(1).map((card, index) => (
                         <button
                             key={index}
                             onClick={() => handleExampleClick(card)}
-                            className="bg-gray-100 rounded-xl p-4 text-left hover:bg-gray-200"
+                            className="bg-gray-100 rounded-xl py-3 sm:py-4 px-4 sm:px-5 text-left hover:bg-gray-200"
                         >
                             <div className="flex items-center space-x-2 text-gray-700">
                                 <span>{card.icon}</span>
-                                <span className="text-sm font-medium">{card.text}</span>
+                                <span className="text-xs sm:text-sm font-medium">{card.text}</span>
                             </div>
                         </button>
                     ))}
