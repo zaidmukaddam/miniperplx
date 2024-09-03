@@ -41,7 +41,7 @@ export async function POST(req: Request) {
   let model;
 
   if (provider === "azure") {
-    model = azure.chat("gpt-4o-mini");
+    model = azure.chat("gpt4o-mini");
   } else if (provider === "openai") {
     model = openai.chat("gpt-4o-mini");
   } else {
