@@ -1704,13 +1704,13 @@ export default function Home() {
                     }
                 }}
                 className={`
-                    ${hasSubmitted ? 'fixed bottom-4 left-1/2 transform -translate-x-1/2 max-w-[90%] sm:max-w-2xl' : 'max-w-full'}
+                    ${hasSubmitted ? 'fixed bottom-4 left-1/2 -translate-x-1/2 max-w-[90%] sm:max-w-2xl' : 'max-w-full'}
                     ${attachments.length > 0 || uploadingAttachments.length > 0 ? 'rounded-2xl' : 'rounded-full'}
                     w-full 
                     bg-background border border-input
                     overflow-hidden mb-4
                     transition-all duration-300 ease-in-out
-                    z-50 relative
+                    z-50
                 `}
             >
                 <div className={`space-y-2 ${attachments.length > 0 || uploadingAttachments.length > 0 ? 'p-2' : 'p-0'}`}>
