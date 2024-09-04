@@ -1501,7 +1501,7 @@ export default function Home() {
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
                         transition={{ duration: 0.2 }}
-                        className="relative flex items-center bg-background border border-input rounded-2xl p-2 pr-8 gap-2 cursor-pointer shadow-sm z-10"
+                        className="relative flex items-center bg-background border border-input rounded-2xl p-2 pr-8 gap-2 cursor-pointer shadow-sm !z-30"
                     >
                         {isUploading ? (
                             <div className="w-10 h-10 flex items-center justify-center">
@@ -1546,7 +1546,7 @@ export default function Home() {
                             />
                         )}
                         <div className="flex-grow min-w-0">
-                            {isUploadingAttachment(attachment) ? null : (
+                            {!isUploadingAttachment(attachment) && (
                                 <p className="text-sm font-medium truncate">{attachment.name}</p>
                             )}
                             <p className="text-xs text-muted-foreground">
@@ -1566,7 +1566,7 @@ export default function Home() {
                     </motion.div>
                 </HoverCardTrigger>
                 {!isUploadingAttachment(attachment) && (
-                    <HoverCardContent className="w-fit p-1 bg-black border-none rounded-xl z-30">
+                    <HoverCardContent className="w-fit p-1 bg-black border-none rounded-xl !z-40">
                         <Image
                             src={(attachment as Attachment).url}
                             alt={`Full preview of ${attachment.name}`}
@@ -1710,7 +1710,7 @@ export default function Home() {
                     bg-background border border-input
                     overflow-hidden mb-4
                     transition-all duration-300 ease-in-out
-                    z-50
+                    z-50 relative
                 `}
             >
                 <div className={`space-y-2 ${attachments.length > 0 || uploadingAttachments.length > 0 ? 'p-2' : 'p-0'}`}>
@@ -1722,7 +1722,7 @@ export default function Home() {
                                 animate={{ opacity: 1, height: 'auto' }}
                                 exit={{ opacity: 0, height: 0 }}
                                 transition={{ duration: 0.3 }}
-                                className="flex flex-wrap gap-2 z-10"
+                                className="flex flex-wrap gap-2 z-30 relative"
                             >
                                 {uploadingAttachments.map((attachment, index) => (
                                     <AttachmentPreview
