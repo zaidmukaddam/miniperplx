@@ -1685,6 +1685,7 @@ export default function Home() {
                 });
                 setAttachments([]);
                 setUploadingAttachments([]);
+                setSuggestedQuestions([]);
                 if (fileInputRef.current) {
                     fileInputRef.current.value = '';
                 }
