@@ -1703,6 +1703,11 @@ export default function Home() {
                         onSubmit(e);
                     }
                 }}
+                onDrag={e => e.preventDefault()}
+                onDrop={e => {
+                    e.preventDefault();
+                    handleFileChange({ target: { files: e.dataTransfer?.files } } as React.ChangeEvent<HTMLInputElement>);
+                }}
                 className={`
                     ${hasSubmitted ? 'fixed bottom-4 left-1/2 -translate-x-1/2 max-w-[90%] sm:max-w-2xl' : 'max-w-full'}
                     ${attachments.length > 0 || uploadingAttachments.length > 0 ? 'rounded-2xl' : 'rounded-full'}
