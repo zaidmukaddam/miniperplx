@@ -124,12 +124,11 @@ export default function Home() {
     const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
     const [isEditingMessage, setIsEditingMessage] = useState(false);
     const [editingMessageIndex, setEditingMessageIndex] = useState(-1);
-    const [files, setFiles] = useState<FileList | undefined>(undefined);
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const { isLoading, input, messages, setInput, handleInputChange, append, handleSubmit, setMessages } = useChat({
+    const { isLoading, input, messages, setInput, append, handleSubmit, setMessages } = useChat({
         api: '/api/chat',
         maxToolRoundtrips: 1,
         onFinish: async (message, { finishReason }) => {
@@ -1708,6 +1707,10 @@ export default function Home() {
                 onDrop={e => {
                     e.preventDefault();
                     handleFileChange({ target: { files: e.dataTransfer?.files } } as React.ChangeEvent<HTMLInputElement>);
+                }}
+                onPaste={e => {
+                    e.preventDefault();
+                    handleFileChange({ target: { files: e.clipboardData?.files } } as React.ChangeEvent<HTMLInputElement>);
                 }}
                 className={`
                     ${hasSubmitted ? 'fixed bottom-4 left-1/2 -translate-x-1/2 max-w-[90%] sm:max-w-2xl' : 'max-w-full'}
