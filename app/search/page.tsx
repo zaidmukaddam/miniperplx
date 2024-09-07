@@ -1886,7 +1886,7 @@ export default function Home() {
 
     const models = [
         { value: "azure:gpt4o-mini", label: "OpenAI", icon: Zap, description: "High speed, lower quality", color: "emerald" },
-        { value: "anthropicVertex:claude-3-5-sonnet@20240620", label: "Claude", icon: Sparkles, description: "High quality, low speed", color: "indigo" },
+        { value: "anthropicVertex:claude-3-5-sonnet@20240620", label: "Claude", icon: Sparkles, description: "High quality, lower speed", color: "indigo" },
     ]
 
     interface ModelSwitcherProps {
