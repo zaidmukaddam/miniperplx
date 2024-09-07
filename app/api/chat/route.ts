@@ -13,7 +13,7 @@ import FirecrawlApp from '@mendable/firecrawl-js';
 import { GoogleAuth } from 'google-auth-library';
 
 // Allow streaming responses up to 60 seconds
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 // Azure setup
 const azure = createAzure({
