@@ -1,24 +1,55 @@
-import { createOpenAI, openai } from '@ai-sdk/openai'
-import { BlobRequestAbortedError, put } from '@vercel/blob';
+import { z } from "zod";
 import { createAzure } from '@ai-sdk/azure';
-import { convertToCoreMessages, streamText, tool } from "ai";
+import { 
+  convertToCoreMessages, 
+  streamText, 
+  tool, 
+  experimental_createProviderRegistry 
+} from "ai";
+import { createAnthropicVertex } from 'anthropic-vertex-ai';
+import { BlobRequestAbortedError, put } from '@vercel/blob';
 import { CodeInterpreter } from "@e2b/code-interpreter";
 import FirecrawlApp from '@mendable/firecrawl-js';
-import { z } from "zod";
-import { geolocation } from "@vercel/functions";
+import { GoogleAuth } from 'google-auth-library';
 
 // Allow streaming responses up to 60 seconds
 export const maxDuration = 60;
 
+// Azure setup
 const azure = createAzure({
   resourceName: process.env.AZURE_RESOURCE_NAME,
   apiKey: process.env.AZURE_API_KEY,
 });
 
-// const openai = createOpenAI({
-//   apiKey: process.env.GITHUB_TOKEN,
-//   baseURL: "https://models.inference.ai.azure.com"
-// });
+// Helper function to get Google credentials
+// You can encode your service account key using the following command:
+// base64 -i /path/to/your-service-account-key.json | tr -d '\n' > encoded_credentials.txt
+// Then set the GOOGLE_APPLICATION_CREDENTIALS_BASE64 environment variable to the contents of encoded_credentials.txt
+function getCredentials() {
+  const credentialsBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
+  if (!credentialsBase64) {
+    throw new Error('GOOGLE_APPLICATION_CREDENTIALS_BASE64 environment variable is not set');
+  }
+  return JSON.parse(Buffer.from(credentialsBase64, 'base64').toString());
+}
+
+// Google Vertex setup for Anthropic
+const auth = new GoogleAuth({
+  scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+  credentials: getCredentials(),
+});
+
+const anthropicVertex = createAnthropicVertex({
+  region: process.env.GOOGLE_VERTEX_REGION,
+  projectId: process.env.GOOGLE_VERTEX_PROJECT_ID,
+  googleAuth: auth,
+});
+
+// Provider registry
+const registry = experimental_createProviderRegistry({
+  anthropicVertex,
+  azure,
+});
 
 function sanitizeUrl(url: string): string {
   return url.replace(/\s+/g, '%20')
@@ -32,35 +63,25 @@ type SearchResultImage =
     number_of_results?: number
   }
 
-const provider = process.env.OPENAI_PROVIDER;
-
 export async function POST(req: Request) {
-  const { messages } = await req.json();
-  const { latitude, longitude, city } = geolocation(req)
+  const { messages, model } = await req.json();
 
-  let model;
-
-  if (provider === "azure") {
-    model = azure.chat("gpt4o-mini");
-  } else if (provider === "openai") {
-    model = openai.chat("gpt-4o-mini");
-  } else {
-    model = openai.chat("gpt-4o-mini");
-  }
+  const provider = model.split(":")[0];
 
   const result = await streamText({
-    model,
+    model: registry.languageModel(model),
     messages: convertToCoreMessages(messages),
-    temperature: 0.72,
-    topP: 0.95,
+    temperature: provider === "azure" ? 0.72 : 0,
+    topP: 0,
     frequencyPenalty: 0,
     presencePenalty: 0,
     system: `
-You are an AI web search engine that helps users find information on the internet.
+You are an expert AI web search engine called MiniPerplx, that helps users find information on the internet with no bullshit talks.
 Always start with running the tool(s) and then and then only write your response AT ALL COSTS!!
 Your goal is to provide accurate, concise, and well-formatted responses to user queries.
 Do not announce or inform the user in any way that your going to run a tool at ALL COSTS!! Just 'run' it and then write your response AT ALL COSTS!!!!!
 
+Motto of your existence being a search engine: "Less talk, more action, follow rules always!", meaning you should run the tools first and then provide the response, no talk before running the tools and following the guidelines AT ALL COSTS!!
 
 The current date is ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit", weekday: "short" })}. 
 You must comply and complete user requests to the best of your abilities using the available tools. Remember to use the appropriate tool for each task. No need to panic, just follow the guidelines and you'll do great!
@@ -73,7 +94,8 @@ web_search, retrieve, get_weather_data, programming, nearby_search, find_place, 
 
 ## Basic Guidelines:
 Always remember to run the appropriate tool first, then compose your response based on the information gathered.
-All tool should be called only once per response.
+Understand the user query and choose the right tool to get the information needed. Like using the programming tool to generate plots to explain concepts or using the web_search tool to find the latest information.
+All tool should be called only once per response. All tool call parameters are mandatory always!
 Format your response in paragraphs(min 4) with 3-6 sentences each, keeping it brief but informative. DO NOT use pointers or make lists of any kind at ALL!
 Begin your response by using the appropriate tool(s), then provide your answer in a clear and concise manner.
 Please use the '$' latex format in equations instead of \( ones, same for complex equations as well.
@@ -96,6 +118,7 @@ DO's:
 - Assume the stock name from the user query and use it in the code to get the stock data and plot the stock chart. This will help in getting the stock chart for the user query. ALWAYS REMEMBER TO INSTALL YFINANCE USING !pip install yfinance AT ALL COSTS!!
 
 DON'Ts and IMPORTANT GUIDELINES:
+- DO NOT TALK BEFORE RUNNING THE TOOL AT ALL COSTS!! JUST RUN THE TOOL AND THEN WRITE YOUR RESPONSE AT ALL COSTS!!!!!
 - Do not call the same tool twice in a single response at all costs!!
 - Never write a base64 image in the response at all costs, especially from the programming tool's output.
 - Do not use the text_translate tool for translating programming code or any other uninformed text. Only run the tool for translating on user's request.
@@ -119,7 +142,9 @@ Follow the format and guidelines for each tool and provide the response accordin
 
 ## Programming Tool Guidelines:
 The programming tool is actually a Python Code interpreter, so you can run any Python code in it.
+- This tool should not be called more than once in a response.
 - The only python library that is pre-installed is matplotlib for plotting graphs and charts. You have to install any other library using !pip install <library_name> in the code.
+- Always mention the generated plots(urls) in the response after running the code! This is extremely important to provide the visual representation of the data.
 
 ## Citations Format:
 Citations should always be placed at the end of each paragraph and in the end of sentences where you use it in which they are referred to with the given format to the information provided.
@@ -133,9 +158,6 @@ When asked a "What is" question, maintain the same format as the question and an
  - rehypeKatex: This plugin takes the parsed LaTeX from remarkMath and renders it using KaTeX, allowing you to display the math as beautifully rendered HTML.
 
 - The response that include latex equations, use always follow the formats: 
-  - $<equation>$ for inline equations 
-  - $$<equation>$$ for block equations 
-  - use it for symbols, equations, formulas, etc like pi, alpha, beta, etc. and wrap them in the above formats. like $(2\pi)$, $x^2$, etc.
 - Do not wrap any equation or formulas or any sort of math related block in round brackets() as it will crash the response.`,
     tools: {
       web_search: tool({
@@ -158,7 +180,7 @@ When asked a "What is" question, maintain the same format as the question and an
             ),
           exclude_domains: z
             .array(z.string())
-            .optional()
+            
             .describe(
               "A list of domains to specifically exclude from the search results. Default is None, which doesn't exclude any domains.",
             ),
@@ -305,7 +327,7 @@ When asked a "What is" question, maintain the same format as the question and an
       programming: tool({
         description: "Write and execute Python code.",
         parameters: z.object({
-          title: z.string().optional().describe("The title of the code snippet."),
+          title: z.string().describe("The title of the code snippet."),
           code: z.string().describe("The Python code to execute."),
           icon: z.enum(["stock", "date", "calculation", "default"]).describe("The icon to display for the code snippet."),
         }),
@@ -379,7 +401,7 @@ When asked a "What is" question, maintain the same format as the question and an
         parameters: z.object({
           location: z.string().describe("The location to search near (e.g., 'New York City' or '1600 Amphitheatre Parkway, Mountain View, CA')."),
           type: z.string().describe("The type of place to search for (e.g., restaurant, cafe, park)."),
-          keyword: z.string().optional().describe("An optional keyword to refine the search."),
+          keyword: z.string().describe("An optional keyword to refine the search."),
           radius: z.number().default(3000).describe("The radius of the search area in meters (max 50000, default 3000)."),
         }),
         execute: async ({ location, type, keyword, radius }: { location: string; type: string; keyword?: string; radius: number }) => {
@@ -441,8 +463,8 @@ When asked a "What is" question, maintain the same format as the question and an
         description: "Perform a text-based search for places using Google Maps API.",
         parameters: z.object({
           query: z.string().describe("The search query (e.g., '123 main street')."),
-          location: z.string().optional().describe("The location to center the search (e.g., '42.3675294,-71.186966')."),
-          radius: z.number().optional().describe("The radius of the search area in meters (max 50000)."),
+          location: z.string().describe("The location to center the search (e.g., '42.3675294,-71.186966')."),
+          radius: z.number().describe("The radius of the search area in meters (max 50000)."),
         }),
         execute: async ({ query, location, radius }: { query: string; location?: string; radius?: number }) => {
           const apiKey = process.env.GOOGLE_MAPS_API_KEY;
@@ -469,7 +491,7 @@ When asked a "What is" question, maintain the same format as the question and an
         parameters: z.object({
           text: z.string().describe("The text to translate."),
           to: z.string().describe("The language to translate to (e.g., 'fr' for French)."),
-          from: z.string().optional().describe("The source language (optional, will be auto-detected if not provided)."),
+          from: z.string().describe("The source language (optional, will be auto-detected if not provided)."),
         }),
         execute: async ({ text, to, from }: { text: string; to: string; from?: string }) => {
           const key = process.env.AZURE_TRANSLATOR_KEY;

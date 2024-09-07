@@ -39,7 +39,6 @@ import {
     Check,
     Loader2,
     User2,
-    Edit2,
     Heart,
     X,
     MapPin,
@@ -55,7 +54,9 @@ import {
     Calendar,
     Calculator,
     ImageIcon,
-    Paperclip
+    Paperclip,
+    ChevronDown,
+    Zap
 } from 'lucide-react';
 import {
     HoverCard,
@@ -98,6 +99,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { cn } from '@/lib/utils';
 
 export const maxDuration = 60;
 
@@ -125,12 +133,16 @@ export default function Home() {
     const [isEditingMessage, setIsEditingMessage] = useState(false);
     const [editingMessageIndex, setEditingMessageIndex] = useState(-1);
     const [attachments, setAttachments] = useState<Attachment[]>([]);
+    const [selectedModel, setSelectedModel] = useState("azure:gpt4o-mini");
     const fileInputRef = useRef<HTMLInputElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const { isLoading, input, messages, setInput, append, handleSubmit, setMessages } = useChat({
+    const { isLoading, input, messages, setInput, append, handleSubmit, setMessages, reload } = useChat({
         api: '/api/chat',
         maxToolRoundtrips: 1,
+        body: {
+            model: selectedModel,
+        },
         onFinish: async (message, { finishReason }) => {
             console.log("[finish reason]:", finishReason);
             if (message.content && finishReason === 'stop' || finishReason === 'length') {
@@ -586,7 +598,7 @@ export default function Home() {
                         <div className="w-full h-24 bg-white rounded-lg overflow-hidden">
                             <canvas ref={canvasRef} width="800" height="200" className="w-full h-full bg-neutral-100" />
                         </div>
-                        <div className="flex text-left gap-3">
+                        <div className="flex text-left gap-3 items-center justify-center text-pretty">
                             <div className="flex justify-center space-x-2">
                                 <Button
                                     onClick={handlePlayPause}
@@ -607,7 +619,7 @@ export default function Home() {
                             <div
                                 className='text-sm text-neutral-800'
                             >
-                                The phrase <span className='font-semibold'>{toolInvocation.args.text}</span> translates from <span className='font-semibold'>{result.detectedLanguage}</span> to <span className='font-semibold'>{toolInvocation.args.to}</span> as <span className='font-semibold'>{result.translatedText}</span>
+                                The phrase <span className='font-semibold'>{toolInvocation.args.text}</span> translates from <span className='font-semibold'>{result.detectedLanguage}</span> to <span className='font-semibold'>{toolInvocation.args.to}</span> as <span className='font-semibold'>{result.translatedText}</span> in <span className='font-semibold'>{toolInvocation.args.to}</span>.
                             </div>
                         </div>
                     </div>
@@ -1608,6 +1620,7 @@ export default function Home() {
         inputRef,
     }) => {
         const [uploadingAttachments, setUploadingAttachments] = useState<UploadingAttachment[]>([]);
+        const cursorPositionRef = useRef<number | null>(null);
 
         const uploadFile = async (file: File): Promise<Attachment> => {
             const formData = new FormData();
@@ -1693,6 +1706,45 @@ export default function Home() {
             }
         };
 
+        const handlePaste = async (e: React.ClipboardEvent) => {
+            e.preventDefault();
+
+            // Handle text paste
+            const text = e.clipboardData.getData('text');
+            if (text) {
+                setInput(text);
+            }
+
+            // Handle image paste
+            const items = Array.from(e.clipboardData.items);
+            const imageItems = items.filter(item => item.type.indexOf('image') !== -1);
+
+            if (imageItems.length > 0) {
+                if (attachments.length + uploadingAttachments.length + imageItems.length > MAX_IMAGES) {
+                    toast.error(`You can only attach up to ${MAX_IMAGES} images.`);
+                    return;
+                }
+
+                for (const item of imageItems) {
+                    const file = item.getAsFile();
+                    if (file) {
+                        const newUploadingAttachment = { file, progress: 0 };
+                        setUploadingAttachments(prev => [...prev, newUploadingAttachment]);
+
+                        try {
+                            const uploadedFile = await uploadFile(file);
+                            setAttachments(prev => [...prev, uploadedFile]);
+                            setUploadingAttachments(prev => prev.filter(ua => ua.file !== file));
+                        } catch (error) {
+                            console.error("Error uploading file:", error);
+                            toast.error(`Failed to upload pasted image`);
+                            setUploadingAttachments(prev => prev.filter(ua => ua.file !== file));
+                        }
+                    }
+                }
+            }
+        };
+
         return (
             <motion.form
                 layout
@@ -1708,10 +1760,7 @@ export default function Home() {
                     e.preventDefault();
                     handleFileChange({ target: { files: e.dataTransfer?.files } } as React.ChangeEvent<HTMLInputElement>);
                 }}
-                onPaste={e => {
-                    e.preventDefault();
-                    handleFileChange({ target: { files: e.clipboardData?.files } } as React.ChangeEvent<HTMLInputElement>);
-                }}
+                onPaste={handlePaste}
                 className={`
                     ${hasSubmitted ? 'fixed bottom-4 left-1/2 -translate-x-1/2 max-w-[90%] sm:max-w-2xl' : 'max-w-full'}
                     ${attachments.length > 0 || uploadingAttachments.length > 0 ? 'rounded-2xl' : 'rounded-full'}
@@ -1835,11 +1884,112 @@ export default function Home() {
         );
     };
 
+    const models = [
+        { value: "azure:gpt4o-mini", label: "OpenAI", icon: Zap, description: "High speed, lower quality", color: "emerald" },
+        { value: "anthropicVertex:claude-3-5-sonnet@20240620", label: "Claude", icon: Sparkles, description: "High quality, low speed", color: "indigo" },
+    ]
+
+    interface ModelSwitcherProps {
+        selectedModel: string;
+        setSelectedModel: (value: string) => void;
+        className?: string;
+    }
+
+    const ModelSwitcher: React.FC<ModelSwitcherProps> = ({ selectedModel, setSelectedModel, className }) => {
+        const selectedModelData = models.find(model => model.value === selectedModel) || models[0];
+        const [isOpen, setIsOpen] = useState(false);
+
+        const getColorClasses = (color: string, isSelected: boolean = false) => {
+            switch (color) {
+                case 'emerald':
+                    return isSelected
+                        ? '!bg-emerald-500 !text-white hover:!bg-emerald-600'
+                        : '!text-emerald-700 hover:!bg-emerald-100';
+                case 'indigo':
+                    return isSelected
+                        ? '!bg-indigo-500 !text-white hover:!bg-indigo-600'
+                        : '!text-indigo-700 hover:!bg-indigo-100';
+                default:
+                    return isSelected
+                        ? 'bg-gray-500 text-white hover:bg-gray-600'
+                        : 'text-gray-700 hover:bg-gray-100';
+            }
+        }
+
+        return (
+            <DropdownMenu onOpenChange={setIsOpen}>
+                <DropdownMenuTrigger
+                    className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all duration-300 shadow-sm text-sm",
+                        getColorClasses(selectedModelData.color, true),
+                        "focus:outline-none focus:ring-none",
+                        "transform hover:scale-105 active:scale-95",
+                        "disabled:opacity-50 disabled:cursor-not-allowed",
+                        className
+                    )}
+                    disabled={isLoading}
+                >
+                    <selectedModelData.icon className="w-4 h-4" />
+                    <span className="font-medium">{selectedModelData.label}</span>
+                    <ChevronDown className={cn(
+                        "w-3 h-3 transition-transform duration-200",
+                        isOpen && "transform rotate-180"
+                    )} />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-[200px] p-1 !font-sans ml-2 sm:m-auto rounded-lg shadow-md">
+                    {models.map((model) => (
+                        <DropdownMenuItem
+                            key={model.value}
+                            onSelect={() => setSelectedModel(model.value)}
+                            className={cn(
+                                "flex items-start gap-2 px-2 py-1.5 rounded-lg text-sm mb-1 last:mb-0",
+                                "transition-colors duration-200",
+                                getColorClasses(model.color, selectedModel === model.value),
+                                selectedModel === model.value && "hover:opacity-90"
+                            )}
+                        >
+                            <model.icon className={cn(
+                                "w-5 h-5 mt-0.5",
+                                selectedModel === model.value ? "text-white" : `text-${model.color}-500`
+                            )} />
+                            <div>
+                                <div className={cn(
+                                    "font-bold",
+                                    selectedModel === model.value ? "text-white" : `text-${model.color}-700`
+                                )}>
+                                    {model.label}
+                                </div>
+                                <div className={cn(
+                                    "text-xs",
+                                    selectedModel === model.value ? "text-white/80" : `text-${model.color}-600`
+                                )}>
+                                    {model.description}
+                                </div>
+                            </div>
+                        </DropdownMenuItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
+        )
+    }
+
+    const handleModelChange = useCallback((newModel: string) => {
+        setSelectedModel(newModel);
+        setSuggestedQuestions([]);
+        if (messages.length > 0) {
+            reload({
+                body: {
+                    model: newModel,
+                },
+            });
+        }
+    }, [messages, reload]);
+
     return (
         <div className="flex flex-col font-sans items-center justify-center p-2 sm:p-4 bg-background text-foreground transition-all duration-500">
             <Navbar />
 
-            <div className={`w-full max-w-[90%] sm:max-w-2xl space-y-6 p-1 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[20vh] sm:mt-[30vh]'}`}>
+            <div className={`w-full max-w-[90%] sm:max-w-2xl space-y-6 p-0 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[20vh] sm:mt-[30vh]'}`}>
                 {!hasSubmitted && (
                     <div className="text-center">
                         <h1 className="text-4xl sm:text-6xl mb-1 text-gray-800 font-serif">MiniPerplx</h1>
@@ -1848,6 +1998,11 @@ export default function Home() {
                         </h2>
                     </div>
                 )}
+                {!hasSubmitted &&
+                    <div className="flex items-center justify-between !-mb-2">
+                        <ModelSwitcher selectedModel={selectedModel} setSelectedModel={handleModelChange} />
+                    </div>
+                }
                 <AnimatePresence>
                     {!hasSubmitted && (
                         <motion.div
@@ -1932,17 +2087,28 @@ export default function Home() {
                                             </div>
                                         )}
                                     </div>
-                                    {!isEditingMessage && index === lastUserMessageIndex && (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleMessageEdit(index)}
-                                            className="ml-2"
-                                            disabled={isLoading}
+                                    <ModelSwitcher
+                                        selectedModel={selectedModel}
+                                        setSelectedModel={handleModelChange}
+                                        className="!px-4 rounded-full"
+                                    />
+                                    {/* {!isEditingMessage && index === lastUserMessageIndex && (
+                                        <div
+                                            className="flex items-center space-x-2"
                                         >
-                                            <Edit2 size={16} />
-                                        </Button>
-                                    )}
+                                            
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleMessageEdit(index)}
+                                                className="ml-2"
+                                                disabled={isLoading}
+                                            >
+                                                <Edit2 size={16} />
+                                            </Button>
+                                        </div>
+
+                                    )} */}
                                 </motion.div>
                             )}
                             {message.role === 'assistant' && message.content && (
