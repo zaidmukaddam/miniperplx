@@ -1,9 +1,14 @@
 'use server';
 
-import { OpenAI, AzureOpenAI } from 'openai';
-import { generateObject } from 'ai';
+import { OpenAI } from 'openai';
+import { Redis } from '@upstash/redis';
+import { Ratelimit } from '@upstash/ratelimit';
+import { generateObject, generateText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai'
 import { createOpenAI as createGroq } from '@ai-sdk/openai';
 import { z } from 'zod';
+import { headers } from 'next/headers';
+import { load } from 'cheerio';
 
 const groq = createGroq({
   baseURL: 'https://api.groq.com/openai/v1',
@@ -98,5 +103,77 @@ export async function generateSpeech(text: string, voice: 'alloy' | 'echo' | 'fa
     return {
       audio: `data:audio/mp3;base64,${base64Audio}`,
     };
+  }
+}
+
+const openai = createOpenAI({
+  baseURL: "https://openrouter.ai/api/v1/",
+  apiKey: process.env.OPENROUTER_API_KEY,
+  headers: {
+    "HTTP-Referer": "https://mplx.run/search",
+    "X-Title": "MiniPerplx"
+  }
+});
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
+
+const ratelimit = new Ratelimit({
+  redis: redis,
+  limiter: Ratelimit.fixedWindow(10, '24 h'),
+  analytics: true,
+  prefix: 'mplx',
+});
+
+export interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export async function continueConversation(history: Message[]) {
+  'use server';
+
+  const headersList = headers();
+  const ip = headersList.get('x-forwarded-for') ?? 'unknown';
+  const { success, limit, reset, remaining } = await ratelimit.limit(ip);
+
+  if (!success) {
+    const resetDate = new Date(reset);
+    throw new Error(`Daily rate limit exceeded. Try again after ${resetDate.toLocaleTimeString()}.`);
+  }
+
+  const { text } = await generateText({
+    model: openai('openai/o1-mini'),
+    messages: history,
+  });
+
+  return {
+    messages: [
+      ...history,
+      {
+        role: 'assistant' as const,
+        content: text,
+      },
+    ],
+    remaining,
+    reset,
+  };
+}
+
+export async function fetchMetadata(url: string) {
+  try {
+    const response = await fetch(url, { next: { revalidate: 3600 } }); // Cache for 1 hour
+    const html = await response.text();
+    const $ = load(html);
+
+    const title = $('head title').text() || $('meta[property="og:title"]').attr('content') || '';
+    const description = $('meta[name="description"]').attr('content') || $('meta[property="og:description"]').attr('content') || '';
+
+    return { title, description };
+  } catch (error) {
+    console.error('Error fetching metadata:', error);
+    return null;
   }
 }

@@ -12,17 +12,23 @@ React,
     memo
 } from 'react';
 import ReactMarkdown, { Components } from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
+import Marked, { ReactRenderer } from 'marked-react';
+import katex from 'katex';
 import { track } from '@vercel/analytics';
+import { useSearchParams } from 'next/navigation';
 import 'katex/dist/katex.min.css';
 import { useChat } from 'ai/react';
 import { ToolInvocation } from 'ai';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { generateSpeech, suggestQuestions } from '../actions';
+import {
+    continueConversation,
+    fetchMetadata,
+    generateSpeech,
+    Message,
+    suggestQuestions
+} from '../actions';
 import { Wave } from "@foobar404/wave";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -56,8 +62,14 @@ import {
     ImageIcon,
     Paperclip,
     ChevronDown,
-    Zap
-} from 'lucide-react';
+    Zap,
+    Edit2,
+    ChevronUp,
+    Battery,
+    Clock,
+    Cpu,
+    Network,
+    ExternalLink} from 'lucide-react';
 import {
     HoverCard,
     HoverCardContent,
@@ -106,6 +118,13 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { cn } from '@/lib/utils';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableRow,
+} from "@/components/ui/table";
+import Autoplay from 'embla-carousel-autoplay';
 
 export const maxDuration = 60;
 
@@ -126,20 +145,33 @@ interface Attachment {
 }
 
 export default function Home() {
-    const [lastSubmittedQuery, setLastSubmittedQuery] = useState("");
-    const [hasSubmitted, setHasSubmitted] = useState(false);
+    const searchParams = useSearchParams();
+    const initialQuery = searchParams.get('query') || '';
+    const initialModel = searchParams.get('model') || 'azure:gpt4o-mini';
+
+    const [lastSubmittedQuery, setLastSubmittedQuery] = useState(initialQuery);
+    const [hasSubmitted, setHasSubmitted] = useState(!!initialQuery);
+    const [selectedModel, setSelectedModel] = useState(initialModel);
     const bottomRef = useRef<HTMLDivElement>(null);
     const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
     const [isEditingMessage, setIsEditingMessage] = useState(false);
     const [editingMessageIndex, setEditingMessageIndex] = useState(-1);
     const [attachments, setAttachments] = useState<Attachment[]>([]);
-    const [selectedModel, setSelectedModel] = useState("azure:gpt4o-mini");
     const fileInputRef = useRef<HTMLInputElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const { isLoading, input, messages, setInput, append, handleSubmit, setMessages, reload } = useChat({
-        api: '/api/chat',
-        maxToolRoundtrips: 1,
+    const [isInitialQueryProcessed, setIsInitialQueryProcessed] = useState(false);
+
+    const [o1Conversation, setO1Conversation] = useState<Message[]>([]);
+    const [o1Input, setO1Input] = useState<string>('');
+    const [isO1Loading, setIsO1Loading] = useState(false);
+    const [remainingRequests, setRemainingRequests] = useState<number | null>(null);
+    const [resetTime, setResetTime] = useState<number | null>(null);
+
+    const [openChangelog, setOpenChangelog] = useState(false);
+
+    const { isLoading, input, messages, setInput, handleInputChange, append, handleSubmit, setMessages, reload } = useChat({
+        maxToolRoundtrips: 2,
         body: {
             model: selectedModel,
         },
@@ -162,6 +194,93 @@ export default function Home() {
             });
         },
     });
+
+    const handleO1InputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setO1Input(e.target.value);
+    };
+
+    const handleO1Submit = useCallback(async () => {
+        if (o1Input.trim()) {
+            setIsO1Loading(true);
+            const newUserMessage = { role: 'user' as const, content: o1Input };
+            setLastSubmittedQuery(o1Input);
+            setO1Input('');
+            setO1Conversation(prev => [...prev, newUserMessage]);
+
+            try {
+                const { messages: newMessages, remaining, reset } = await continueConversation([...o1Conversation, newUserMessage]);
+                setO1Conversation(newMessages);
+                // make suggestion questions
+                const { questions } = await suggestQuestions(newMessages);
+                setSuggestedQuestions(questions);
+                setRemainingRequests(remaining);
+                setResetTime(reset);
+                if (remaining !== null && remaining <= 3) {
+                    toast.warning(`You have ${remaining} requests remaining today.`);
+                }
+            } catch (error) {
+                console.error("Error in O1 conversation:", error);
+                toast.error(error instanceof Error ? error.message : "An error occurred while processing your request.");
+            } finally {
+                setIsO1Loading(false);
+            }
+        }
+    }, [o1Input, o1Conversation]);
+
+    interface RateLimitInfoProps {
+        remainingRequests: number;
+        resetTime: number;
+    }
+
+    const RateLimitInfo: React.FC<RateLimitInfoProps> = ({ remainingRequests, resetTime }) => {
+        const formatResetTime = (resetTimestamp: number) => {
+            const resetDate = new Date(resetTimestamp);
+            return resetDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        };
+
+        const getBatteryColor = (remaining: number) => {
+            if (remaining <= 2) return "text-red-500";
+            if (remaining <= 5) return "text-yellow-500";
+            return "text-green-500";
+        };
+
+        return (
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full text-sm">
+                            <Battery className={`w-4 h-4 ${getBatteryColor(remainingRequests)}`} />
+                            <span className="font-medium">{remainingRequests}</span>
+                            <Clock className="w-4 h-4 text-gray-500" />
+                        </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Daily limit: {remainingRequests} requests remaining</p>
+                        <p>Resets at: {formatResetTime(resetTime)}</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        );
+    };
+
+    const processInitialQuery = useCallback(async () => {
+        if (initialQuery && !isInitialQueryProcessed) {
+            setHasSubmitted(true);
+            setIsInitialQueryProcessed(true);
+            track('search with url params', { query: initialQuery });
+
+            if (selectedModel === 'openai/o1-mini') {
+                setO1Input(initialQuery);
+                handleO1Submit();
+            } else {
+                await append({ content: initialQuery, role: 'user' });
+            }
+        }
+    }, [initialQuery, isInitialQueryProcessed, selectedModel, handleO1Submit, append]);
+
+    if (!isInitialQueryProcessed) {
+        processInitialQuery();
+    }
 
     const CopyButton = ({ text }: { text: string }) => {
         const [isCopied, setIsCopied] = useState(false);
@@ -187,6 +306,98 @@ export default function Home() {
                     <Copy className="h-4 w-4" />
                 )}
             </Button>
+        );
+    };
+
+    type Changelog = {
+        id: string;
+        images: string[];
+        content: string;
+        title: string;
+    };
+
+    const changelogs: Changelog[] = [
+        {
+            id: "1",
+            title: "Results Overview, Default Search Engine, and o1-mini!",
+            images: [
+                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/results-overview.png",
+                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/default-search-engine-mplx.png",
+                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/o1-mini-mplx.png"
+            ],
+            content: 
+`## **Results Overview**
+
+The new Results Overview tool provides a summary of the search results, including images, descriptions, and other relevant information. It also includes a table with additional details.
+
+## **Default Search Engine**
+
+You can know set MiniPerplx as your default search engine using the URL parameters. Just add \`?query=%s\` to the URL to set the default search query. The model can also be set using the \`model\` parameter.
+
+## **o1-mini**
+
+The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Currently, it is available as a beta feature and doesn't support all features like web search.`,
+        }
+    ];
+
+    const ChangeLogs: React.FC<{ open: boolean; setOpen: (open: boolean) => void }> = ({ open, setOpen }) => {
+        return (
+            <Dialog open={open} onOpenChange={setOpen}>
+                <DialogContent className="no-scrollbar max-h-[80vh] overflow-y-auto rounded-xl border-none p-0 gap-0 font-sans">
+                    <div className="w-full py-3 flex justify-center items-center border-b">
+                        <h2 className="text-lg font-bold flex items-center gap-2">
+                            <Flame size={20} /> What&apos;s new
+                        </h2>
+                    </div>
+                    <div className="divide-y">
+                        {changelogs.map((changelog) => (
+                            <div key={changelog.id}>
+                                <Carousel
+                                    opts={{
+                                        align: "start",
+                                        loop: true,
+                                    }}
+                                    plugins={[
+                                        Autoplay({
+                                            delay: 2000,
+                                        }),
+                                    ]}
+                                    className="w-full bg-zinc-500/10"
+                                >
+                                    <CarouselContent>
+                                        {changelog.images.map((image, index) => (
+                                            <CarouselItem key={index}>
+                                                <Image
+                                                    src={image}
+                                                    alt={changelog.title}
+                                                    width={0}
+                                                    height={0}
+                                                    className="h-auto w-full object-cover"
+                                                    sizes="100vw"
+                                                />
+                                            </CarouselItem>
+                                        ))}
+                                    </CarouselContent>
+                                </Carousel>
+                                <div className="flex flex-col gap-2 px-4 py-2">
+                                    <h3 className="text-2xl font-medium font-serif">{changelog.title}</h3>
+                                    <ReactMarkdown
+                                        components={
+                                            {
+                                                h2: ({ node, className, ...props }) => <h2 {...props} className={cn(className, "my-1")} />,
+                                                p: ({ node, className, ...props }) => <p {...props} className={cn(className, "mb-2")} />,
+                                            } as Components
+                                        }
+                                        className="text-sm text-neutral-900"
+                                    >
+                                        {changelog.content}
+                                    </ReactMarkdown>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </DialogContent>
+            </Dialog>
         );
     };
 
@@ -779,6 +990,82 @@ export default function Home() {
         );
     };
 
+    interface TableData {
+        title: string;
+        content: string;
+    }
+
+    interface ResultsOverviewProps {
+        result: {
+            image: string;
+            title: string;
+            description: string;
+            table_data: TableData[];
+        };
+    }
+
+    const ResultsOverview: React.FC<ResultsOverviewProps> = React.memo(({ result }) => {
+        const [showAll, setShowAll] = useState(false);
+
+        const visibleData = useMemo(() => {
+            return showAll ? result.table_data : result.table_data.slice(0, 3);
+        }, [showAll, result.table_data]);
+
+        return (
+            <Card className="w-full my-4 overflow-hidden shadow-sm border-gray-200">
+                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0 pb-4 bg-gray-50">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full">
+                        {result.image && (
+                            <div className="relative w-full sm:w-24 h-40 sm:h-24 rounded-lg overflow-hidden shadow-sm flex-shrink-0">
+                                <img
+                                    src={result.image}
+                                    alt={result.title}
+                                    className="rounded-lg w-full h-full object-cover"
+                                />
+                            </div>
+                        )}
+                        <div className="flex-grow">
+                            <CardTitle className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">{result.title}</CardTitle>
+                            <p className="text-sm text-gray-600">{result.description}</p>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="pt-4">
+                    <Table>
+                        <TableBody>
+                            {visibleData.map((item, index) => (
+                                <TableRow key={index} className="border-b border-gray-100 last:border-b-0">
+                                    <TableCell className="font-medium text-gray-700 w-1/3 py-3 px-2 sm:px-4">{item.title}</TableCell>
+                                    <TableCell className="text-gray-600 py-3 px-2 sm:px-4">{item.content}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                    {result.table_data.length > 3 && (
+                        <Button
+                            variant="ghost"
+                            className="mt-4 w-full text-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-colors duration-200"
+                            onClick={() => setShowAll(!showAll)}
+                        >
+                            {showAll ? (
+                                <>
+                                    <ChevronUp className="mr-2 h-4 w-4" /> Show Less
+                                </>
+                            ) : (
+                                <>
+                                    <ChevronDown className="mr-2 h-4 w-4" /> Show More
+                                </>
+                            )}
+                        </Button>
+                    )}
+                </CardContent>
+            </Card>
+        );
+    });
+
+    ResultsOverview.displayName = 'ResultsOverview';
+
+
     const renderToolInvocation = (toolInvocation: ToolInvocation, index: number) => {
         const args = JSON.parse(JSON.stringify(toolInvocation.args));
         const result = 'result' in toolInvocation ? JSON.parse(JSON.stringify(toolInvocation.result)) : null;
@@ -1027,6 +1314,13 @@ export default function Home() {
                                             >
                                                 {args.code}
                                             </SyntaxHighlighter>
+                                            <style jsx>{`
+                                                @media (max-width: 640px) {
+                                                    .syntax-highlighter {
+                                                        font-size: 0.75rem;
+                                                    }
+                                                }
+                                            `}</style>
                                             <div className="absolute top-2 right-2">
                                                 <CopyButton text={args.code} />
                                             </div>
@@ -1265,101 +1559,259 @@ export default function Home() {
             return <TranslationTool toolInvocation={toolInvocation} result={result} />;
         }
 
+        if (toolInvocation.toolName === 'results_overview') {
+            if (!result) {
+                return (
+                    <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-2">
+                            <Loader2 className="h-5 w-5 text-neutral-700 animate-spin" />
+                            <span className="text-neutral-700 text-lg">Generating overview...</span>
+                        </div>
+                    </div>
+                );
+            }
+
+            return <ResultsOverview result={result} />;
+        }
+
         return null;
     };
-
-    interface CitationComponentProps {
-        href: string;
-        children: React.ReactNode;
-        index: number;
-        citationText: string;
-    }
-
-    const CitationComponent: React.FC<CitationComponentProps> = React.memo(({ href, index, citationText }) => {
-        const { hostname } = new URL(href);
-        const faviconUrl = `https://www.google.com/s2/favicons?sz=128&domain=${hostname}`;
-
-        return (
-            <HoverCard>
-                <HoverCardTrigger asChild>
-                    <sup>
-                        <a
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="cursor-help text-sm text-primary py-0.5 px-1.5 m-0 bg-secondary rounded-full no-underline"
-                        >
-                            {index + 1}
-                        </a>
-                    </sup>
-                </HoverCardTrigger>
-                <HoverCardContent className="w-fit p-2 m-0">
-                    <div className="flex items-center justify-between mb-1 m-0">
-                        <a
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center m-0 h-8 hover:no-underline">
-                            <Image src={faviconUrl} alt="Favicon" width={16} height={16} className="rounded-sm mr-2" />
-                            <span className="text-sm">{hostname}</span>
-                        </a>
-                    </div>
-                    <p className="text-sm font-medium m-0">{citationText}</p>
-                </HoverCardContent>
-            </HoverCard>
-        );
-    });
-
-    CitationComponent.displayName = "CitationComponent";
 
     interface MarkdownRendererProps {
         content: string;
     }
 
-    const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ content }) => {
-        // Escape dollar signs that are likely to be currency
-        const escapedContent = content.replace(/\$(\d+(\.\d{1,2})?)/g, '\\$$1');
+    interface CitationLink {
+        text: string;
+        link: string;
+    }
 
-        const citationLinks = useMemo(() => {
-            return [...escapedContent.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map(([_, text, link]) => ({
+    interface LinkMetadata {
+        title: string;
+        description: string;
+    }
+
+    const isValidUrl = (str: string) => {
+        try {
+            new URL(str);
+            return true;
+        } catch {
+            return false;
+        }
+    };
+
+    const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
+        const [metadataCache, setMetadataCache] = useState<Record<string, LinkMetadata>>({});
+
+        const citationLinks = useMemo<CitationLink[]>(() => {
+            return Array.from(content.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)).map(([_, text, link]) => ({
                 text,
                 link,
             }));
-        }, [escapedContent]);
+        }, [content]);
 
-        const components: Partial<Components> = useMemo(() => ({
-            a: ({ href, children }) => {
-                if (!href) return null;
-                const index = citationLinks.findIndex((link) => link.link === href);
-                return index !== -1 ? (
-                    <CitationComponent
-                        href={href}
-                        index={index}
-                        citationText={citationLinks[index].text}
+        const fetchMetadataWithCache = useCallback(async (url: string) => {
+            if (metadataCache[url]) {
+                return metadataCache[url];
+            }
+
+            const metadata = await fetchMetadata(url);
+            if (metadata) {
+                setMetadataCache(prev => ({ ...prev, [url]: metadata }));
+            }
+            return metadata;
+        }, [metadataCache]);
+
+        const renderEquation = (equation: string): string => {
+            try {
+                return katex.renderToString(equation, {
+                    throwOnError: false,
+                    displayMode: true,
+                    strict: false,
+                    trust: true,
+                    macros: {
+                        "\\,": "\\:"
+                    }
+                });
+            } catch (error) {
+                console.error("KaTeX rendering error:", error);
+                return equation;
+            }
+        };
+
+        const CodeBlock = ({ language, children }: { language: string | undefined; children: string }) => {
+            const [isCopied, setIsCopied] = useState(false);
+
+            const handleCopy = async () => {
+                await navigator.clipboard.writeText(children);
+                setIsCopied(true);
+                setTimeout(() => setIsCopied(false), 2000);
+            };
+
+            return (
+                <div className="relative group">
+                    <SyntaxHighlighter
+                        language={language || 'text'}
+                        style={oneLight}
+                        showLineNumbers
+                        wrapLines
+                        customStyle={{
+                            margin: 0,
+                            borderRadius: '0.375rem',
+                            fontSize: '0.875rem',
+                        }}
                     >
                         {children}
-                    </CitationComponent>
-                ) : (
-                    <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                        {children}
-                    </a>
+                    </SyntaxHighlighter>
+                    <Button
+                        onClick={handleCopy}
+                        className="absolute top-2 right-2 p-2 bg-white bg-opacity-80 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                        variant="ghost"
+                        size="sm"
+                    >
+                        {isCopied ? <Check size={16} /> : <Copy size={16} />}
+                    </Button>
+                </div>
+            );
+        };
+
+        const LinkPreview = ({ href }: { href: string }) => {
+            const [metadata, setMetadata] = useState<LinkMetadata | null>(null);
+            const [isLoading, setIsLoading] = useState(false);
+
+            React.useEffect(() => {
+                setIsLoading(true);
+                fetchMetadataWithCache(href).then((data) => {
+                    setMetadata(data);
+                    setIsLoading(false);
+                });
+            }, [href]);
+
+            if (isLoading) {
+                return (
+                    <div className="flex items-center justify-center p-4">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                    </div>
                 );
+            }
+
+            const domain = new URL(href).hostname;
+
+            return (
+                <div className="flex flex-col space-y-2 bg-white rounded-lg shadow-md overflow-hidden">
+                    <div className="flex items-center space-x-2 p-3 bg-gray-50">
+                        <Image
+                            src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`}
+                            alt="Favicon"
+                            width={20}
+                            height={20}
+                            className="rounded-sm"
+                        />
+                        <span className="text-sm font-medium text-gray-600 truncate">{domain}</span>
+                    </div>
+                    <div className="px-3 pb-3">
+                        <h3 className="text-base font-semibold text-gray-800 line-clamp-2">
+                            {metadata?.title || "Untitled"}
+                        </h3>
+                        {metadata?.description && (
+                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                {metadata.description}
+                            </p>
+                        )}
+                    </div>
+                    <div className="flex items-center justify-between px-3 py-2 bg-gray-50 text-xs text-gray-500">
+                        <span className="truncate max-w-[80%]">{href}</span>
+                        <ExternalLink size={14} className="flex-shrink-0" />
+                    </div>
+                </div>
+            );
+        };
+
+        const renderHoverCard = (href: string, text: React.ReactNode, isCitation: boolean = false) => {
+            return (
+                <HoverCard>
+                    <HoverCardTrigger asChild>
+                        <Link
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={isCitation ? "cursor-help text-sm text-primary py-0.5 px-1.5 m-0 bg-secondary rounded-full no-underline" : "text-teal-600 no-underline hover:underline"}
+                        >
+                            {text}
+                        </Link>
+                    </HoverCardTrigger>
+                    <HoverCardContent
+                        side="top"
+                        align="start"
+                        className="w-80 p-0 shadow-lg"
+                    >
+                        <LinkPreview href={href} />
+                    </HoverCardContent>
+                </HoverCard>
+            );
+        };
+
+        const renderer: Partial<ReactRenderer> = {
+            paragraph(children) {
+                if (typeof children === 'string') {
+                    const parts = children.split(/(\[.*?\])/g);
+                    return (
+                        <p>
+                            {parts.map((part, index) => {
+                                if (part.startsWith('[') && part.endsWith(']')) {
+                                    const equation = part.slice(1, -1);
+                                    return (
+                                        <span key={index} dangerouslySetInnerHTML={{
+                                            __html: renderEquation(equation)
+                                        }} />
+                                    );
+                                }
+                                return <span key={index}>{part}</span>;
+                            })}
+                        </p>
+                    );
+                }
+                return <p>{children}</p>;
             },
-        }), [citationLinks]);
+            code(children, language) {
+                return <CodeBlock language={language}>{String(children)}</CodeBlock>;
+            },
+            link(href, text) {
+                const citationIndex = citationLinks.findIndex(link => link.link === href);
+                if (citationIndex !== -1) {
+                    return (
+                        <sup>
+                            {renderHoverCard(href, citationIndex + 1, true)}
+                        </sup>
+                    );
+                }
+                return isValidUrl(href) ? renderHoverCard(href, text) : <a href={href}>{text}</a>;
+            },
+            heading(children, level) {
+                const HeadingTag = `h${level}` as keyof JSX.IntrinsicElements;
+                const className = `text-${4 - level}xl font-bold my-4`;
+                return <HeadingTag className={className}>{children}</HeadingTag>;
+            },
+            list(children, ordered) {
+                const ListTag = ordered ? 'ol' : 'ul';
+                return <ListTag className="list-inside list-disc my-2">{children}</ListTag>;
+            },
+            listItem(children) {
+                return <li className="my-1">{children}</li>;
+            },
+            blockquote(children) {
+                return <blockquote className="border-l-4 border-gray-300 pl-4 italic my-4">{children}</blockquote>;
+            },
+        };
 
         return (
-            <ReactMarkdown
-                remarkPlugins={[remarkGfm, remarkMath]}
-                rehypePlugins={[rehypeKatex]}
-                components={components}
-                className="prose text-sm sm:text-base text-pretty text-left"
-            >
-                {escapedContent}
-            </ReactMarkdown>
+            <div className="prose prose-sm sm:prose-base max-w-none">
+                <Marked renderer={renderer}>{content}</Marked>
+            </div>
         );
-    });
+    };
 
-    MarkdownRenderer.displayName = "MarkdownRenderer";
+
 
     const lastUserMessageIndex = useMemo(() => {
         for (let i = messages.length - 1; i >= 0; i--) {
@@ -1377,26 +1829,69 @@ export default function Home() {
     }, [messages, suggestedQuestions]);
 
     const handleExampleClick = useCallback(async (card: typeof suggestionCards[number]) => {
-        track("search example", { query: card.text });
-        setLastSubmittedQuery(card.text.trim());
+        const exampleText = selectedModel === 'openai/o1-mini' ? card.o1Examples : card.text;
+        track("search example", { query: exampleText });
+        setLastSubmittedQuery(exampleText.trim());
         setHasSubmitted(true);
         setSuggestedQuestions([]);
-        await append({
-            content: card.text.trim(),
-            role: 'user',
-            experimental_attachments: card.attachment ? [card.attachment] : undefined,
-        });
-    }, [append, setLastSubmittedQuery, setHasSubmitted, setSuggestedQuestions]);
+
+        if (selectedModel === 'openai/o1-mini') {
+            setO1Input(exampleText.trim());
+            setIsO1Loading(true);
+            const newUserMessage = { role: 'user' as const, content: exampleText.trim() };
+            setO1Conversation(prev => [...prev, newUserMessage]);
+            setO1Input("");
+            try {
+                const { messages: newMessages, remaining, reset } = await continueConversation([...o1Conversation, newUserMessage]);
+                setO1Conversation(newMessages);
+                // make suggestions for the next user message
+                const { questions } = await suggestQuestions(newMessages);
+                setSuggestedQuestions(questions);
+                setRemainingRequests(remaining);
+                setResetTime(reset);
+            } catch (error) {
+                console.error("Error in O1 conversation:", error);
+                toast.error(error instanceof Error ? error.message : "An error occurred while processing your request.");
+            } finally {
+                setIsO1Loading(false);
+            }
+        } else {
+            await append({
+                content: exampleText.trim(),
+                role: 'user',
+            });
+        }
+    }, [append, setLastSubmittedQuery, setHasSubmitted, setSuggestedQuestions, selectedModel, setO1Input, o1Conversation]);
 
     const handleSuggestedQuestionClick = useCallback(async (question: string) => {
         setHasSubmitted(true);
         setSuggestedQuestions([]);
-        setInput(question.trim());
-        await append({
-            content: question.trim(),
-            role: 'user'
-        });
-    }, [setInput, append]);
+
+        if (selectedModel === 'openai/o1-mini') {
+            setO1Input(question.trim());
+            setIsO1Loading(true);
+            const newUserMessage = { role: 'user' as const, content: question.trim() };
+            setO1Conversation(prev => [...prev, newUserMessage]);
+            setO1Input("");
+            try {
+                const { messages: newMessages, remaining, reset } = await continueConversation([...o1Conversation, newUserMessage]);
+                setO1Conversation(newMessages);
+                setRemainingRequests(remaining);
+                setResetTime(reset);
+            } catch (error) {
+                console.error("Error in O1 conversation:", error);
+                toast.error(error instanceof Error ? error.message : "An error occurred while processing your request.");
+            } finally {
+                setIsO1Loading(false);
+            }
+        } else {
+            setInput(question.trim());
+            await append({
+                content: question.trim(),
+                role: 'user'
+            });
+        }
+    }, [setInput, append, selectedModel, setO1Input, o1Conversation]);
 
     const handleMessageEdit = useCallback((index: number) => {
         setIsEditingMessage(true);
@@ -1420,66 +1915,83 @@ export default function Home() {
 
     const suggestionCards = [
         {
-            icon: <ImageIcon className="w-5 h-5 text-gray-400" />,
-            text: "Where is this place?",
-            attachment: {
-                name: 'taj_mahal.jpg',
-                contentType: 'image/jpeg',
-                url: 'https://metwm7frkvew6tn1.public.blob.vercel-storage.com/taj-mahal.jpg',
-            }
+            icon: <User2 className="w-5 h-5 text-gray-400" />,
+            o1Icon: <Cpu className="w-5 h-5 text-gray-400" />,
+            text: "Shah Rukh Khan",
+            o1Examples: "How many GPUs does it take to fill up Mars?"
         },
-        { icon: <Flame className="w-5 h-5 text-gray-400" />, text: "What's new with XAI's Grok?" },
-        { icon: <Sparkles className="w-5 h-5 text-gray-400" />, text: "Latest updates on OpenAI" },
-        { icon: <Sun className="w-5 h-5 text-gray-400" />, text: "Weather in Doha" },
-        { icon: <Terminal className="w-5 h-5 text-gray-400" />, text: "Count the no. of r's in strawberry?" },
+        {
+            icon: <Sun className="w-5 h-5 text-gray-400" />,
+            o1Icon: <Network className="w-5 h-5 text-gray-400" />,
+            text: "Weather in Doha",
+            o1Examples: "Dijkstra algorithm"
+        },
+        {
+            icon: <Terminal className="w-5 h-5 text-gray-400" />,
+            o1Icon: <Terminal className="w-5 h-5 text-gray-400" />,
+            text: "Count the no. of r's in strawberry?",
+            o1Examples: "Count the no. of r's in strawberry?"
+        },
     ];
 
-    const Navbar = () => (
-        <div className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center p-4 bg-background">
-            <Link href="/new">
-                <Button
-                    type="button"
-                    variant={'secondary'}
-                    className="rounded-full bg-secondary/80 group transition-all hover:scale-105 pointer-events-auto"
-                >
-                    <Plus size={18} className="group-hover:rotate-90 transition-all" />
-                    <span className="text-sm ml-2 group-hover:block hidden animate-in fade-in duration-300">
-                        New
-                    </span>
-                </Button>
-            </Link>
-            <div
-                className='flex items-center space-x-2'
-            >
-                <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => window.open("https://git.new/mplx", "_blank")}
-                    className="flex items-center space-x-2"
-                >
-                    <GitHubLogoIcon className="h-4 w-4 text-primary" />
-                    <span>GitHub</span>
-                </Button>
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                size="sm"
-                                onClick={() => window.open("https://github.com/sponsors/zaidmukaddam", "_blank")}
-                                className="flex items-center space-x-2"
-                            >
-                                <Heart className="h-4 w-4 text-red-500" />
-                                <span>Sponsor</span>
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Sponsor this project on GitHub</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
+    interface NavbarProps {
+        selectedModel: string;
+        remainingRequests: number | null;
+        resetTime: number | null;
+    }
+
+    const Navbar: React.FC<NavbarProps> = ({ selectedModel, remainingRequests, resetTime }) => {
+        return (
+            <div className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center p-4 bg-background">
+                <Link href="/new">
+                    <Button
+                        type="button"
+                        variant={'secondary'}
+                        className="rounded-full bg-secondary/80 group transition-all hover:scale-105 pointer-events-auto"
+                    >
+                        <Plus size={18} className="group-hover:rotate-90 transition-all" />
+                        <span className="text-sm ml-2 group-hover:block hidden animate-in fade-in duration-300">
+                            New
+                        </span>
+                    </Button>
+                </Link>
+                <div className='flex items-center space-x-4'>
+                    {selectedModel === 'openai/o1-mini' && remainingRequests !== null && resetTime !== null && (
+                        <RateLimitInfo
+                            remainingRequests={remainingRequests}
+                            resetTime={resetTime}
+                        />
+                    )}
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => window.open("https://git.new/mplx", "_blank")}
+                        className="flex items-center space-x-2"
+                    >
+                        <GitHubLogoIcon className="h-4 w-4 text-primary" />
+                        <span>GitHub</span>
+                    </Button>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    size="sm"
+                                    onClick={() => window.open("https://github.com/sponsors/zaidmukaddam", "_blank")}
+                                    className="flex items-center space-x-2"
+                                >
+                                    <Heart className="h-4 w-4 text-red-500" />
+                                    <span>Sponsor</span>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Sponsor this project on GitHub</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     interface UploadingAttachment {
         file: File;
@@ -1620,7 +2132,6 @@ export default function Home() {
         inputRef,
     }) => {
         const [uploadingAttachments, setUploadingAttachments] = useState<UploadingAttachment[]>([]);
-        const cursorPositionRef = useRef<number | null>(null);
 
         const uploadFile = async (file: File): Promise<Attachment> => {
             const formData = new FormData();
@@ -1676,10 +2187,6 @@ export default function Home() {
             setUploadingAttachments(prev => prev.filter((_, i) => i !== index));
         };
 
-        const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-            setInput(e.target.value);
-        }, [setInput]);
-
         useEffect(() => {
             if (inputRef.current) {
                 inputRef.current.focus();
@@ -1690,11 +2197,16 @@ export default function Home() {
             event.preventDefault();
             event.stopPropagation();
 
-            if (input.trim() || attachments.length > 0) {
+            if ((selectedModel === 'openai/o1-mini' ? o1Input : input).trim() || (selectedModel !== 'openai/o1-mini' && attachments.length > 0)) {
+                track("search enter", { query: (selectedModel === 'openai/o1-mini' ? o1Input : input).trim() });
                 setHasSubmitted(true);
-                handleSubmit(event, {
-                    experimental_attachments: attachments,
-                });
+                if (selectedModel === 'openai/o1-mini') {
+                    handleO1Submit();
+                } else {
+                    handleSubmit(event, {
+                        experimental_attachments: attachments,
+                    });
+                }
                 setAttachments([]);
                 setUploadingAttachments([]);
                 setSuggestedQuestions([]);
@@ -1706,44 +2218,6 @@ export default function Home() {
             }
         };
 
-        const handlePaste = async (e: React.ClipboardEvent) => {
-            e.preventDefault();
-
-            // Handle text paste
-            const text = e.clipboardData.getData('text');
-            if (text) {
-                setInput(text);
-            }
-
-            // Handle image paste
-            const items = Array.from(e.clipboardData.items);
-            const imageItems = items.filter(item => item.type.indexOf('image') !== -1);
-
-            if (imageItems.length > 0) {
-                if (attachments.length + uploadingAttachments.length + imageItems.length > MAX_IMAGES) {
-                    toast.error(`You can only attach up to ${MAX_IMAGES} images.`);
-                    return;
-                }
-
-                for (const item of imageItems) {
-                    const file = item.getAsFile();
-                    if (file) {
-                        const newUploadingAttachment = { file, progress: 0 };
-                        setUploadingAttachments(prev => [...prev, newUploadingAttachment]);
-
-                        try {
-                            const uploadedFile = await uploadFile(file);
-                            setAttachments(prev => [...prev, uploadedFile]);
-                            setUploadingAttachments(prev => prev.filter(ua => ua.file !== file));
-                        } catch (error) {
-                            console.error("Error uploading file:", error);
-                            toast.error(`Failed to upload pasted image`);
-                            setUploadingAttachments(prev => prev.filter(ua => ua.file !== file));
-                        }
-                    }
-                }
-            }
-        };
 
         return (
             <motion.form
@@ -1760,7 +2234,6 @@ export default function Home() {
                     e.preventDefault();
                     handleFileChange({ target: { files: e.dataTransfer?.files } } as React.ChangeEvent<HTMLInputElement>);
                 }}
-                onPaste={handlePaste}
                 className={`
                     ${hasSubmitted ? 'fixed bottom-4 left-1/2 -translate-x-1/2 max-w-[90%] sm:max-w-2xl' : 'max-w-full'}
                     ${attachments.length > 0 || uploadingAttachments.length > 0 ? 'rounded-2xl' : 'rounded-full'}
@@ -1771,9 +2244,9 @@ export default function Home() {
                     z-50
                 `}
             >
-                <div className={`space-y-2 ${attachments.length > 0 || uploadingAttachments.length > 0 ? 'p-2' : 'p-0'}`}>
+                <div className={cn('w-full space-y-2', attachments.length > 0 || uploadingAttachments.length > 0 ? 'p-2' : 'p-0')}>
                     <AnimatePresence initial={false}>
-                        {(attachments.length > 0 || uploadingAttachments.length > 0) && (
+                        {selectedModel !== 'openai/o1-mini' && (attachments.length > 0 || uploadingAttachments.length > 0) && (
                             <motion.div
                                 key="file-previews"
                                 initial={{ opacity: 0, height: 0 }}
@@ -1801,38 +2274,52 @@ export default function Home() {
                             </motion.div>
                         )}
                     </AnimatePresence>
-                    <div className="relative flex items-center z-20">
+                    <div className="relative flex items-center z-20 w-full">
                         <Input
                             ref={inputRef}
                             name="search"
                             placeholder={hasSubmitted ? "Ask a new question..." : "Ask a question..."}
-                            value={input}
-                            onChange={handleInputChange}
-                            disabled={isLoading}
-                            className="w-full h-12 pl-10 pr-12 bg-muted border border-input rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 text-sm sm:text-base"
+                            value={selectedModel === 'openai/o1-mini' ? o1Input : input}
+                            onChange={selectedModel === 'openai/o1-mini' ? handleO1InputChange : handleInputChange}
+                            disabled={isLoading || isO1Loading}
+                            className={cn(
+                                "w-full h-12 pr-12 bg-muted",
+                                "ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                                "text-sm sm:text-base rounded-full",
+                                { 'pl-10': selectedModel !== 'openai/o1-mini' },
+                                { 'pl-6': selectedModel === 'openai/o1-mini' }
+                            )}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    onSubmit(e as any);
+                                }
+                            }}
                         />
-                        <label
-                            htmlFor={hasSubmitted ? "file-upload-bottom" : "file-upload-top"}
-                            className={`absolute left-3 cursor-pointer ${attachments.length + uploadingAttachments.length >= MAX_IMAGES ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                            <Paperclip className="h-5 w-5 text-muted-foreground" />
-                            <input
-                                id={hasSubmitted ? "file-upload-bottom" : "file-upload-top"}
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                onChange={handleFileChange}
-                                className="hidden"
-                                disabled={attachments.length + uploadingAttachments.length >= MAX_IMAGES}
-                                ref={fileInputRef}
-                            />
-                        </label>
+                        {selectedModel !== 'openai/o1-mini' && (
+                            <label
+                                htmlFor={hasSubmitted ? "file-upload-bottom" : "file-upload-top"}
+                                className={`absolute left-3 cursor-pointer ${attachments.length + uploadingAttachments.length >= MAX_IMAGES ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                                <Paperclip className="h-5 w-5 text-muted-foreground" />
+                                <input
+                                    id={hasSubmitted ? "file-upload-bottom" : "file-upload-top"}
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={handleFileChange}
+                                    className="hidden"
+                                    disabled={attachments.length + uploadingAttachments.length >= MAX_IMAGES}
+                                    ref={fileInputRef}
+                                />
+                            </label>
+                        )}
                         <Button
                             type="submit"
                             size="icon"
                             variant="ghost"
                             className="absolute right-2"
-                            disabled={(input.trim().length === 0 && attachments.length === 0) || isLoading || uploadingAttachments.length > 0}
+                            disabled={(selectedModel === 'openai/o1-mini' ? o1Input : input).trim().length === 0 || isLoading || isO1Loading || uploadingAttachments.length > 0}
                         >
                             <ArrowRight size={20} />
                         </Button>
@@ -1843,39 +2330,21 @@ export default function Home() {
     };
 
 
-    const SuggestionCards: React.FC = () => {
+    const SuggestionCards: React.FC<{ selectedModel: string }> = ({ selectedModel }) => {
         return (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="sm:col-span-1 sm:row-span-2">
-                    <button
-                        onClick={() => handleExampleClick(suggestionCards[0])}
-                        className="bg-gray-100 rounded-xl px-2 py-4 text-left w-full sm:h-40 h-full flex flex-col items-center hover:bg-gray-200"
-                    >
-                        <div className="flex items-center space-x-2 text-gray-700">
-                            <span>{suggestionCards[0].icon}</span>
-                            <span className="text-sm font-medium">{suggestionCards[0].text}</span>
-                        </div>
-                        {suggestionCards[0].attachment && (
-                            <div className="mt-2 rounded-lg overflow-hidden w-full">
-                                <img
-                                    src={suggestionCards[0].attachment.url}
-                                    alt={suggestionCards[0].attachment.name}
-                                    className="w-full h-auto object-cover sm:h-30 sm:object-fill"
-                                />
-                            </div>
-                        )}
-                    </button>
-                </div>
-                <div className="grid grid-cols-2 gap-2 sm:gap-4 sm:w-[28rem]">
-                    {suggestionCards.slice(1).map((card, index) => (
+            <div className="flex gap-3">
+                <div className="flex flex-grow sm:flex-row gap-2 sm:gap-4 sm:mx-auto w-full">
+                    {suggestionCards.map((card, index) => (
                         <button
                             key={index}
                             onClick={() => handleExampleClick(card)}
-                            className="bg-gray-100 rounded-xl py-3 sm:py-4 px-4 sm:px-5 text-left hover:bg-gray-200"
+                            className="bg-gray-100 rounded-xl py-3 sm:py-4 px-4 text-left hover:bg-gray-200 transition-colors duration-200"
                         >
                             <div className="flex items-center space-x-2 text-gray-700">
-                                <span>{card.icon}</span>
-                                <span className="text-xs sm:text-sm font-medium">{card.text}</span>
+                                <span>{selectedModel === 'openai/o1-mini' ? card.o1Icon : card.icon}</span>
+                                <span className="text-xs sm:text-sm font-medium">
+                                    {selectedModel === 'openai/o1-mini' ? card.o1Examples : card.text}
+                                </span>
                             </div>
                         </button>
                     ))}
@@ -1887,6 +2356,7 @@ export default function Home() {
     const models = [
         { value: "azure:gpt4o-mini", label: "OpenAI", icon: Zap, description: "High speed, lower quality", color: "emerald" },
         { value: "anthropicVertex:claude-3-5-sonnet@20240620", label: "Claude", icon: Sparkles, description: "High quality, lower speed", color: "indigo" },
+        { value: "openai/o1-mini", label: "Reasoning", icon: Flame, description: "Experimental model", color: "orange" },
     ]
 
     interface ModelSwitcherProps {
@@ -1909,6 +2379,10 @@ export default function Home() {
                     return isSelected
                         ? '!bg-indigo-500 !text-white hover:!bg-indigo-600'
                         : '!text-indigo-700 hover:!bg-indigo-100';
+                case 'orange':
+                    return isSelected
+                        ? '!bg-orange-500 !text-white hover:!bg-orange-600'
+                        : '!text-orange-700 hover:!bg-orange-100';
                 default:
                     return isSelected
                         ? 'bg-gray-500 text-white hover:bg-gray-600'
@@ -1976,22 +2450,31 @@ export default function Home() {
     const handleModelChange = useCallback((newModel: string) => {
         setSelectedModel(newModel);
         setSuggestedQuestions([]);
-        if (messages.length > 0) {
-            reload({
-                body: {
-                    model: newModel,
-                },
-            });
+        if (newModel === 'openai/o1-mini') {
+            setO1Conversation([]);
+        } else if (messages.length > 0) {
+            reload({ body: { model: newModel } });
         }
     }, [messages, reload]);
 
     return (
         <div className="flex flex-col font-sans items-center justify-center p-2 sm:p-4 bg-background text-foreground transition-all duration-500">
-            <Navbar />
+            <Navbar
+                selectedModel={selectedModel}
+                remainingRequests={remainingRequests}
+                resetTime={resetTime}
+            />
 
             <div className={`w-full max-w-[90%] sm:max-w-2xl space-y-6 p-0 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[20vh] sm:mt-[30vh]'}`}>
                 {!hasSubmitted && (
                     <div className="text-center">
+                        <Badge
+                            onClick={() => setOpenChangelog(true)}
+                            className="cursor-pointer gap-1 mb-2"
+                            variant="green"
+                        >
+                            <Flame size={14} /> What&apos;s new
+                        </Badge>
                         <h1 className="text-4xl sm:text-6xl mb-1 text-gray-800 font-serif">MiniPerplx</h1>
                         <h2 className='text-xl sm:text-2xl font-serif text-balance text-center mb-6 text-gray-600'>
                             In search for minimalism and simplicity
@@ -2011,127 +2494,187 @@ export default function Home() {
                             transition={{ duration: 0.5 }}
                         >
                             <FormComponent
-                                input={input}
-                                setInput={setInput}
+                                input={selectedModel === 'openai/o1-mini' ? o1Input : input}
+                                setInput={selectedModel === 'openai/o1-mini' ? setO1Input : setInput}
                                 attachments={attachments}
                                 setAttachments={setAttachments}
                                 hasSubmitted={hasSubmitted}
                                 setHasSubmitted={setHasSubmitted}
-                                handleSubmit={handleSubmit}
-                                isLoading={isLoading}
+                                handleSubmit={selectedModel === 'openai/o1-mini' ? handleO1Submit : handleSubmit}
+                                isLoading={selectedModel === 'openai/o1-mini' ? isO1Loading : isLoading}
                                 fileInputRef={fileInputRef}
                                 inputRef={inputRef}
                             />
-                            <SuggestionCards />
+                            <SuggestionCards selectedModel={selectedModel} />
                         </motion.div>
                     )}
                 </AnimatePresence>
 
 
                 <div className="space-y-4 sm:space-y-6 mb-32">
-                    {messages.map((message, index) => (
-                        <div key={index}>
-                            {message.role === 'user' && (
+                    {selectedModel === 'openai/o1-mini' ? (
+                        <>
+                            {o1Conversation.map((message, index) => (
+                                <div key={index}>
+                                    {message.role === 'user' && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ duration: 0.5 }}
+                                            className="flex items-start space-x-2 mb-4"
+                                        >
+                                            <User2 className="size-5 sm:size-6 text-primary flex-shrink-0 mt-1" />
+                                            <div className="flex-grow min-w-0">
+                                                <p className="text-xl sm:text-2xl font-medium font-serif break-words">
+                                                    {message.content}
+                                                </p>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                    {message.role === 'assistant' && (
+                                        <div>
+                                            <div className='flex items-center justify-between mb-2'>
+                                                <div className='flex items-center gap-2'>
+                                                    <Sparkles className="size-5 text-primary" />
+                                                    <h2 className="text-base font-semibold">Answer</h2>
+                                                </div>
+                                                <CopyButton text={message.content} />
+                                            </div>
+                                            <div>
+                                                <MarkdownRenderer content={message.content} />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                            {isO1Loading && (
                                 <motion.div
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.5 }}
                                     className="flex items-start space-x-2 mb-4"
                                 >
-                                    <User2 className="size-5 sm:size-6 text-primary flex-shrink-0 mt-1" />
+                                    <Sparkles className="size-5 sm:size-6 text-primary flex-shrink-0 mt-1" />
                                     <div className="flex-grow min-w-0">
-                                        {isEditingMessage && editingMessageIndex === index ? (
-                                            <form onSubmit={handleMessageUpdate} className="flex items-center space-x-2">
-                                                <Input
-                                                    value={input}
-                                                    onChange={(e) => setInput(e.target.value)}
-                                                    className="flex-grow"
-                                                />
-                                                <Button
-                                                    variant="secondary"
-                                                    size="sm"
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setIsEditingMessage(false)
-                                                        setEditingMessageIndex(-1)
-                                                        setInput('')
-                                                    }}
-                                                    disabled={isLoading}
-                                                >
-                                                    <X size={16} />
-                                                </Button>
-                                                <Button type="submit" size="sm">
-                                                    <ArrowRight size={16} />
-                                                </Button>
-                                            </form>
-                                        ) : (
-                                            <div>
-                                                <p className="text-xl sm:text-2xl font-medium font-serif break-words">
-                                                    {message.content}
-                                                </p>
-                                                <div
-                                                    className='flex flex-row gap-2'
-                                                >
-                                                    {message.experimental_attachments?.map((attachment, attachmentIndex) => (
-                                                        <div key={attachmentIndex} className="mt-2">
-                                                            {attachment.contentType!.startsWith('image/') && (
-                                                                <img
-                                                                    src={attachment.url}
-                                                                    alt={attachment.name || `Attachment ${attachmentIndex + 1}`}
-                                                                    className="max-w-full h-32 object-fill rounded-lg"
-                                                                />
-                                                            )}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <ModelSwitcher
-                                        selectedModel={selectedModel}
-                                        setSelectedModel={handleModelChange}
-                                        className="!px-4 rounded-full"
-                                    />
-                                    {/* {!isEditingMessage && index === lastUserMessageIndex && (
-                                        <div
-                                            className="flex items-center space-x-2"
-                                        >
-                                            
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleMessageEdit(index)}
-                                                className="ml-2"
-                                                disabled={isLoading}
-                                            >
-                                                <Edit2 size={16} />
-                                            </Button>
+                                        <div className="flex items-center space-x-2">
+                                            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                                            <p className="text-lg font-medium">Thinking...</p>
                                         </div>
-
-                                    )} */}
+                                        <div className="mt-2 bg-muted rounded-md p-4 animate-pulse">
+                                            <div className="h-4 bg-muted-foreground/20 rounded w-3/4 mb-2"></div>
+                                            <div className="h-4 bg-muted-foreground/20 rounded w-1/2"></div>
+                                        </div>
+                                    </div>
                                 </motion.div>
                             )}
-                            {message.role === 'assistant' && message.content && (
-                                <div>
-                                    <div className='flex items-center justify-between mb-2'>
-                                        <div className='flex items-center gap-2'>
-                                            <Sparkles className="size-5 text-primary" />
-                                            <h2 className="text-base font-semibold">Answer</h2>
+                        </>
+                    ) : (
+                        messages.map((message, index) => (
+                            <div key={index}>
+                                {message.role === 'user' && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.5 }}
+                                        className="flex items-start space-x-2 mb-4"
+                                    >
+                                        <User2 className="size-5 sm:size-6 text-primary flex-shrink-0 mt-1" />
+                                        <div className="flex-grow min-w-0">
+                                            {isEditingMessage && editingMessageIndex === index ? (
+                                                <form onSubmit={handleMessageUpdate} className="flex items-center space-x-2">
+                                                    <Input
+                                                        value={input}
+                                                        onChange={(e) => setInput(e.target.value)}
+                                                        className="flex-grow"
+                                                    />
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setIsEditingMessage(false)
+                                                            setEditingMessageIndex(-1)
+                                                            setInput('')
+                                                        }}
+                                                        disabled={isLoading}
+                                                    >
+                                                        <X size={16} />
+                                                    </Button>
+                                                    <Button type="submit" size="sm">
+                                                        <ArrowRight size={16} />
+                                                    </Button>
+                                                </form>
+                                            ) : (
+                                                <div>
+                                                    <p className="text-xl sm:text-2xl font-medium font-serif break-words">
+                                                        {message.content}
+                                                    </p>
+                                                    <div
+                                                        className='flex flex-row gap-2'
+                                                    >
+                                                        {message.experimental_attachments?.map((attachment, attachmentIndex) => (
+                                                            <div key={attachmentIndex} className="mt-2">
+                                                                {attachment.contentType!.startsWith('image/') && (
+                                                                    <img
+                                                                        src={attachment.url}
+                                                                        alt={attachment.name || `Attachment ${attachmentIndex + 1}`}
+                                                                        className="max-w-full h-32 object-fill rounded-lg"
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
-                                        <CopyButton text={message.content} />
-                                    </div>
+
+                                        {!isEditingMessage && index === lastUserMessageIndex && (
+                                            <div
+                                                className="flex items-center space-x-2"
+                                            >
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleMessageEdit(index)}
+                                                    className="ml-2"
+                                                    disabled={isLoading}
+                                                >
+                                                    <Edit2 size={16} />
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                )}
+                                {message.role === 'assistant' && message.content && (
                                     <div>
-                                        <MarkdownRenderer content={message.content} />
+                                        <div className='flex items-center justify-between mb-2'>
+                                            <div className='flex items-center gap-2'>
+                                                <Sparkles className="size-5 text-primary" />
+                                                <h2 className="text-base font-semibold">Answer</h2>
+                                            </div>
+                                            <div
+                                                className='flex items-center gap-2'
+                                            >
+                                                <ModelSwitcher
+                                                    selectedModel={selectedModel}
+                                                    setSelectedModel={handleModelChange}
+                                                    className="!px-4 rounded-full"
+                                                />
+                                                <CopyButton text={message.content} />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <MarkdownRenderer content={message.content} />
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                            {message.toolInvocations?.map((toolInvocation: ToolInvocation, toolIndex: number) => (
-                                <div key={`tool-${toolIndex}`}>
-                                    {renderToolInvocation(toolInvocation, toolIndex)}
-                                </div>
-                            ))}
-                        </div>
-                    ))}
+                                )}
+                                {message.toolInvocations?.map((toolInvocation: ToolInvocation, toolIndex: number) => (
+                                    <div key={`tool-${toolIndex}`}>
+                                        {renderToolInvocation(toolInvocation, toolIndex)}
+                                    </div>
+                                ))}
+                            </div>
+                        )))}
                     {suggestedQuestions.length > 0 && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -2165,19 +2708,20 @@ export default function Home() {
             <AnimatePresence>
                 {hasSubmitted && (
                     <FormComponent
-                        input={input}
-                        setInput={setInput}
+                        input={selectedModel === 'openai/o1-mini' ? o1Input : input}
+                        setInput={selectedModel === 'openai/o1-mini' ? setO1Input : setInput}
                         attachments={attachments}
                         setAttachments={setAttachments}
                         hasSubmitted={hasSubmitted}
                         setHasSubmitted={setHasSubmitted}
-                        handleSubmit={handleSubmit}
-                        isLoading={isLoading}
+                        handleSubmit={selectedModel === 'openai/o1-mini' ? handleO1Submit : handleSubmit}
+                        isLoading={selectedModel === 'openai/o1-mini' ? isO1Loading : isLoading}
                         fileInputRef={fileInputRef}
                         inputRef={inputRef}
                     />
                 )}
             </AnimatePresence>
+            <ChangeLogs open={openChangelog} setOpen={setOpenChangelog} />
         </div>
     );
 }

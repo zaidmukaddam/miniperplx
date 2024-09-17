@@ -17,6 +17,9 @@ Upvote MiniPerplx on ProductHunt to show your support!
 - **URL Specific search**: Get information from a specific URL.
 - **Weather**: Get the current weather for any location using OpenWeather's API.
 - **Programming**: Run code snippets in multiple languages using E2B's API.
+- **Maps**: Get the location of any place using Google Maps API.
+- **Results Overview**: Get a quick overview of the results from different providers.
+- **Translation**: Translate text to different languages using Microsoft's Translator API.
 
 ## Built with
 - [Next.js](https://nextjs.org/)
@@ -26,9 +29,12 @@ Upvote MiniPerplx on ProductHunt to show your support!
 - [Tavily](https://tavily.com/)
 - [OpenWeather](https://openweathermap.org/)
 - [E2B](https://e2b.dev/)
+- [Google Maps](https://developers.google.com/maps)
 
 ## LLM used
 - [OpenAI's GPT 4o mini](https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/)
+- [Anthropic's Claude 3.5 Sonnet](https://www.anthropic.com/news/claude-3-5-sonnet/)
+- [OpenAI's o1-mini](https://openai.com/index/openai-o1-mini-advancing-cost-efficient-reasoning/) powered by [OpenRouter](https://openrouter.ai/models/openai/o1-mini)
 
 ### Deploy your own
 
