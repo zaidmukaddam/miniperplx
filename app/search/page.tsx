@@ -71,7 +71,8 @@ import {
     Clock,
     Cpu,
     Network,
-    ExternalLink
+    ExternalLink,
+    Camera
 } from 'lucide-react';
 import {
     HoverCard,
@@ -2370,6 +2371,7 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
 
     const models = [
         { value: "azure:gpt4o-mini", label: "OpenAI", icon: Zap, description: "High speed, lower quality", color: "emerald" },
+        { value: "mistral:pixtral-12b-2409", label: "Mistral", icon: Camera, description: "Pixtral 12B", color: "blue" },
         { value: "anthropicVertex:claude-3-5-sonnet@20240620", label: "Claude", icon: Sparkles, description: "High quality, lower speed", color: "indigo" },
         { value: "openai/o1-mini", label: "Reasoning", icon: Flame, description: "Experimental model", color: "orange" },
     ]
@@ -2398,6 +2400,10 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
                     return isSelected
                         ? '!bg-orange-500 !text-white hover:!bg-orange-600'
                         : '!text-orange-700 hover:!bg-orange-100';
+                case 'blue':
+                    return isSelected
+                        ? '!bg-blue-500 !text-white hover:!bg-blue-600'
+                        : '!text-blue-700 hover:!bg-blue-100';
                 default:
                     return isSelected
                         ? 'bg-gray-500 text-white hover:bg-gray-600'

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createAzure } from '@ai-sdk/azure';
+import { mistral } from '@ai-sdk/mistral';
 import {
   convertToCoreMessages,
   streamText,
@@ -49,6 +50,7 @@ const anthropicVertex = createAnthropicVertex({
 const registry = experimental_createProviderRegistry({
   anthropicVertex,
   azure,
+  mistral,
 });
 
 function sanitizeUrl(url: string): string {
@@ -72,7 +74,7 @@ export async function POST(req: Request) {
     model: registry.languageModel(model),
     messages: convertToCoreMessages(messages),
     temperature: provider === "azure" ? 0.72 : 0,
-    topP: 0,
+    topP: provider === "mistral" ? 1 : 0,
     frequencyPenalty: 0,
     presencePenalty: 0,
     system: `
