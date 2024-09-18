@@ -219,7 +219,7 @@ const HomeContent = () => {
                 setRemainingRequests(remaining);
                 setResetTime(reset);
                 if (remaining !== null && remaining <= 3) {
-                    toast.warning(`You have ${remaining} requests remaining today.`);
+                    toast.warning(`You have ${remaining} requests remaining for the next 4 hours.`);
                 }
             } catch (error) {
                 console.error("Error in O1 conversation:", error);
