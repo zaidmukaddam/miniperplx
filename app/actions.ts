@@ -122,9 +122,9 @@ const redis = new Redis({
 
 const ratelimit = new Ratelimit({
   redis: redis,
-  limiter: Ratelimit.fixedWindow(10, '24 h'),
+  limiter: Ratelimit.fixedWindow(10, '4 h'),
   analytics: true,
-  prefix: 'mplx',
+  prefix: 'miniperplx',
 });
 
 export interface Message {
@@ -140,8 +140,8 @@ export async function continueConversation(history: Message[]) {
   const { success, limit, reset, remaining } = await ratelimit.limit(ip);
 
   if (!success) {
-    const resetDate = new Date(reset);
-    throw new Error(`Daily rate limit exceeded. Try again after ${resetDate.toLocaleTimeString()}.`);
+    const resetDate = new Date(reset * 1000); // Convert seconds to milliseconds
+    throw new Error(`4-hour rate limit exceeded. Try again after ${resetDate.toLocaleTimeString()}.`);
   }
 
   const { text } = await generateText({
@@ -158,7 +158,7 @@ export async function continueConversation(history: Message[]) {
       },
     ],
     remaining,
-    reset,
+    reset: reset * 1000, // Convert seconds to milliseconds
   };
 }
 

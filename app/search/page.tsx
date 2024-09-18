@@ -255,7 +255,7 @@ export default function Home() {
                         </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                        <p>Daily limit: {remainingRequests} requests remaining</p>
+                        <p>4-hour limit: {remainingRequests} requests remaining</p>
                         <p>Resets at: {formatResetTime(resetTime)}</p>
                     </TooltipContent>
                 </Tooltip>
