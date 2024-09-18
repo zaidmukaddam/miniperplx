@@ -1,4 +1,5 @@
 import "./globals.css";
+import 'katex/dist/katex.min.css';
 import { Metadata, Viewport } from "next";
 import { Toaster } from "sonner";
 import { Inter, Instrument_Serif, IBM_Plex_Mono } from 'next/font/google';

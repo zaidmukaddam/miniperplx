@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
+import 'katex/dist/katex.min.css';
 
 import
 React,
@@ -15,9 +16,9 @@ React,
 import ReactMarkdown, { Components } from 'react-markdown';
 import Marked, { ReactRenderer } from 'marked-react';
 import katex from 'katex';
+import Latex from 'react-latex-next';
 import { track } from '@vercel/analytics';
 import { useSearchParams } from 'next/navigation';
-import 'katex/dist/katex.min.css';
 import { useChat } from 'ai/react';
 import { ToolInvocation } from 'ai';
 import { toast } from 'sonner';
@@ -1624,21 +1625,12 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
             return metadata;
         }, [metadataCache]);
 
-        const renderEquation = (equation: string): string => {
-            try {
-                return katex.renderToString(equation, {
-                    throwOnError: false,
-                    displayMode: true,
-                    strict: false,
-                    trust: true,
-                    macros: {
-                        "\\,": "\\:"
-                    }
-                });
-            } catch (error) {
-                console.error("KaTeX rendering error:", error);
-                return equation;
-            }
+        const preprocessContent = (text: string) => {
+            // Replace block-level LaTeX
+            text = text.replace(/\$\$(.*?)\$\$/g, '\\[$1\\]');
+            // Replace bracket-enclosed LaTeX
+            text = text.replace(/\[(.*?)\]/g, '\\[$1\\]');
+            return text;
         };
 
         const CodeBlock = ({ language, children }: { language: string | undefined; children: string }) => {
@@ -1721,10 +1713,6 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
                             </p>
                         )}
                     </div>
-                    <div className="flex items-center justify-between px-3 py-2 bg-gray-50 text-xs text-gray-500">
-                        <span className="truncate max-w-[80%]">{href}</span>
-                        <ExternalLink size={14} className="flex-shrink-0" />
-                    </div>
                 </div>
             );
         };
@@ -1753,27 +1741,50 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
             );
         };
 
+        const latexMacros = {
+            "\\display": "\\displaystyle",
+        };
+
         const renderer: Partial<ReactRenderer> = {
             paragraph(children) {
-                if (typeof children === 'string') {
-                    const parts = children.split(/(\[.*?\])/g);
-                    return (
-                        <p>
-                            {parts.map((part, index) => {
-                                if (part.startsWith('[') && part.endsWith(']')) {
-                                    const equation = part.slice(1, -1);
-                                    return (
-                                        <span key={index} dangerouslySetInnerHTML={{
-                                            __html: renderEquation(equation)
-                                        }} />
-                                    );
-                                }
-                                return <span key={index}>{part}</span>;
-                            })}
-                        </p>
-                    );
-                }
-                return <p>{children}</p>;
+                return (
+                    <p className="my-4">
+                        {React.Children.map(children, (child) => {
+                            if (typeof child === 'string') {
+                                // Split the string to handle inline and display equations separately
+                                const parts = child.split(/(\\\[.*?\\\]|\$.*?\$)/gs);
+                                return parts.map((part, index) => {
+                                    if (part.startsWith('\\[') && part.endsWith('\\]')) {
+                                        // Display mode equation
+                                        return (
+                                            <Latex key={index} macros={latexMacros}>
+                                                {part}
+                                            </Latex>
+                                        );
+                                    } else if (part.startsWith('$') && part.endsWith('$')) {
+                                        // Inline equation
+                                        return (
+                                            <Latex key={index} macros={latexMacros}>
+                                                {part}
+                                            </Latex>
+                                        );
+                                    } // add $$ for display mode equations
+                                    else if (part.startsWith('$$') && part.endsWith('$$')) {
+                                        // Display mode equation
+                                        return (
+                                            <Latex key={index} macros={latexMacros}>
+                                                {part}
+                                            </Latex>
+                                        );
+                                    }
+                                    // Regular text
+                                    return part;
+                                });
+                            }
+                            return child;
+                        })}
+                    </p>
+                );
             },
             code(children, language) {
                 return <CodeBlock language={language}>{String(children)}</CodeBlock>;
@@ -1787,7 +1798,7 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
                         </sup>
                     );
                 }
-                return isValidUrl(href) ? renderHoverCard(href, text) : <a href={href}>{text}</a>;
+                return isValidUrl(href) ? renderHoverCard(href, text) : <a href={href} className="text-blue-600 hover:underline">{text}</a>;
             },
             heading(children, level) {
                 const HeadingTag = `h${level}` as keyof JSX.IntrinsicElements;
@@ -1796,19 +1807,21 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
             },
             list(children, ordered) {
                 const ListTag = ordered ? 'ol' : 'ul';
-                return <ListTag className="list-inside list-disc my-2">{children}</ListTag>;
+                return <ListTag className="list-inside list-disc my-4 pl-4">{children}</ListTag>;
             },
             listItem(children) {
-                return <li className="my-1">{children}</li>;
+                return <li className="my-2">{children}</li>;
             },
             blockquote(children) {
                 return <blockquote className="border-l-4 border-gray-300 pl-4 italic my-4">{children}</blockquote>;
             },
         };
 
+        const preprocessedContent = useMemo(() => preprocessContent(content), [content]);
+
         return (
-            <div className="prose prose-sm sm:prose-base max-w-none">
-                <Marked renderer={renderer}>{content}</Marked>
+            <div className="markdown-body">
+                <Marked renderer={renderer}>{preprocessedContent}</Marked>
             </div>
         );
     };
