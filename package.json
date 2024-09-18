@@ -49,7 +49,7 @@
     "katex": "^0.16.11",
     "lucide-react": "^0.424.0",
     "marked-react": "^2.0.0",
-    "next": "^14.2.5",
+    "next": "^14.2.10",
     "openai": "^4.56.0",
     "react": "^18",
     "react-dom": "^18",

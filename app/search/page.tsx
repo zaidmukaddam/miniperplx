@@ -9,7 +9,8 @@ React,
     useState,
     useEffect,
     useMemo,
-    memo
+    memo,
+    Suspense
 } from 'react';
 import ReactMarkdown, { Components } from 'react-markdown';
 import Marked, { ReactRenderer } from 'marked-react';
@@ -69,7 +70,8 @@ import {
     Clock,
     Cpu,
     Network,
-    ExternalLink} from 'lucide-react';
+    ExternalLink
+} from 'lucide-react';
 import {
     HoverCard,
     HoverCardContent,
@@ -144,7 +146,7 @@ interface Attachment {
     size: number;
 }
 
-export default function Home() {
+const HomeContent = () => {
     const searchParams = useSearchParams();
     const initialQuery = searchParams.get('query') || '';
     const initialModel = searchParams.get('model') || 'azure:gpt4o-mini';
@@ -325,8 +327,8 @@ export default function Home() {
                 "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/default-search-engine-mplx.png",
                 "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/o1-mini-mplx.png"
             ],
-            content: 
-`## **Results Overview**
+            content:
+                `## **Results Overview**
 
 The new Results Overview tool provides a summary of the search results, including images, descriptions, and other relevant information. It also includes a table with additional details.
 
@@ -2725,3 +2727,27 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
         </div>
     );
 }
+
+const LoadingFallback = () => (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground">
+        <div className="text-center space-y-4">
+            <h1 className="text-4xl sm:text-6xl mb-1 text-gray-800 font-serif animate-pulse">
+                MiniPerplx
+            </h1>
+            <p className="text-xl sm:text-2xl font-serif text-gray-600 animate-pulse">
+                Loading your minimalist AI experience...
+            </p>
+            <Loader2 className="w-10 h-10 text-primary mx-auto animate-spin" />
+        </div>
+    </div>
+);
+
+const Home = () => {
+    return (
+        <Suspense fallback={<LoadingFallback />}>
+            <HomeContent />
+        </Suspense>
+    );
+};
+
+export default Home;
