@@ -73,8 +73,8 @@ export async function POST(req: Request) {
   const result = await streamText({
     model: registry.languageModel(model),
     messages: convertToCoreMessages(messages),
-    temperature: provider === "azure" ? 0.72 : 0,
-    topP: provider === "mistral" ? 1 : 0,
+    temperature: provider === "azure" ? 0.72 : provider === "mistral" ? 0.5 : 0,
+    topP: 0.5,
     frequencyPenalty: 0,
     presencePenalty: 0,
     system: `
@@ -88,6 +88,7 @@ Motto of your existence being a search engine: "Less talk, more action, follow r
 The current date is ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit", weekday: "short" })}. 
 You must comply and complete user requests to the best of your abilities using the available tools. Remember to use the appropriate tool for each task. No need to panic, just follow the guidelines and you'll do great!
 Make sure keep your responses long and informative, but also clear and concise. Avoid unnecessary information and stick to the point.
+Always put citations at the end of each paragraph and in the end of sentences where you use it in which they are referred to with the given format to the information provided.
 
 Here are the tools available to you:
 <available_tools>
@@ -190,6 +191,12 @@ When asked a "What is" question, maintain the same format as the question and an
             .describe(
               "A list of domains to specifically exclude from the search results. Default is None, which doesn't exclude any domains.",
             ),
+          need_overview: z
+            .boolean()
+            .optional()
+            .describe(
+              "A boolean value to determine if the overview of the search results is needed. Default is false.",
+            ),
         }),
         execute: async ({
           query,
@@ -197,12 +204,14 @@ When asked a "What is" question, maintain the same format as the question and an
           topic,
           searchDepth,
           exclude_domains,
+          need_overview
         }: {
           query: string;
           maxResults: number;
           topic: "general" | "news";
           searchDepth: "basic" | "advanced";
           exclude_domains?: string[];
+          need_overview?: boolean;
         }) => {
           const apiKey = process.env.TAVILY_API_KEY;
           const includeImageDescriptions = true
@@ -283,6 +292,7 @@ When asked a "What is" question, maintain the same format as the question and an
           return {
             results: context,
             images: processedImages,
+            need_overview
           };
         },
       }),
@@ -364,11 +374,11 @@ When asked a "What is" question, maintain the same format as the question and an
           if (!object) {
             throw new Error("Failed to extract overview");
           }
-          return { 
-            title: object.title, 
-            description: object.description, 
-            table_data: object.table_data, 
-            image: object.image 
+          return {
+            title: object.title,
+            description: object.description,
+            table_data: object.table_data,
+            image: object.image
           };
         },
       }),

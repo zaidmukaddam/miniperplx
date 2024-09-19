@@ -175,7 +175,7 @@ const HomeContent = () => {
     const [openChangelog, setOpenChangelog] = useState(false);
 
     const { isLoading, input, messages, setInput, handleInputChange, append, handleSubmit, setMessages, reload } = useChat({
-        maxToolRoundtrips: 2,
+        maxToolRoundtrips: selectedModel === 'mistral:pixtral-12b-2409' ? 1 : 2,
         body: {
             model: selectedModel,
         },
@@ -1626,14 +1626,6 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
             return metadata;
         }, [metadataCache]);
 
-        const preprocessContent = (text: string) => {
-            // Replace block-level LaTeX
-            text = text.replace(/\$\$(.*?)\$\$/g, '\\[$1\\]');
-            // Replace bracket-enclosed LaTeX
-            text = text.replace(/\[(.*?)\]/g, '\\[$1\\]');
-            return text;
-        };
-
         const CodeBlock = ({ language, children }: { language: string | undefined; children: string }) => {
             const [isCopied, setIsCopied] = useState(false);
 
@@ -1693,10 +1685,10 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
             const domain = new URL(href).hostname;
 
             return (
-                <div className="flex flex-col space-y-2 bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="flex flex-col space-y-2 bg-white rounded-md shadow-md overflow-hidden">
                     <div className="flex items-center space-x-2 p-3 bg-gray-50">
                         <Image
-                            src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`}
+                            src={`https://www.google.com/s2/favicons?domain=${domain}&sz=256`}
                             alt="Favicon"
                             width={20}
                             height={20}
@@ -1742,55 +1734,16 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
             );
         };
 
-        const latexMacros = {
-            "\\display": "\\displaystyle",
-        };
-
         const renderer: Partial<ReactRenderer> = {
             paragraph(children) {
-                return (
-                    <p className="my-4">
-                        {React.Children.map(children, (child) => {
-                            if (typeof child === 'string') {
-                                // Split the string to handle inline and display equations separately
-                                const parts = child.split(/(\\\[.*?\\\]|\$.*?\$)/gs);
-                                return parts.map((part, index) => {
-                                    if (part.startsWith('\\[') && part.endsWith('\\]')) {
-                                        // Display mode equation
-                                        return (
-                                            <Latex key={index} macros={latexMacros}>
-                                                {part}
-                                            </Latex>
-                                        );
-                                    } else if (part.startsWith('$') && part.endsWith('$')) {
-                                        // Inline equation
-                                        return (
-                                            <Latex key={index} macros={latexMacros}>
-                                                {part}
-                                            </Latex>
-                                        );
-                                    } // add $$ for display mode equations
-                                    else if (part.startsWith('$$') && part.endsWith('$$')) {
-                                        // Display mode equation
-                                        return (
-                                            <Latex key={index} macros={latexMacros}>
-                                                {part}
-                                            </Latex>
-                                        );
-                                    }
-                                    // Regular text
-                                    return part;
-                                });
-                            }
-                            return child;
-                        })}
-                    </p>
-                );
+                return <p className="my-4">{children}</p>;
             },
             code(children, language) {
                 return <CodeBlock language={language}>{String(children)}</CodeBlock>;
             },
             link(href, text) {
+                // if (!href) return <>{text}</>;
+
                 const citationIndex = citationLinks.findIndex(link => link.link === href);
                 if (citationIndex !== -1) {
                     return (
@@ -1818,11 +1771,9 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
             },
         };
 
-        const preprocessedContent = useMemo(() => preprocessContent(content), [content]);
-
         return (
             <div className="markdown-body">
-                <Marked renderer={renderer}>{preprocessedContent}</Marked>
+                <Marked renderer={renderer}>{content}</Marked>
             </div>
         );
     };

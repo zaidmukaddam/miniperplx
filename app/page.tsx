@@ -52,6 +52,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Tweet } from 'react-tweet'
 import Image from 'next/image';
+import { TweetGrid } from '@/components/ui/tweet-grid';
 
 function BentoCard({
   title,
@@ -98,59 +99,18 @@ const TestimonialSection: React.FC = () => {
     "1825821083817103852"
   ];
 
-  const [isSmallScreen, setIsSmallScreen] = useState(false);
-  const controls = useAnimation();
-
-  useEffect(() => {
-    const checkScreenSize = () => setIsSmallScreen(window.innerWidth < 768);
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-    return () => window.removeEventListener('resize', checkScreenSize);
-  }, []);
-
-  useEffect(() => {
-    if (isSmallScreen) {
-      controls.start({
-        x: [0, -200 + '%'],
-        transition: {
-          x: {
-            repeat: Infinity,
-            repeatType: "loop",
-            duration: 30,
-            ease: "linear",
-          },
-        },
-      });
-    } else {
-      controls.stop();
-    }
-  }, [isSmallScreen, controls]);
-
   return (
     <section id="testimonials" className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-background to-muted overflow-hidden">
-      <div className="container px-4 md:px-6">
+      <div className="container flex flex-col items-center justify-center px-4 md:px-6">
         <h2 className="font-serif text-4xl font-bold sm:text-5xl md:text-6xl lg:text-7xl tracking-tight text-center mb-12">
           What People Are Saying
         </h2>
-        <div className="md:hidden relative h-[400px] overflow-hidden">
-          <motion.div
-            className="flex absolute top-0 left-0 gap-6"
-            animate={controls}
-          >
-            {[...tweetIds, ...tweetIds].map((id, index) => (
-              <div key={index} className="w-[300px] flex-shrink-0">
-                <Tweet id={id} />
-              </div>
-            ))}
-          </motion.div>
+        <div
+          className='justify-center'
+        >
+          <TweetGrid tweets={tweetIds} />
         </div>
-        <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-min">
-          {tweetIds.map((id) => (
-            <div key={id} className="tweet-container">
-              <Tweet id={id} />
-            </div>
-          ))}
-        </div>
+        
       </div>
     </section>
   );
