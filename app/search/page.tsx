@@ -241,11 +241,7 @@ The new Results Overview tool provides a summary of the search results, includin
 
 ## **Default Search Engine**
 
-You can know set MiniPerplx as your default search engine using the URL parameters. Just add \`?query=%s\` to the URL to set the default search query. The model can also be set using the \`model\` parameter.
-
-## **o1-mini**
-
-The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Currently, it is available as a beta feature and doesn't support all features like web search.`,
+You can know set MiniPerplx as your default search engine using the URL parameters. Just add \`?query=%s\` to the URL to set the default search query. The model can also be set using the \`model\` parameter.`,
         }
     ];
 
@@ -2179,7 +2175,6 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
         { value: "azure:gpt4o-mini", label: "OpenAI", icon: Zap, description: "High speed, lower quality", color: "emerald" },
         { value: "mistral:pixtral-12b-2409", label: "Mistral", icon: Camera, description: "Pixtral 12B", color: "blue" },
         { value: "anthropicVertex:claude-3-5-sonnet@20240620", label: "Claude", icon: Sparkles, description: "High quality, lower speed", color: "indigo" },
-        { value: "openai/o1-mini", label: "Reasoning", icon: Flame, description: "Experimental model", color: "orange" },
     ]
 
     interface ModelSwitcherProps {
