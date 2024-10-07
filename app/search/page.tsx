@@ -164,14 +164,6 @@ const HomeContent = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const [isInitialQueryProcessed, setIsInitialQueryProcessed] = useState(false);
-
-    const [o1Conversation, setO1Conversation] = useState<Message[]>([]);
-    const [o1Input, setO1Input] = useState<string>('');
-    const [isO1Loading, setIsO1Loading] = useState(false);
-    const [remainingRequests, setRemainingRequests] = useState<number | null>(null);
-    const [resetTime, setResetTime] = useState<number | null>(null);
-
     const [openChangelog, setOpenChangelog] = useState(false);
 
     const { isLoading, input, messages, setInput, handleInputChange, append, handleSubmit, setMessages, reload } = useChat({
@@ -198,93 +190,6 @@ const HomeContent = () => {
             });
         },
     });
-
-    const handleO1InputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setO1Input(e.target.value);
-    };
-
-    const handleO1Submit = useCallback(async () => {
-        if (o1Input.trim()) {
-            setIsO1Loading(true);
-            const newUserMessage = { role: 'user' as const, content: o1Input };
-            setLastSubmittedQuery(o1Input);
-            setO1Input('');
-            setO1Conversation(prev => [...prev, newUserMessage]);
-
-            try {
-                const { messages: newMessages, remaining, reset } = await continueConversation([...o1Conversation, newUserMessage]);
-                setO1Conversation(newMessages);
-                // make suggestion questions
-                const { questions } = await suggestQuestions(newMessages);
-                setSuggestedQuestions(questions);
-                setRemainingRequests(remaining);
-                setResetTime(reset);
-                if (remaining !== null && remaining <= 3) {
-                    toast.warning(`You have ${remaining} requests remaining for the next 4 hours.`);
-                }
-            } catch (error) {
-                console.error("Error in O1 conversation:", error);
-                toast.error(error instanceof Error ? error.message : "An error occurred while processing your request.");
-            } finally {
-                setIsO1Loading(false);
-            }
-        }
-    }, [o1Input, o1Conversation]);
-
-    interface RateLimitInfoProps {
-        remainingRequests: number;
-        resetTime: number;
-    }
-
-    const RateLimitInfo: React.FC<RateLimitInfoProps> = ({ remainingRequests, resetTime }) => {
-        const formatResetTime = (resetTimestamp: number) => {
-            const resetDate = new Date(resetTimestamp);
-            return resetDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        };
-
-        const getBatteryColor = (remaining: number) => {
-            if (remaining <= 2) return "text-red-500";
-            if (remaining <= 5) return "text-yellow-500";
-            return "text-green-500";
-        };
-
-        return (
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <div className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full text-sm">
-                            <Battery className={`w-4 h-4 ${getBatteryColor(remainingRequests)}`} />
-                            <span className="font-medium">{remainingRequests}</span>
-                            <Clock className="w-4 h-4 text-gray-500" />
-                        </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>4-hour limit: {remainingRequests} requests remaining</p>
-                        <p>Resets at: {formatResetTime(resetTime)}</p>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
-        );
-    };
-
-    const processInitialQuery = useCallback(async () => {
-        if (initialQuery && !isInitialQueryProcessed) {
-            setHasSubmitted(true);
-            setIsInitialQueryProcessed(true);
-            track('search with url params', { query: initialQuery });
-
-            if (selectedModel === 'openai/o1-mini') {
-                setO1Input(initialQuery);
-                handleO1Submit();
-            } else {
-                await append({ content: initialQuery, role: 'user' });
-            }
-        }
-    }, [initialQuery, isInitialQueryProcessed, selectedModel, handleO1Submit, append]);
-
-    if (!isInitialQueryProcessed) {
-        processInitialQuery();
-    }
 
     const CopyButton = ({ text }: { text: string }) => {
         const [isCopied, setIsCopied] = useState(false);
@@ -1802,63 +1707,26 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
         setHasSubmitted(true);
         setSuggestedQuestions([]);
 
-        if (selectedModel === 'openai/o1-mini') {
-            setO1Input(exampleText.trim());
-            setIsO1Loading(true);
-            const newUserMessage = { role: 'user' as const, content: exampleText.trim() };
-            setO1Conversation(prev => [...prev, newUserMessage]);
-            setO1Input("");
-            try {
-                const { messages: newMessages, remaining, reset } = await continueConversation([...o1Conversation, newUserMessage]);
-                setO1Conversation(newMessages);
-                // make suggestions for the next user message
-                const { questions } = await suggestQuestions(newMessages);
-                setSuggestedQuestions(questions);
-                setRemainingRequests(remaining);
-                setResetTime(reset);
-            } catch (error) {
-                console.error("Error in O1 conversation:", error);
-                toast.error(error instanceof Error ? error.message : "An error occurred while processing your request.");
-            } finally {
-                setIsO1Loading(false);
-            }
-        } else {
-            await append({
-                content: exampleText.trim(),
-                role: 'user',
-            });
-        }
-    }, [append, setLastSubmittedQuery, setHasSubmitted, setSuggestedQuestions, selectedModel, setO1Input, o1Conversation]);
+
+        await append({
+            content: exampleText.trim(),
+            role: 'user',
+        });
+
+    }, [append, setLastSubmittedQuery, setHasSubmitted, setSuggestedQuestions, selectedModel]);
 
     const handleSuggestedQuestionClick = useCallback(async (question: string) => {
         setHasSubmitted(true);
         setSuggestedQuestions([]);
 
-        if (selectedModel === 'openai/o1-mini') {
-            setO1Input(question.trim());
-            setIsO1Loading(true);
-            const newUserMessage = { role: 'user' as const, content: question.trim() };
-            setO1Conversation(prev => [...prev, newUserMessage]);
-            setO1Input("");
-            try {
-                const { messages: newMessages, remaining, reset } = await continueConversation([...o1Conversation, newUserMessage]);
-                setO1Conversation(newMessages);
-                setRemainingRequests(remaining);
-                setResetTime(reset);
-            } catch (error) {
-                console.error("Error in O1 conversation:", error);
-                toast.error(error instanceof Error ? error.message : "An error occurred while processing your request.");
-            } finally {
-                setIsO1Loading(false);
-            }
-        } else {
-            setInput(question.trim());
-            await append({
-                content: question.trim(),
-                role: 'user'
-            });
-        }
-    }, [setInput, append, selectedModel, setO1Input, o1Conversation]);
+
+        setInput(question.trim());
+        await append({
+            content: question.trim(),
+            role: 'user'
+        });
+
+    }, [setInput, append]);
 
     const handleMessageEdit = useCallback((index: number) => {
         setIsEditingMessage(true);
@@ -1901,13 +1769,9 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
         },
     ];
 
-    interface NavbarProps {
-        selectedModel: string;
-        remainingRequests: number | null;
-        resetTime: number | null;
-    }
+    interface NavbarProps { }
 
-    const Navbar: React.FC<NavbarProps> = ({ selectedModel, remainingRequests, resetTime }) => {
+    const Navbar: React.FC<NavbarProps> = () => {
         return (
             <div className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center p-4 bg-background">
                 <Link href="/new">
@@ -1923,12 +1787,6 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
                     </Button>
                 </Link>
                 <div className='flex items-center space-x-4'>
-                    {selectedModel === 'openai/o1-mini' && remainingRequests !== null && resetTime !== null && (
-                        <RateLimitInfo
-                            remainingRequests={remainingRequests}
-                            resetTime={resetTime}
-                        />
-                    )}
                     <Button
                         variant="secondary"
                         size="sm"
@@ -2164,16 +2022,14 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
             event.preventDefault();
             event.stopPropagation();
 
-            if ((selectedModel === 'openai/o1-mini' ? o1Input : input).trim() || (selectedModel !== 'openai/o1-mini' && attachments.length > 0)) {
-                track("search enter", { query: (selectedModel === 'openai/o1-mini' ? o1Input : input).trim() });
+            if (input.trim() || (selectedModel !== 'openai/o1-mini' && attachments.length > 0)) {
+                track("search enter", { query: input.trim() });
                 setHasSubmitted(true);
-                if (selectedModel === 'openai/o1-mini') {
-                    handleO1Submit();
-                } else {
-                    handleSubmit(event, {
-                        experimental_attachments: attachments,
-                    });
-                }
+
+                handleSubmit(event, {
+                    experimental_attachments: attachments,
+                });
+
                 setAttachments([]);
                 setUploadingAttachments([]);
                 setSuggestedQuestions([]);
@@ -2246,9 +2102,9 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
                             ref={inputRef}
                             name="search"
                             placeholder={hasSubmitted ? "Ask a new question..." : "Ask a question..."}
-                            value={selectedModel === 'openai/o1-mini' ? o1Input : input}
-                            onChange={selectedModel === 'openai/o1-mini' ? handleO1InputChange : handleInputChange}
-                            disabled={isLoading || isO1Loading}
+                            value={input}
+                            onChange={handleInputChange}
+                            disabled={isLoading}
                             className={cn(
                                 "w-full h-12 pr-12 bg-muted",
                                 "ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
@@ -2263,30 +2119,29 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
                                 }
                             }}
                         />
-                        {selectedModel !== 'openai/o1-mini' && (
-                            <label
-                                htmlFor={hasSubmitted ? "file-upload-bottom" : "file-upload-top"}
-                                className={`absolute left-3 cursor-pointer ${attachments.length + uploadingAttachments.length >= MAX_IMAGES ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            >
-                                <Paperclip className="h-5 w-5 text-muted-foreground" />
-                                <input
-                                    id={hasSubmitted ? "file-upload-bottom" : "file-upload-top"}
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    onChange={handleFileChange}
-                                    className="hidden"
-                                    disabled={attachments.length + uploadingAttachments.length >= MAX_IMAGES}
-                                    ref={fileInputRef}
-                                />
-                            </label>
-                        )}
+                        <label
+                            htmlFor={hasSubmitted ? "file-upload-bottom" : "file-upload-top"}
+                            className={`absolute left-3 cursor-pointer ${attachments.length + uploadingAttachments.length >= MAX_IMAGES ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                            <Paperclip className="h-5 w-5 text-muted-foreground" />
+                            <input
+                                id={hasSubmitted ? "file-upload-bottom" : "file-upload-top"}
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={handleFileChange}
+                                className="hidden"
+                                disabled={attachments.length + uploadingAttachments.length >= MAX_IMAGES}
+                                ref={fileInputRef}
+                            />
+                        </label>
+
                         <Button
                             type="submit"
                             size="icon"
                             variant="ghost"
                             className="absolute right-2"
-                            disabled={(selectedModel === 'openai/o1-mini' ? o1Input : input).trim().length === 0 || isLoading || isO1Loading || uploadingAttachments.length > 0}
+                            disabled={input.trim().length === 0 || isLoading || uploadingAttachments.length > 0}
                         >
                             <ArrowRight size={20} />
                         </Button>
@@ -2422,20 +2277,12 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
     const handleModelChange = useCallback((newModel: string) => {
         setSelectedModel(newModel);
         setSuggestedQuestions([]);
-        if (newModel === 'openai/o1-mini') {
-            setO1Conversation([]);
-        } else if (messages.length > 0) {
-            reload({ body: { model: newModel } });
-        }
-    }, [messages, reload]);
+        reload({ body: { model: newModel } });
+    }, [reload]);
 
     return (
         <div className="flex flex-col font-sans items-center justify-center p-2 sm:p-4 bg-background text-foreground transition-all duration-500">
-            <Navbar
-                selectedModel={selectedModel}
-                remainingRequests={remainingRequests}
-                resetTime={resetTime}
-            />
+            <Navbar />
 
             <div className={`w-full max-w-[90%] sm:max-w-2xl space-y-6 p-0 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[20vh] sm:mt-[30vh]'}`}>
                 {!hasSubmitted && (
@@ -2466,14 +2313,14 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
                             transition={{ duration: 0.5 }}
                         >
                             <FormComponent
-                                input={selectedModel === 'openai/o1-mini' ? o1Input : input}
-                                setInput={selectedModel === 'openai/o1-mini' ? setO1Input : setInput}
+                                input={input}
+                                setInput={setInput}
                                 attachments={attachments}
                                 setAttachments={setAttachments}
                                 hasSubmitted={hasSubmitted}
                                 setHasSubmitted={setHasSubmitted}
-                                handleSubmit={selectedModel === 'openai/o1-mini' ? handleO1Submit : handleSubmit}
-                                isLoading={selectedModel === 'openai/o1-mini' ? isO1Loading : isLoading}
+                                handleSubmit={handleSubmit}
+                                isLoading={isLoading}
                                 fileInputRef={fileInputRef}
                                 inputRef={inputRef}
                             />
@@ -2484,169 +2331,113 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
 
 
                 <div className="space-y-4 sm:space-y-6 mb-32">
-                    {selectedModel === 'openai/o1-mini' ? (
-                        <>
-                            {o1Conversation.map((message, index) => (
-                                <div key={index}>
-                                    {message.role === 'user' && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ duration: 0.5 }}
-                                            className="flex items-start space-x-2 mb-4"
-                                        >
-                                            <User2 className="size-5 sm:size-6 text-primary flex-shrink-0 mt-1" />
-                                            <div className="flex-grow min-w-0">
-                                                <p className="text-xl sm:text-2xl font-medium font-serif break-words">
-                                                    {message.content}
-                                                </p>
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                    {message.role === 'assistant' && (
-                                        <div>
-                                            <div className='flex items-center justify-between mb-2'>
-                                                <div className='flex items-center gap-2'>
-                                                    <Sparkles className="size-5 text-primary" />
-                                                    <h2 className="text-base font-semibold">Answer</h2>
-                                                </div>
-                                                <CopyButton text={message.content} />
-                                            </div>
-                                            <div>
-                                                <MarkdownRenderer content={message.content} />
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                            {isO1Loading && (
+                    {messages.map((message, index) => (
+                        <div key={index}>
+                            {message.role === 'user' && (
                                 <motion.div
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.5 }}
                                     className="flex items-start space-x-2 mb-4"
                                 >
-                                    <Sparkles className="size-5 sm:size-6 text-primary flex-shrink-0 mt-1" />
+                                    <User2 className="size-5 sm:size-6 text-primary flex-shrink-0 mt-1" />
                                     <div className="flex-grow min-w-0">
-                                        <div className="flex items-center space-x-2">
-                                            <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                                            <p className="text-lg font-medium">Thinking...</p>
-                                        </div>
-                                        <div className="mt-2 bg-muted rounded-md p-4 animate-pulse">
-                                            <div className="h-4 bg-muted-foreground/20 rounded w-3/4 mb-2"></div>
-                                            <div className="h-4 bg-muted-foreground/20 rounded w-1/2"></div>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </>
-                    ) : (
-                        messages.map((message, index) => (
-                            <div key={index}>
-                                {message.role === 'user' && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.5 }}
-                                        className="flex items-start space-x-2 mb-4"
-                                    >
-                                        <User2 className="size-5 sm:size-6 text-primary flex-shrink-0 mt-1" />
-                                        <div className="flex-grow min-w-0">
-                                            {isEditingMessage && editingMessageIndex === index ? (
-                                                <form onSubmit={handleMessageUpdate} className="flex items-center space-x-2">
-                                                    <Input
-                                                        value={input}
-                                                        onChange={(e) => setInput(e.target.value)}
-                                                        className="flex-grow"
-                                                    />
-                                                    <Button
-                                                        variant="secondary"
-                                                        size="sm"
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setIsEditingMessage(false)
-                                                            setEditingMessageIndex(-1)
-                                                            setInput('')
-                                                        }}
-                                                        disabled={isLoading}
-                                                    >
-                                                        <X size={16} />
-                                                    </Button>
-                                                    <Button type="submit" size="sm">
-                                                        <ArrowRight size={16} />
-                                                    </Button>
-                                                </form>
-                                            ) : (
-                                                <div>
-                                                    <p className="text-xl sm:text-2xl font-medium font-serif break-words">
-                                                        {message.content}
-                                                    </p>
-                                                    <div
-                                                        className='flex flex-row gap-2'
-                                                    >
-                                                        {message.experimental_attachments?.map((attachment, attachmentIndex) => (
-                                                            <div key={attachmentIndex} className="mt-2">
-                                                                {attachment.contentType!.startsWith('image/') && (
-                                                                    <img
-                                                                        src={attachment.url}
-                                                                        alt={attachment.name || `Attachment ${attachmentIndex + 1}`}
-                                                                        className="max-w-full h-32 object-fill rounded-lg"
-                                                                    />
-                                                                )}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {!isEditingMessage && index === lastUserMessageIndex && (
-                                            <div
-                                                className="flex items-center space-x-2"
-                                            >
+                                        {isEditingMessage && editingMessageIndex === index ? (
+                                            <form onSubmit={handleMessageUpdate} className="flex items-center space-x-2">
+                                                <Input
+                                                    value={input}
+                                                    onChange={(e) => setInput(e.target.value)}
+                                                    className="flex-grow"
+                                                />
                                                 <Button
-                                                    variant="ghost"
+                                                    variant="secondary"
                                                     size="sm"
-                                                    onClick={() => handleMessageEdit(index)}
-                                                    className="ml-2"
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setIsEditingMessage(false)
+                                                        setEditingMessageIndex(-1)
+                                                        setInput('')
+                                                    }}
                                                     disabled={isLoading}
                                                 >
-                                                    <Edit2 size={16} />
+                                                    <X size={16} />
                                                 </Button>
+                                                <Button type="submit" size="sm">
+                                                    <ArrowRight size={16} />
+                                                </Button>
+                                            </form>
+                                        ) : (
+                                            <div>
+                                                <p className="text-xl sm:text-2xl font-medium font-serif break-words">
+                                                    {message.content}
+                                                </p>
+                                                <div
+                                                    className='flex flex-row gap-2'
+                                                >
+                                                    {message.experimental_attachments?.map((attachment, attachmentIndex) => (
+                                                        <div key={attachmentIndex} className="mt-2">
+                                                            {attachment.contentType!.startsWith('image/') && (
+                                                                <img
+                                                                    src={attachment.url}
+                                                                    alt={attachment.name || `Attachment ${attachmentIndex + 1}`}
+                                                                    className="max-w-full h-32 object-fill rounded-lg"
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
                                         )}
-                                    </motion.div>
-                                )}
-                                {message.role === 'assistant' && message.content && (
-                                    <div>
-                                        <div className='flex items-center justify-between mb-2'>
-                                            <div className='flex items-center gap-2'>
-                                                <Sparkles className="size-5 text-primary" />
-                                                <h2 className="text-base font-semibold">Answer</h2>
-                                            </div>
-                                            <div
-                                                className='flex items-center gap-2'
+                                    </div>
+
+                                    {!isEditingMessage && index === lastUserMessageIndex && (
+                                        <div
+                                            className="flex items-center space-x-2"
+                                        >
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleMessageEdit(index)}
+                                                className="ml-2"
+                                                disabled={isLoading}
                                             >
-                                                <ModelSwitcher
-                                                    selectedModel={selectedModel}
-                                                    setSelectedModel={handleModelChange}
-                                                    className="!px-4 rounded-full"
-                                                />
-                                                <CopyButton text={message.content} />
-                                            </div>
+                                                <Edit2 size={16} />
+                                            </Button>
                                         </div>
-                                        <div>
-                                            <MarkdownRenderer content={message.content} />
+                                    )}
+                                </motion.div>
+                            )}
+                            {message.role === 'assistant' && message.content && (
+                                <div>
+                                    <div className='flex items-center justify-between mb-2'>
+                                        <div className='flex items-center gap-2'>
+                                            <Sparkles className="size-5 text-primary" />
+                                            <h2 className="text-base font-semibold">Answer</h2>
+                                        </div>
+                                        <div
+                                            className='flex items-center gap-2'
+                                        >
+                                            <ModelSwitcher
+                                                selectedModel={selectedModel}
+                                                setSelectedModel={handleModelChange}
+                                                className="!px-4 rounded-full"
+                                            />
+                                            <CopyButton text={message.content} />
                                         </div>
                                     </div>
-                                )}
-                                {message.toolInvocations?.map((toolInvocation: ToolInvocation, toolIndex: number) => (
-                                    <div key={`tool-${toolIndex}`}>
-                                        {renderToolInvocation(toolInvocation, toolIndex)}
+                                    <div>
+                                        <MarkdownRenderer content={message.content} />
                                     </div>
-                                ))}
-                            </div>
-                        )))}
+                                </div>
+                            )}
+                            {message.toolInvocations?.map((toolInvocation: ToolInvocation, toolIndex: number) => (
+                                <div key={`tool-${toolIndex}`}>
+                                    {renderToolInvocation(toolInvocation, toolIndex)}
+                                </div>
+                            ))}
+                        </div>
+                    ))}
+
                     {suggestedQuestions.length > 0 && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -2680,14 +2471,14 @@ The o1-mini is a new OpenAI model that is optimized for reasoning tasks. Current
             <AnimatePresence>
                 {hasSubmitted && (
                     <FormComponent
-                        input={selectedModel === 'openai/o1-mini' ? o1Input : input}
-                        setInput={selectedModel === 'openai/o1-mini' ? setO1Input : setInput}
+                        input={input}
+                        setInput={setInput}
                         attachments={attachments}
                         setAttachments={setAttachments}
                         hasSubmitted={hasSubmitted}
                         setHasSubmitted={setHasSubmitted}
-                        handleSubmit={selectedModel === 'openai/o1-mini' ? handleO1Submit : handleSubmit}
-                        isLoading={selectedModel === 'openai/o1-mini' ? isO1Loading : isLoading}
+                        handleSubmit={handleSubmit}
+                        isLoading={isLoading}
                         fileInputRef={fileInputRef}
                         inputRef={inputRef}
                     />
