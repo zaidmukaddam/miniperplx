@@ -4,12 +4,13 @@ import { Metadata, Viewport } from "next";
 import { Toaster } from "sonner";
 import { Inter, Instrument_Serif, IBM_Plex_Mono } from 'next/font/google';
 import { Analytics } from "@vercel/analytics/react";
+import { Providers } from './providers'
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://mplx.run"),
   title: "MiniPerplx",
   description: "MiniPerplx is a minimalistic AI-powered search engine that helps you find information on the internet.",
-  openGraph : {
+  openGraph: {
     url: "https://mplx.run",
     siteName: "MiniPerplx",
   }
@@ -48,8 +49,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} ${instrumentSerif.className} ${plexMono.className}`}>
-        <Toaster position="top-center" richColors />
-        {children}
+        <Providers>
+          <Toaster position="top-center" richColors />
+          {children}
+        </Providers>
         <Analytics />
       </body>
     </html>

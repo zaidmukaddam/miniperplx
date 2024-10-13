@@ -122,7 +122,7 @@ function GetStarted() {
       title="Get Started"
       icon={BarChart}
       description={"Experience the power of minimalistic AI search with MiniPerplx."}
-      className="col-span-full sm:col-span-1 sm:row-span-2"
+      className="col-span-full sm:col-span-1 sm:row-span-2 dark:text-neutral-950"
       gradient="from-blue-700 via-60% via-blue-600 to-cyan-600"
     >
       <div className="group relative flex cursor-pointer flex-col justify-end rounded-md bg-zinc-900 p-2 text-xl sm:text-2xl md:text-4xl tracking-tight text-gray-100">
@@ -146,7 +146,7 @@ function MinimalisticSearch() {
       icon={Search}
       description="We strip away the clutter to focus on what matters most - delivering accurate and relevant results."
       gradient="from-red-700 via-60% via-red-600 to-rose-600"
-      className="group col-span-full sm:col-span-1"
+      className="group col-span-full sm:col-span-1 dark:text-neutral-950"
     >
       <div className="mt-2 sm:mt-4 space-y-1 sm:space-y-2">
         <div className="flex items-center">
@@ -173,7 +173,7 @@ function AIPowered() {
       icon={Code}
       description="Leveraging cutting-edge AI technology to understand and respond to your queries with precision."
       gradient="from-emerald-700 via-60% via-emerald-600 to-green-600"
-      className="group col-span-full sm:col-span-1"
+      className="group col-span-full sm:col-span-1 dark:text-neutral-950"
     >
       <div className="mt-2 sm:mt-4 space-y-1 sm:space-y-2">
         <div className="flex items-center justify-between">
@@ -206,7 +206,7 @@ function LightningFast() {
       icon={Zap}
       description="Designed for speed, MiniPerplx provides instant answers to keep up with your pace of work."
       gradient="from-purple-700 via-60% via-purple-600 to-fuchsia-600"
-      className="col-span-full sm:col-span-2"
+      className="col-span-full sm:col-span-2 dark:text-neutral-950"
     />
   );
 }
@@ -247,7 +247,7 @@ const MarqueeTestimonials: React.FC = () => {
         transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
       >
         {testimonials.concat(testimonials).map((text, index) => (
-          <span key={index} className="text-white text-xl font-bold mx-8">
+          <span key={index} className="text-white dark:text-black text-xl font-bold mx-8">
             {text}
           </span>
         ))}
@@ -697,12 +697,12 @@ const LandingPage: React.FC = () => {
       </AnimatePresence>
 
       <main className="flex-1">
-        <section className="w-full py-48 bg-gradient-to-b from-background to-muted relative overflow-hidden">
+        <section className="w-full py-48 bg-gradient-to-b from-background f to-muted relative overflow-hidden">
           <FloatingIcons />
           <div className="container px-4 md:px-6 relative z-10">
             <div className="text-center space-y-4">
               <motion.h1
-                className="font-serif font-bold text-6xl md:text-7xl lg:text-8xl bg-clip-text text-transparent bg-black leading-[1.1] tracking-tight pb-2"
+                className="font-serif font-bold text-6xl md:text-7xl lg:text-8xl bg-clip-text text-transparent bg-black dark:bg-white leading-[1.1] tracking-tight pb-2"
                 variants={itemVariants}
                 initial="hidden"
                 animate="visible"
@@ -710,7 +710,7 @@ const LandingPage: React.FC = () => {
                 Introducing MiniPerplx
               </motion.h1>
               <motion.p
-                className="mx-auto max-w-[700px] text-muted-foreground text-xl md:text-2xl text-balance font-serif tracking-normal"
+                className="mx-auto max-w-[700px] text-muted-foreground dark:text-neutral-200 text-xl md:text-2xl text-balance font-serif tracking-normal"
                 variants={itemVariants}
                 initial="hidden"
                 animate="visible"

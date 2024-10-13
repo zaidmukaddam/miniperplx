@@ -13,10 +13,9 @@ React,
     memo,
     Suspense
 } from 'react';
-import ReactMarkdown, { Components } from 'react-markdown';
+import ReactMarkdown from 'react-markdown';
+import { useTheme } from 'next-themes';
 import Marked, { ReactRenderer } from 'marked-react';
-import katex from 'katex';
-import Latex from 'react-latex-next';
 import { track } from '@vercel/analytics';
 import { useSearchParams } from 'next/navigation';
 import { useChat } from 'ai/react';
@@ -25,15 +24,13 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import {
-    continueConversation,
     fetchMetadata,
     generateSpeech,
-    Message,
     suggestQuestions
 } from '../actions';
 import { Wave } from "@foobar404/wave";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { oneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {
     SearchIcon,
     Sparkles,
@@ -67,12 +64,8 @@ import {
     Zap,
     Edit2,
     ChevronUp,
-    Battery,
-    Clock,
-    Cpu,
-    Network,
-    ExternalLink,
-    Camera
+    Camera,
+    Moon
 } from 'lucide-react';
 import {
     HoverCard,
@@ -164,6 +157,8 @@ const HomeContent = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
+    const { theme } = useTheme();
+
     const [openChangelog, setOpenChangelog] = useState(false);
 
     const { isLoading, input, messages, setInput, handleInputChange, append, handleSubmit, setMessages, reload } = useChat({
@@ -190,6 +185,24 @@ const HomeContent = () => {
             });
         },
     });
+
+    const ThemeToggle: React.FC = () => {
+        const { theme, setTheme } = useTheme();
+
+        return (
+            <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            >
+                <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                <span className="sr-only">Toggle theme</span>
+            </Button>
+        );
+    };
+
 
     const CopyButton = ({ text }: { text: string }) => {
         const [isCopied, setIsCopied] = useState(false);
@@ -228,33 +241,27 @@ const HomeContent = () => {
     const changelogs: Changelog[] = [
         {
             id: "1",
-            title: "Results Overview, Default Search Engine, and o1-mini!",
+            title: "Dark mode is here!",
             images: [
-                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/results-overview.png",
-                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/default-search-engine-mplx.png",
-                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/o1-mini-mplx.png"
+                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-dark-mode.png",
             ],
             content:
-                `## **Results Overview**
+                `## **Dark Mode**
 
-The new Results Overview tool provides a summary of the search results, including images, descriptions, and other relevant information. It also includes a table with additional details.
-
-## **Default Search Engine**
-
-You can know set MiniPerplx as your default search engine using the URL parameters. Just add \`?query=%s\` to the URL to set the default search query. The model can also be set using the \`model\` parameter.`,
+The most requested feature is finally here! You can now toggle between light and dark mode. Default is set to your system preference.`,
         }
     ];
 
     const ChangeLogs: React.FC<{ open: boolean; setOpen: (open: boolean) => void }> = ({ open, setOpen }) => {
         return (
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="no-scrollbar max-h-[80vh] overflow-y-auto rounded-xl border-none p-0 gap-0 font-sans">
-                    <div className="w-full py-3 flex justify-center items-center border-b">
-                        <h2 className="text-lg font-bold flex items-center gap-2">
+                <DialogContent className="no-scrollbar max-h-[80vh] overflow-y-auto rounded-xl border-none p-0 gap-0 font-sans bg-white dark:bg-neutral-900">
+                    <div className="w-full py-3 flex justify-center items-center border-b border-neutral-200 dark:border-neutral-700">
+                        <h2 className="text-lg font-bold flex items-center gap-2 text-neutral-800 dark:text-neutral-100">
                             <Flame size={20} /> What&apos;s new
                         </h2>
                     </div>
-                    <div className="divide-y">
+                    <div className="divide-y divide-neutral-200 dark:divide-neutral-700">
                         {changelogs.map((changelog) => (
                             <div key={changelog.id}>
                                 <Carousel
@@ -267,7 +274,7 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                                             delay: 2000,
                                         }),
                                     ]}
-                                    className="w-full bg-zinc-500/10"
+                                    className="w-full bg-neutral-100 dark:bg-neutral-800"
                                 >
                                     <CarouselContent>
                                         {changelog.images.map((image, index) => (
@@ -285,15 +292,13 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                                     </CarouselContent>
                                 </Carousel>
                                 <div className="flex flex-col gap-2 px-4 py-2">
-                                    <h3 className="text-2xl font-medium font-serif">{changelog.title}</h3>
+                                    <h3 className="text-2xl font-medium font-serif text-neutral-800 dark:text-neutral-100">{changelog.title}</h3>
                                     <ReactMarkdown
-                                        components={
-                                            {
-                                                h2: ({ node, className, ...props }) => <h2 {...props} className={cn(className, "my-1")} />,
-                                                p: ({ node, className, ...props }) => <p {...props} className={cn(className, "mb-2")} />,
-                                            } as Components
-                                        }
-                                        className="text-sm text-neutral-900"
+                                        components={{
+                                            h2: ({ node, className, ...props }) => <h2 {...props} className={cn(className, "my-1 text-neutral-800 dark:text-neutral-100")} />,
+                                            p: ({ node, className, ...props }) => <p {...props} className={cn(className, "mb-2 text-neutral-700 dark:text-neutral-300")} />,
+                                        }}
+                                        className="text-sm"
                                     >
                                         {changelog.content}
                                     </ReactMarkdown>
@@ -354,10 +359,10 @@ You can know set MiniPerplx as your default search engine using the URL paramete
         }), []);
 
         return (
-            <Card className="my-4 shadow-none">
+            <Card className="my-4 shadow-none bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700">
                 <CardHeader>
-                    <CardTitle>Weather Forecast for {result.city.name}</CardTitle>
-                    <CardDescription>
+                    <CardTitle className="text-neutral-800 dark:text-neutral-100">Weather Forecast for {result.city.name}</CardTitle>
+                    <CardDescription className="text-neutral-600 dark:text-neutral-400">
                         Showing min and max temperatures for the next 5 days
                     </CardDescription>
                 </CardHeader>
@@ -368,14 +373,16 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                                 data={chartData}
                                 margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                             >
-                                <CartesianGrid strokeDasharray="3 3" />
+                                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                                 <XAxis
                                     dataKey="date"
                                     tickFormatter={(value) => new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                    stroke="#9CA3AF"
                                 />
                                 <YAxis
                                     domain={[Math.floor(minTemp) - 2, Math.ceil(maxTemp) + 2]}
                                     tickFormatter={(value) => `${value}°C`}
+                                    stroke="#9CA3AF"
                                 />
                                 <ChartTooltip content={<ChartTooltipContent />} />
                                 <Line
@@ -401,10 +408,10 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                 <CardFooter>
                     <div className="flex w-full items-start gap-2 text-sm">
                         <div className="grid gap-2">
-                            <div className="flex items-center gap-2 font-medium leading-none">
+                            <div className="flex items-center gap-2 font-medium leading-none text-neutral-800 dark:text-neutral-100">
                                 {result.city.name}, {result.city.country}
                             </div>
-                            <div className="flex items-center gap-2 leading-none text-muted-foreground">
+                            <div className="flex items-center gap-2 leading-none text-neutral-600 dark:text-neutral-400">
                                 Next 5 days forecast
                             </div>
                         </div>
@@ -503,7 +510,7 @@ You can know set MiniPerplx as your default search engine using the URL paramete
         }, [initializeMap]);
 
         if (mapError) {
-            return <div className="h-64 flex items-center justify-center bg-gray-100">{mapError}</div>;
+            return <div className="h-64 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200">{mapError}</div>;
         }
 
         return <div ref={mapRef} className="w-full h-64" />;
@@ -512,19 +519,19 @@ You can know set MiniPerplx as your default search engine using the URL paramete
     MapComponent.displayName = 'MapComponent';
 
     const MapSkeleton = () => (
-        <Skeleton className="w-full h-64" />
+        <Skeleton className="w-full h-64 bg-neutral-200 dark:bg-neutral-700" />
     );
 
     const PlaceDetails = ({ place }: { place: any }) => (
         <div className="flex justify-between items-start py-2">
             <div>
-                <h4 className="font-semibold">{place.name}</h4>
-                <p className="text-sm text-muted-foreground max-w-[200px]" title={place.vicinity}>
+                <h4 className="font-semibold text-neutral-800 dark:text-neutral-200">{place.name}</h4>
+                <p className="text-sm text-neutral-600 dark:text-neutral-400 max-w-[200px]" title={place.vicinity}>
                     {place.vicinity}
                 </p>
             </div>
             {place.rating && (
-                <Badge variant="secondary" className="flex items-center">
+                <Badge variant="secondary" className="flex items-center bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200">
                     <Star className="h-3 w-3 mr-1 text-yellow-400" />
                     {place.rating} ({place.user_ratings_total})
                 </Badge>
@@ -559,21 +566,21 @@ You can know set MiniPerplx as your default search engine using the URL paramete
         const location = `${place.geometry.location.lat},${place.geometry.location.lng}`;
 
         return (
-            <Card className="w-full my-4 overflow-hidden shadow-none">
+            <Card className="w-full my-4 overflow-hidden shadow-none bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-neutral-800 dark:text-neutral-100">
                         <MapPin className="h-5 w-5 text-primary" />
                         <span>{place.name}</span>
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
                     <MapEmbed location={location} />
-                    <div className="mt-4 space-y-2">
+                    <div className="mt-4 space-y-2 text-neutral-800 dark:text-neutral-200">
                         <p><strong>Address:</strong> {place.formatted_address}</p>
                         {place.rating && (
                             <div className="flex items-center">
                                 <strong className="mr-2">Rating:</strong>
-                                <Badge variant="secondary" className="flex items-center">
+                                <Badge variant="secondary" className="flex items-center bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200">
                                     <Star className="h-3 w-3 mr-1 text-yellow-400" />
                                     {place.rating}
                                 </Badge>
@@ -595,9 +602,9 @@ You can know set MiniPerplx as your default search engine using the URL paramete
         const mapLocation = centerLocation ? `${centerLocation.lat},${centerLocation.lng}` : '';
 
         return (
-            <Card className="w-full my-4 overflow-hidden shadow-none">
+            <Card className="w-full my-4 overflow-hidden shadow-none bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-neutral-800 dark:text-neutral-100">
                         <MapPin className="h-5 w-5 text-primary" />
                         <span>Text Search Results</span>
                     </CardTitle>
@@ -606,19 +613,19 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                     {mapLocation && <MapEmbed location={mapLocation} zoom={13} />}
                     <Accordion type="single" collapsible className="w-full mt-4">
                         <AccordionItem value="place-details">
-                            <AccordionTrigger>Place Details</AccordionTrigger>
+                            <AccordionTrigger className="text-neutral-800 dark:text-neutral-200">Place Details</AccordionTrigger>
                             <AccordionContent>
                                 <div className="space-y-4 max-h-64 overflow-y-auto">
                                     {result.results.map((place: any, index: number) => (
-                                        <div key={index} className="flex justify-between items-start py-2 border-b last:border-b-0">
+                                        <div key={index} className="flex justify-between items-start py-2 border-b border-neutral-200 dark:border-neutral-700 last:border-b-0">
                                             <div>
-                                                <h4 className="font-semibold">{place.name}</h4>
-                                                <p className="text-sm text-muted-foreground max-w-[200px]" title={place.formatted_address}>
+                                                <h4 className="font-semibold text-neutral-800 dark:text-neutral-200">{place.name}</h4>
+                                                <p className="text-sm text-neutral-600 dark:text-neutral-400 max-w-[200px]" title={place.formatted_address}>
                                                     {place.formatted_address}
                                                 </p>
                                             </div>
                                             {place.rating && (
-                                                <Badge variant="secondary" className="flex items-center">
+                                                <Badge variant="secondary" className="flex items-center bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200">
                                                     <Star className="h-3 w-3 mr-1 text-yellow-400" />
                                                     {place.rating} ({place.user_ratings_total})
                                                 </Badge>
@@ -696,7 +703,7 @@ You can know set MiniPerplx as your default search engine using the URL paramete
 
         if (!result) {
             return (
-                <Card className="w-full my-4">
+                <Card className="w-full my-4 bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700">
                     <CardContent className="flex items-center justify-center h-24">
                         <div className="animate-pulse flex items-center">
                             <div className="h-4 w-4 bg-primary rounded-full mr-2"></div>
@@ -708,11 +715,11 @@ You can know set MiniPerplx as your default search engine using the URL paramete
         }
 
         return (
-            <Card className="w-full my-4 shadow-none">
+            <Card className="w-full my-4 shadow-none bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700">
                 <CardContent className="p-6">
                     <div className="space-y-4">
-                        <div className="w-full h-24 bg-white rounded-lg overflow-hidden">
-                            <canvas ref={canvasRef} width="800" height="200" className="w-full h-full bg-neutral-100" />
+                        <div className="w-full h-24 bg-neutral-100 dark:bg-neutral-700 rounded-lg overflow-hidden">
+                            <canvas ref={canvasRef} width="800" height="200" className="w-full h-full" />
                         </div>
                         <div className="flex text-left gap-3 items-center justify-center text-pretty">
                             <div className="flex justify-center space-x-2">
@@ -721,7 +728,7 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                                     disabled={isGeneratingAudio}
                                     variant="outline"
                                     size="sm"
-                                    className="text-xs sm:text-sm w-24"
+                                    className="text-xs sm:text-sm w-24 bg-neutral-100 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200"
                                 >
                                     {isGeneratingAudio ? (
                                         "Generating..."
@@ -732,9 +739,7 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                                     )}
                                 </Button>
                             </div>
-                            <div
-                                className='text-sm text-neutral-800'
-                            >
+                            <div className='text-sm text-neutral-800 dark:text-neutral-200'>
                                 The phrase <span className='font-semibold'>{toolInvocation.args.text}</span> translates from <span className='font-semibold'>{result.detectedLanguage}</span> to <span className='font-semibold'>{toolInvocation.args.to}</span> as <span className='font-semibold'>{result.translatedText}</span> in <span className='font-semibold'>{toolInvocation.args.to}</span>.
                             </div>
                         </div>
@@ -761,12 +766,12 @@ You can know set MiniPerplx as your default search engine using the URL paramete
     const ImageCarousel = ({ images, onClose }: { images: SearchImage[], onClose: () => void }) => {
         return (
             <Dialog open={true} onOpenChange={onClose}>
-                <DialogContent className="sm:max-w-[90vw] max-h-[90vh] p-0">
+                <DialogContent className="sm:max-w-[90vw] max-h-[90vh] p-0 bg-white dark:bg-neutral-900">
                     <button
                         onClick={onClose}
                         className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground z-10"
                     >
-                        <X className="h-4 w-4" />
+                        <X className="h-4 w-4 text-neutral-800 dark:text-neutral-200" />
                         <span className="sr-only">Close</span>
                     </button>
                     <Carousel className="w-full h-full">
@@ -778,7 +783,7 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                                         alt={image.description}
                                         className="max-w-full max-h-[70vh] object-contain mb-4"
                                     />
-                                    <p className="text-center text-sm">{image.description}</p>
+                                    <p className="text-center text-sm text-neutral-800 dark:text-neutral-200">{image.description}</p>
                                 </CarouselItem>
                             ))}
                         </CarouselContent>
@@ -811,24 +816,24 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                             <div className="flex items-center justify-between w-full">
                                 <div className="flex items-center gap-2">
                                     <Newspaper className="h-5 w-5 text-primary" />
-                                    <h2 className='text-base font-semibold'>Sources Found</h2>
+                                    <h2 className='text-base font-semibold text-neutral-800 dark:text-neutral-200'>Sources Found</h2>
                                 </div>
                                 {result && (
-                                    <Badge variant="secondary" className='rounded-full'>{result.results.length} results</Badge>
+                                    <Badge variant="secondary" className='rounded-full bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200'>{result.results.length} results</Badge>
                                 )}
                             </div>
                         </AccordionTrigger>
                         <AccordionContent>
                             {args?.query && (
-                                <Badge variant="secondary" className="mb-4 text-xs sm:text-sm font-light rounded-full">
+                                <Badge variant="secondary" className="mb-4 text-xs sm:text-sm font-light rounded-full bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200">
                                     <SearchIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                                     {args.query}
                                 </Badge>
                             )}
                             {result && (
-                                <div className="flex flex-col sm:flex-row gap-4 overflow-x-auto pb-2">
+                                <div className="flex flex-row gap-4 overflow-x-auto pb-2">
                                     {result.results.map((item: any, itemIndex: number) => (
-                                        <div key={itemIndex} className="flex flex-col w-full sm:w-[280px] flex-shrink-0 bg-card border rounded-lg p-3">
+                                        <div key={itemIndex} className="flex flex-col w-[280px] flex-shrink-0 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg p-3">
                                             <div className="flex items-start gap-3 mb-2">
                                                 <img
                                                     src={`https://www.google.com/s2/favicons?sz=128&domain=${new URL(item.url).hostname}`}
@@ -836,8 +841,8 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                                                     className="w-8 h-8 sm:w-12 sm:h-12 flex-shrink-0 rounded-sm"
                                                 />
                                                 <div className="flex-grow min-w-0">
-                                                    <h3 className="text-sm font-semibold line-clamp-2">{item.title}</h3>
-                                                    <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{item.content}</p>
+                                                    <h3 className="text-sm font-semibold line-clamp-2 text-neutral-800 dark:text-neutral-200">{item.title}</h3>
+                                                    <p className="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-2 mt-1">{item.content}</p>
                                                 </div>
                                             </div>
                                             <a
@@ -857,11 +862,9 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                 </Accordion>
                 {result && result.images && result.images.length > 0 && (
                     <div className="mt-4">
-                        <div
-                            className='flex items-center gap-2 cursor-pointer mb-2'
-                        >
+                        <div className='flex items-center gap-2 cursor-pointer mb-2'>
                             <ImageIcon className="h-5 w-5 text-primary" />
-                            <h3 className="text-base font-semibold">Images</h3>
+                            <h3 className="text-base font-semibold text-neutral-800 dark:text-neutral-200">Images</h3>
                         </div>
                         <div className="grid grid-cols-4 gap-2">
                             {result.images.slice(0, 4).map((image: SearchImage, itemIndex: number) => (
@@ -917,8 +920,8 @@ You can know set MiniPerplx as your default search engine using the URL paramete
         }, [showAll, result.table_data]);
 
         return (
-            <Card className="w-full my-4 overflow-hidden shadow-sm border-gray-200">
-                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0 pb-4 bg-gray-50">
+            <Card className="w-full my-4 overflow-hidden shadow-sm border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800">
+                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0 pb-4 bg-neutral-100 dark:bg-neutral-900">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full">
                         {result.image && (
                             <div className="relative w-full sm:w-24 h-40 sm:h-24 rounded-lg overflow-hidden shadow-sm flex-shrink-0">
@@ -930,8 +933,8 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                             </div>
                         )}
                         <div className="flex-grow">
-                            <CardTitle className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">{result.title}</CardTitle>
-                            <p className="text-sm text-gray-600">{result.description}</p>
+                            <CardTitle className="text-xl sm:text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-2">{result.title}</CardTitle>
+                            <p className="text-sm text-neutral-600 dark:text-neutral-400">{result.description}</p>
                         </div>
                     </div>
                 </CardHeader>
@@ -939,9 +942,9 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                     <Table>
                         <TableBody>
                             {visibleData.map((item, index) => (
-                                <TableRow key={index} className="border-b border-gray-100 last:border-b-0">
-                                    <TableCell className="font-medium text-gray-700 w-1/3 py-3 px-2 sm:px-4">{item.title}</TableCell>
-                                    <TableCell className="text-gray-600 py-3 px-2 sm:px-4">{item.content}</TableCell>
+                                <TableRow key={index} className="border-b border-neutral-200 dark:border-neutral-700 last:border-b-0">
+                                    <TableCell className="font-medium text-neutral-700 dark:text-neutral-300 w-1/3 py-3 px-2 sm:px-4">{item.title}</TableCell>
+                                    <TableCell className="text-neutral-600 dark:text-neutral-400 py-3 px-2 sm:px-4">{item.content}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -949,7 +952,7 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                     {result.table_data.length > 3 && (
                         <Button
                             variant="ghost"
-                            className="mt-4 w-full text-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-colors duration-200"
+                            className="mt-4 w-full text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900 transition-colors duration-200"
                             onClick={() => setShowAll(!showAll)}
                         >
                             {showAll ? (
@@ -970,7 +973,6 @@ You can know set MiniPerplx as your default search engine using the URL paramete
 
     ResultsOverview.displayName = 'ResultsOverview';
 
-
     const renderToolInvocation = (toolInvocation: ToolInvocation, index: number) => {
         const args = JSON.parse(JSON.stringify(toolInvocation.args));
         const result = 'result' in toolInvocation ? JSON.parse(JSON.stringify(toolInvocation.result)) : null;
@@ -980,14 +982,14 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                 return (
                     <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-2">
-                            <MapPin className="h-5 w-5 text-neutral-700 animate-pulse" />
-                            <span className="text-neutral-700 text-lg">Searching nearby places...</span>
+                            <MapPin className="h-5 w-5 text-neutral-700 dark:text-neutral-300 animate-pulse" />
+                            <span className="text-neutral-700 dark:text-neutral-300 text-lg">Searching nearby places...</span>
                         </div>
                         <div className="flex space-x-1">
                             {[0, 1, 2].map((index) => (
                                 <motion.div
                                     key={index}
-                                    className="w-2 h-2 bg-muted-foreground rounded-full"
+                                    className="w-2 h-2 bg-neutral-400 dark:bg-neutral-600 rounded-full"
                                     initial={{ opacity: 0.3 }}
                                     animate={{ opacity: 1 }}
                                     transition={{
@@ -1005,9 +1007,9 @@ You can know set MiniPerplx as your default search engine using the URL paramete
 
             if (isLoading) {
                 return (
-                    <Card className="w-full my-4 overflow-hidden">
+                    <Card className="w-full my-4 overflow-hidden bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700">
                         <CardHeader>
-                            <Skeleton className="h-6 w-3/4" />
+                            <Skeleton className="h-6 w-3/4 bg-neutral-200 dark:bg-neutral-700" />
                         </CardHeader>
                         <CardContent className="p-0 rounded-t-none rounded-b-xl">
                             <MapSkeleton />
@@ -1017,19 +1019,19 @@ You can know set MiniPerplx as your default search engine using the URL paramete
             }
 
             return (
-                <Card className="w-full my-4 overflow-hidden">
+                <Card className="w-full my-4 overflow-hidden bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
+                        <CardTitle className="flex items-center gap-2 text-neutral-800 dark:text-neutral-100">
                             <MapPin className="h-5 w-5 text-primary" />
                             <span>Nearby {args.type ? args.type.charAt(0).toUpperCase() + args.type.slice(1) + 's' : 'Places'}</span>
-                            {args.keyword && <Badge variant="secondary">{args.keyword}</Badge>}
+                            {args.keyword && <Badge variant="secondary" className="bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200">{args.keyword}</Badge>}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         <MapComponent center={result.center} places={result.results} />
                         <Accordion type="single" collapsible className="w-full">
                             <AccordionItem value="place-details">
-                                <AccordionTrigger className="px-4">Place Details</AccordionTrigger>
+                                <AccordionTrigger className="px-4 text-neutral-800 dark:text-neutral-200">Place Details</AccordionTrigger>
                                 <AccordionContent>
                                     <div className="px-4 space-y-4 max-h-64 overflow-y-auto">
                                         {result.results.map((place: any, placeIndex: number) => (
@@ -1049,14 +1051,14 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                 return (
                     <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-2">
-                            <MapPin className="h-5 w-5 text-neutral-700 animate-pulse" />
-                            <span className="text-neutral-700 text-lg">Finding place...</span>
+                            <MapPin className="h-5 w-5 text-neutral-700 dark:text-neutral-300 animate-pulse" />
+                            <span className="text-neutral-700 dark:text-neutral-300 text-lg">Finding place...</span>
                         </div>
                         <motion.div className="flex space-x-1">
                             {[0, 1, 2].map((index) => (
                                 <motion.div
                                     key={index}
-                                    className="w-2 h-2 bg-muted-foreground rounded-full"
+                                    className="w-2 h-2 bg-neutral-400 dark:bg-neutral-600 rounded-full"
                                     initial={{ opacity: 0.3 }}
                                     animate={{ opacity: 1 }}
                                     transition={{
@@ -1080,14 +1082,14 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                 return (
                     <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-2">
-                            <MapPin className="h-5 w-5 text-neutral-700 animate-pulse" />
-                            <span className="text-neutral-700 text-lg">Searching places...</span>
+                            <MapPin className="h-5 w-5 text-neutral-700 dark:text-neutral-300 animate-pulse" />
+                            <span className="text-neutral-700 dark:text-neutral-300 text-lg">Searching places...</span>
                         </div>
                         <motion.div className="flex space-x-1">
                             {[0, 1, 2].map((index) => (
                                 <motion.div
                                     key={index}
-                                    className="w-2 h-2 bg-muted-foreground rounded-full"
+                                    className="w-2 h-2 bg-neutral-400 dark:bg-neutral-600 rounded-full"
                                     initial={{ opacity: 0.3 }}
                                     animate={{ opacity: 1 }}
                                     transition={{
@@ -1111,14 +1113,14 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                 return (
                     <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-2">
-                            <Cloud className="h-5 w-5 text-neutral-700 animate-pulse" />
-                            <span className="text-neutral-700 text-lg">Fetching weather data...</span>
+                            <Cloud className="h-5 w-5 text-neutral-700 dark:text-neutral-300 animate-pulse" />
+                            <span className="text-neutral-700 dark:text-neutral-300 text-lg">Fetching weather data...</span>
                         </div>
                         <div className="flex space-x-1">
                             {[0, 1, 2].map((index) => (
                                 <motion.div
                                     key={index}
-                                    className="w-2 h-2 bg-muted-foreground rounded-full"
+                                    className="w-2 h-2 bg-neutral-400 dark:bg-neutral-600 rounded-full"
                                     initial={{ opacity: 0.3 }}
                                     animate={{ opacity: 1 }}
                                     transition={{
@@ -1136,12 +1138,12 @@ You can know set MiniPerplx as your default search engine using the URL paramete
 
             if (isLoading) {
                 return (
-                    <Card className="my-4 shadow-none">
+                    <Card className="my-4 shadow-none bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700">
                         <CardHeader>
-                            <CardTitle className="h-6 w-3/4 bg-gray-200 rounded animate-pulse" />
+                            <CardTitle className="h-6 w-3/4 bg-neutral-200 dark:bg-neutral-700 rounded animate-pulse" />
                         </CardHeader>
                         <CardContent>
-                            <div className="h-[300px] bg-gray-200 rounded animate-pulse" />
+                            <div className="h-[300px] bg-neutral-200 dark:bg-neutral-700 rounded animate-pulse" />
                         </CardContent>
                     </Card>
                 );
@@ -1158,48 +1160,48 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                             <div className="flex items-center justify-between w-full">
                                 <div className="flex items-center gap-2">
                                     <Code className="h-5 w-5 text-primary" />
-                                    <h2 className="text-base font-semibold">Programming</h2>
+                                    <h2 className="text-base font-semibold text-neutral-800 dark:text-neutral-200">Programming</h2>
                                 </div>
                                 {!result ? (
-                                    <Badge variant="secondary" className="mr-2 rounded-full">
+                                    <Badge variant="secondary" className="mr-2 rounded-full bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200">
                                         <Loader2 className="h-3 w-3 animate-spin mr-1" />
                                         Executing
                                     </Badge>
                                 ) : (
-                                    <Badge className="mr-2 rounded-full">
-                                        <Check className="h-3 w-3 mr-1 text-green-400" />
+                                    <Badge className="mr-2 rounded-full bg-green-200 dark:bg-green-900 text-green-800 dark:text-green-200">
+                                        <Check className="h-3 w-3 mr-1" />
                                         Executed
                                     </Badge>
                                 )}
                             </div>
                         </AccordionTrigger>
                         <AccordionContent>
-                            <div className="w-full my-2 border border-gray-200 overflow-hidden rounded-md">
-                                <div className="bg-gray-100 p-2 flex items-center">
+                            <div className="w-full my-2 border border-neutral-200 dark:border-neutral-700 overflow-hidden rounded-md">
+                                <div className="bg-neutral-100 dark:bg-neutral-800 p-2 flex items-center">
                                     {args.icon === 'stock' && <TrendingUpIcon className="h-5 w-5 text-primary mr-2" />}
                                     {args.icon === 'default' && <Code className="h-5 w-5 text-primary mr-2" />}
                                     {args.icon === 'date' && <Calendar className="h-5 w-5 text-primary mr-2" />}
                                     {args.icon === 'calculation' && <Calculator className="h-5 w-5 text-primary mr-2" />}
-                                    <span className="text-sm font-medium">{args.title}</span>
+                                    <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{args.title}</span>
                                 </div>
                                 <Tabs defaultValue="code" className="w-full">
-                                    <TabsList className="bg-gray-50 p-0 h-auto shadow-sm rounded-none">
+                                    <TabsList className="bg-neutral-50 dark:bg-neutral-900 p-0 h-auto shadow-sm rounded-none">
                                         <TabsTrigger
                                             value="code"
-                                            className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
+                                            className="px-4 py-2 text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-neutral-800 data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
                                         >
                                             Code
                                         </TabsTrigger>
                                         <TabsTrigger
                                             value="output"
-                                            className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
+                                            className="px-4 py-2 text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-neutral-800 data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
                                         >
                                             Output
                                         </TabsTrigger>
                                         {result?.images && result.images.length > 0 && (
                                             <TabsTrigger
                                                 value="images"
-                                                className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
+                                                className="px-4 py-2 text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-neutral-800 data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
                                             >
                                                 Images
                                             </TabsTrigger>
@@ -1209,7 +1211,7 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                                         <div className="relative">
                                             <SyntaxHighlighter
                                                 language="python"
-                                                style={oneLight}
+                                                style={theme === "light" ? oneLight : oneDark}
                                                 customStyle={{
                                                     margin: 0,
                                                     padding: '1rem',
@@ -1232,10 +1234,10 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                                         </div>
                                     </TabsContent>
                                     <TabsContent value="output" className="p-0 m-0 rounded-none">
-                                        <div className="relative bg-white p-4">
+                                        <div className="relative bg-white dark:bg-neutral-800 p-4">
                                             {result ? (
                                                 <>
-                                                    <pre className="text-sm">
+                                                    <pre className="text-sm text-neutral-800 dark:text-neutral-200">
                                                         <code>{result.message}</code>
                                                     </pre>
                                                     <div className="absolute top-2 right-2">
@@ -1245,20 +1247,20 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                                             ) : (
                                                 <div className="flex items-center justify-center h-20">
                                                     <div className="flex items-center gap-2">
-                                                        <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
-                                                        <span className="text-gray-500 text-sm">Executing code...</span>
+                                                        <Loader2 className="h-5 w-5 text-neutral-400 dark:text-neutral-600 animate-spin" />
+                                                        <span className="text-neutral-500 dark:text-neutral-400 text-sm">Executing code...</span>
                                                     </div>
                                                 </div>
                                             )}
                                         </div>
                                     </TabsContent>
                                     {result?.images && result.images.length > 0 && (
-                                        <TabsContent value="images" className="p-0 m-0 bg-white">
+                                        <TabsContent value="images" className="p-0 m-0 bg-white dark:bg-neutral-800">
                                             <div className="space-y-4 p-4">
                                                 {result.images.map((img: { format: string, url: string }, imgIndex: number) => (
                                                     <div key={imgIndex} className="space-y-2">
                                                         <div className="flex justify-between items-center">
-                                                            <h4 className="text-sm font-medium">Image {imgIndex + 1}</h4>
+                                                            <h4 className="text-sm font-medium text-neutral-800 dark:text-neutral-200">Image {imgIndex + 1}</h4>
                                                             {img.url && img.url.trim() !== '' && (
                                                                 <Button
                                                                     variant="ghost"
@@ -1281,7 +1283,7 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                                                                     objectFit="contain"
                                                                 />
                                                             ) : (
-                                                                <div className="flex items-center justify-center h-full bg-gray-100 text-gray-400">
+                                                                <div className="flex items-center justify-center h-full bg-neutral-100 dark:bg-neutral-700 text-neutral-400 dark:text-neutral-500">
                                                                     Image upload failed or URL is empty
                                                                 </div>
                                                             )}
@@ -1299,88 +1301,20 @@ You can know set MiniPerplx as your default search engine using the URL paramete
             );
         }
 
-        if (toolInvocation.toolName === 'nearby_search') {
-            if (!result) {
-                return (
-                    <div className="flex items-center justify-between w-full">
-                        <div className="flex items-center gap-2">
-                            <MapPin className="h-5 w-5 text-neutral-700 animate-pulse" />
-                            <span className="text-neutral-700 text-lg">Searching nearby places...</span>
-                        </div>
-                        <div className="flex space-x-1">
-                            {[0, 1, 2].map((index) => (
-                                <motion.div
-                                    key={index}
-                                    className="w-2 h-2 bg-muted-foreground rounded-full"
-                                    initial={{ opacity: 0.3 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{
-                                        repeat: Infinity,
-                                        duration: 0.8,
-                                        delay: index * 0.2,
-                                        repeatType: "reverse",
-                                    }}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                );
-            }
-
-            const mapUrl = `https://www.google.com/maps/embed/v1/search?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(args.type)}&center=${result.results[0].geometry.location.lat},${result.results[0].geometry.location.lng}&zoom=14`;
-
-            return (
-                <Card className="w-full my-4 overflow-hidden">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <MapPin className="h-5 w-5 text-primary" />
-                            <span>Nearby {args.type.charAt(0).toUpperCase() + args.type.slice(1)}s</span>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        <div className="aspect-video w-full">
-                            <iframe
-                                width="100%"
-                                height="100%"
-                                style={{ border: 0 }}
-                                loading="lazy"
-                                allowFullScreen
-                                referrerPolicy="no-referrer-when-downgrade"
-                                src={mapUrl}
-                            ></iframe>
-                        </div>
-                        <div className="p-4 space-y-2">
-                            {result.results.map((place: any, placeIndex: number) => (
-                                <div key={placeIndex} className="flex justify-between items-center">
-                                    <div>
-                                        <h4 className="font-semibold">{place.name}</h4>
-                                        <p className="text-sm text-muted-foreground">{place.vicinity}</p>
-                                    </div>
-                                    <Badge variant="secondary" className="flex items-center">
-                                        {place.rating} ★ ({place.user_ratings_total})
-                                    </Badge>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            );
-        }
-
         if (toolInvocation.toolName === 'web_search') {
             return (
                 <div>
                     {!result ? (
                         <div className="flex items-center justify-between w-full">
                             <div className='flex items-center gap-2'>
-                                <Globe className="h-5 w-5 text-neutral-700 animate-spin" />
-                                <span className="text-neutral-700 text-lg">Running a search...</span>
+                                <Globe className="h-5 w-5 text-neutral-700 dark:text-neutral-300 animate-spin" />
+                                <span className="text-neutral-700 dark:text-neutral-300 text-lg">Running a search...</span>
                             </div>
                             <div className="flex space-x-1">
                                 {[0, 1, 2].map((index) => (
                                     <motion.div
                                         key={index}
-                                        className="w-2 h-2 bg-muted-foreground rounded-full"
+                                        className="w-2 h-2 bg-neutral-400 dark:bg-neutral-600 rounded-full"
                                         initial={{ opacity: 0.3 }}
                                         animate={{ opacity: 1 }}
                                         transition={{
@@ -1405,14 +1339,14 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                 return (
                     <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-2">
-                            <Globe className="h-5 w-5 text-neutral-700 animate-pulse" />
-                            <span className="text-neutral-700 text-lg">Retrieving content...</span>
+                            <Globe className="h-5 w-5 text-neutral-700 dark:text-neutral-300 animate-pulse" />
+                            <span className="text-neutral-700 dark:text-neutral-300 text-lg">Retrieving content...</span>
                         </div>
                         <div className="flex space-x-1">
                             {[0, 1, 2].map((index) => (
                                 <motion.div
                                     key={index}
-                                    className="w-2 h-2 bg-muted-foreground rounded-full"
+                                    className="w-2 h-2 bg-neutral-400 dark:bg-neutral-600 rounded-full"
                                     initial={{ opacity: 0.3 }}
                                     animate={{ opacity: 1 }}
                                     transition={{
@@ -1432,13 +1366,13 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                 <div className="w-full my-4">
                     <div className="flex items-center gap-2 mb-2">
                         <Globe className="h-5 w-5 text-primary" />
-                        <h3 className="font-semibold">Retrieved Content</h3>
+                        <h3 className="font-semibold text-neutral-800 dark:text-neutral-200">Retrieved Content</h3>
                     </div>
                     <div className="space-y-2">
-                        <h4 className="font-medium text-sm sm:text-base">{result.results[0].title}</h4>
-                        <p className="text-xs sm:text-sm text-muted-foreground">{result.results[0].description}</p>
+                        <h4 className="font-medium text-sm sm:text-base text-neutral-800 dark:text-neutral-200">{result.results[0].title}</h4>
+                        <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">{result.results[0].description}</p>
                         <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant="secondary">{result.results[0].language || 'Unknown language'}</Badge>
+                            <Badge variant="secondary" className="bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200">{result.results[0].language || 'Unknown language'}</Badge>
                             <a href={result.results[0].url} target="_blank" rel="noopener noreferrer" className="text-xs sm:text-sm text-primary hover:underline">
                                 Source
                             </a>
@@ -1446,10 +1380,10 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                     </div>
                     <Accordion type="single" collapsible className="w-full mt-4">
                         <AccordionItem value="content" className="border-b-0">
-                            <AccordionTrigger>View Content</AccordionTrigger>
+                            <AccordionTrigger className="text-neutral-800 dark:text-neutral-200">View Content</AccordionTrigger>
                             <AccordionContent>
-                                <div className="max-h-[50vh] overflow-y-auto bg-muted p-2 sm:p-4 rounded-lg">
-                                    <ReactMarkdown className="text-xs sm:text-sm">
+                                <div className="max-h-[50vh] overflow-y-auto bg-neutral-100 dark:bg-neutral-800 p-2 sm:p-4 rounded-lg">
+                                    <ReactMarkdown className="text-xs sm:text-sm text-neutral-800 dark:text-neutral-200">
                                         {result.results[0].content}
                                     </ReactMarkdown>
                                 </div>
@@ -1469,8 +1403,8 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                 return (
                     <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-2">
-                            <Loader2 className="h-5 w-5 text-neutral-700 animate-spin" />
-                            <span className="text-neutral-700 text-lg">Generating overview...</span>
+                            <Loader2 className="h-5 w-5 text-neutral-700 dark:text-neutral-300 animate-spin" />
+                            <span className="text-neutral-700 dark:text-neutral-300 text-lg">Generating overview...</span>
                         </div>
                     </div>
                 );
@@ -1540,7 +1474,7 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                 <div className="relative group">
                     <SyntaxHighlighter
                         language={language || 'text'}
-                        style={oneLight}
+                        style={oneDark}
                         showLineNumbers
                         wrapLines
                         customStyle={{
@@ -1553,11 +1487,11 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                     </SyntaxHighlighter>
                     <Button
                         onClick={handleCopy}
-                        className="absolute top-2 right-2 p-2 bg-white bg-opacity-80 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                        className="absolute top-2 right-2 p-2 bg-neutral-700 dark:bg-neutral-600 bg-opacity-80 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                         variant="ghost"
                         size="sm"
                     >
-                        {isCopied ? <Check size={16} /> : <Copy size={16} />}
+                        {isCopied ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-neutral-200" />}
                     </Button>
                 </div>
             );
@@ -1578,7 +1512,7 @@ You can know set MiniPerplx as your default search engine using the URL paramete
             if (isLoading) {
                 return (
                     <div className="flex items-center justify-center p-4">
-                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <Loader2 className="h-5 w-5 animate-spin text-neutral-500 dark:text-neutral-400" />
                     </div>
                 );
             }
@@ -1586,8 +1520,8 @@ You can know set MiniPerplx as your default search engine using the URL paramete
             const domain = new URL(href).hostname;
 
             return (
-                <div className="flex flex-col space-y-2 bg-white rounded-md shadow-md overflow-hidden">
-                    <div className="flex items-center space-x-2 p-3 bg-gray-50">
+                <div className="flex flex-col space-y-2 bg-white dark:bg-neutral-800 rounded-md shadow-md overflow-hidden">
+                    <div className="flex items-center space-x-2 p-3 bg-neutral-100 dark:bg-neutral-700">
                         <Image
                             src={`https://www.google.com/s2/favicons?domain=${domain}&sz=256`}
                             alt="Favicon"
@@ -1595,14 +1529,14 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                             height={20}
                             className="rounded-sm"
                         />
-                        <span className="text-sm font-medium text-gray-600 truncate">{domain}</span>
+                        <span className="text-sm font-medium text-neutral-600 dark:text-neutral-300 truncate">{domain}</span>
                     </div>
                     <div className="px-3 pb-3">
-                        <h3 className="text-base font-semibold text-gray-800 line-clamp-2">
+                        <h3 className="text-base font-semibold text-neutral-800 dark:text-neutral-200 line-clamp-2">
                             {metadata?.title || "Untitled"}
                         </h3>
                         {metadata?.description && (
-                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                            <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1 line-clamp-2">
                                 {metadata.description}
                             </p>
                         )}
@@ -1619,7 +1553,7 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                             href={href}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className={isCitation ? "cursor-help text-sm text-primary py-0.5 px-1.5 m-0 bg-secondary rounded-full no-underline" : "text-teal-600 no-underline hover:underline"}
+                            className={isCitation ? "cursor-help text-sm text-primary py-0.5 px-1.5 m-0 bg-neutral-200 dark:bg-neutral-700 rounded-full no-underline" : "text-teal-600 dark:text-teal-400 no-underline hover:underline"}
                         >
                             {text}
                         </Link>
@@ -1637,14 +1571,12 @@ You can know set MiniPerplx as your default search engine using the URL paramete
 
         const renderer: Partial<ReactRenderer> = {
             paragraph(children) {
-                return <p className="my-4">{children}</p>;
+                return <p className="my-4 text-neutral-800 dark:text-neutral-200">{children}</p>;
             },
             code(children, language) {
                 return <CodeBlock language={language}>{String(children)}</CodeBlock>;
             },
             link(href, text) {
-                // if (!href) return <>{text}</>;
-
                 const citationIndex = citationLinks.findIndex(link => link.link === href);
                 if (citationIndex !== -1) {
                     return (
@@ -1653,27 +1585,27 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                         </sup>
                     );
                 }
-                return isValidUrl(href) ? renderHoverCard(href, text) : <a href={href} className="text-blue-600 hover:underline">{text}</a>;
+                return isValidUrl(href) ? renderHoverCard(href, text) : <a href={href} className="text-blue-600 dark:text-blue-400 hover:underline">{text}</a>;
             },
             heading(children, level) {
                 const HeadingTag = `h${level}` as keyof JSX.IntrinsicElements;
-                const className = `text-${4 - level}xl font-bold my-4`;
+                const className = `text-${4 - level}xl font-bold my-4 text-neutral-800 dark:text-neutral-100`;
                 return <HeadingTag className={className}>{children}</HeadingTag>;
             },
             list(children, ordered) {
                 const ListTag = ordered ? 'ol' : 'ul';
-                return <ListTag className="list-inside list-disc my-4 pl-4">{children}</ListTag>;
+                return <ListTag className="list-inside list-disc my-4 pl-4 text-neutral-800 dark:text-neutral-200">{children}</ListTag>;
             },
             listItem(children) {
-                return <li className="my-2">{children}</li>;
+                return <li className="my-2 text-neutral-800 dark:text-neutral-200">{children}</li>;
             },
             blockquote(children) {
-                return <blockquote className="border-l-4 border-gray-300 pl-4 italic my-4">{children}</blockquote>;
+                return <blockquote className="border-l-4 border-neutral-300 dark:border-neutral-600 pl-4 italic my-4 text-neutral-700 dark:text-neutral-300">{children}</blockquote>;
             },
         };
 
         return (
-            <div className="markdown-body">
+            <div className="markdown-body dark:text-neutral-200">
                 <Marked renderer={renderer}>{content}</Marked>
             </div>
         );
@@ -1697,7 +1629,7 @@ You can know set MiniPerplx as your default search engine using the URL paramete
     }, [messages, suggestedQuestions]);
 
     const handleExampleClick = useCallback(async (card: typeof suggestionCards[number]) => {
-        const exampleText = selectedModel === 'openai/o1-mini' ? card.o1Examples : card.text;
+        const exampleText = card.text;
         track("search example", { query: exampleText });
         setLastSubmittedQuery(exampleText.trim());
         setHasSubmitted(true);
@@ -1709,7 +1641,7 @@ You can know set MiniPerplx as your default search engine using the URL paramete
             role: 'user',
         });
 
-    }, [append, setLastSubmittedQuery, setHasSubmitted, setSuggestedQuestions, selectedModel]);
+    }, [append, setLastSubmittedQuery, setHasSubmitted, setSuggestedQuestions]);
 
     const handleSuggestedQuestionClick = useCallback(async (question: string) => {
         setHasSubmitted(true);
@@ -1746,22 +1678,16 @@ You can know set MiniPerplx as your default search engine using the URL paramete
 
     const suggestionCards = [
         {
-            icon: <User2 className="w-5 h-5 text-gray-400" />,
-            o1Icon: <Cpu className="w-5 h-5 text-gray-400" />,
+            icon: <User2 className="w-5 h-5 text-neutral-400 dark:text-neutral-500" />,
             text: "Shah Rukh Khan",
-            o1Examples: "How many GPUs does it take to fill up Mars?"
         },
         {
-            icon: <Sun className="w-5 h-5 text-gray-400" />,
-            o1Icon: <Network className="w-5 h-5 text-gray-400" />,
+            icon: <Sun className="w-5 h-5 text-neutral-400 dark:text-neutral-500" />,
             text: "Weather in Doha",
-            o1Examples: "Dijkstra algorithm"
         },
         {
-            icon: <Terminal className="w-5 h-5 text-gray-400" />,
-            o1Icon: <Terminal className="w-5 h-5 text-gray-400" />,
+            icon: <Terminal className="w-5 h-5 text-neutral-400 dark:text-neutral-500" />,
             text: "Count the no. of r's in strawberry?",
-            o1Examples: "Count the no. of r's in strawberry?"
         },
     ];
 
@@ -1769,12 +1695,12 @@ You can know set MiniPerplx as your default search engine using the URL paramete
 
     const Navbar: React.FC<NavbarProps> = () => {
         return (
-            <div className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center p-4 bg-background">
+            <div className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center p-4 bg-white dark:bg-neutral-950">
                 <Link href="/new">
                     <Button
                         type="button"
                         variant={'secondary'}
-                        className="rounded-full bg-secondary/80 group transition-all hover:scale-105 pointer-events-auto"
+                        className="rounded-full bg-neutral-200 dark:bg-neutral-800 group transition-all hover:scale-105 pointer-events-auto"
                     >
                         <Plus size={18} className="group-hover:rotate-90 transition-all" />
                         <span className="text-sm ml-2 group-hover:block hidden animate-in fade-in duration-300">
@@ -1787,10 +1713,10 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                         variant="secondary"
                         size="sm"
                         onClick={() => window.open("https://git.new/mplx", "_blank")}
-                        className="flex items-center space-x-2"
+                        className="flex items-center space-x-2 bg-neutral-100 dark:bg-neutral-800 shadow-none"
                     >
-                        <GitHubLogoIcon className="h-4 w-4 text-primary" />
-                        <span>GitHub</span>
+                        <GitHubLogoIcon className="h-4 w-4 text-neutral-700 dark:text-neutral-300" />
+                        <span className="text-neutral-800 dark:text-neutral-200">GitHub</span>
                     </Button>
                     <TooltipProvider>
                         <Tooltip>
@@ -1798,17 +1724,18 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                                 <Button
                                     size="sm"
                                     onClick={() => window.open("https://github.com/sponsors/zaidmukaddam", "_blank")}
-                                    className="flex items-center space-x-2"
+                                    className="flex items-center space-x-2 bg-red-100 dark:bg-red-900 shadow-none hover:bg-red-200 dark:hover:bg-red-800"
                                 >
-                                    <Heart className="h-4 w-4 text-red-500" />
-                                    <span>Sponsor</span>
+                                    <Heart className="h-4 w-4 text-red-500 dark:text-red-400" />
+                                    <span className="text-red-800 dark:text-red-200">Sponsor</span>
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>
+                            <TooltipContent className="bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200">
                                 <p>Sponsor this project on GitHub</p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
+                    <ThemeToggle />
                 </div>
             </div>
         );
@@ -1845,18 +1772,18 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
                         transition={{ duration: 0.2 }}
-                        className="relative flex items-center bg-background border border-input rounded-2xl p-2 pr-8 gap-2 cursor-pointer shadow-sm !z-30"
+                        className="relative flex items-center bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-2xl p-2 pr-8 gap-2 cursor-pointer shadow-sm !z-30"
                     >
                         {isUploading ? (
                             <div className="w-10 h-10 flex items-center justify-center">
-                                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                                <Loader2 className="h-5 w-5 animate-spin text-neutral-500 dark:text-neutral-400" />
                             </div>
                         ) : isUploadingAttachment(attachment) ? (
                             <div className="w-10 h-10 flex items-center justify-center">
                                 <div className="relative w-8 h-8">
                                     <svg className="w-full h-full" viewBox="0 0 100 100">
                                         <circle
-                                            className="text-muted-foreground stroke-current"
+                                            className="text-neutral-300 dark:text-neutral-600 stroke-current"
                                             strokeWidth="10"
                                             cx="50"
                                             cy="50"
@@ -1876,7 +1803,7 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                                         ></circle>
                                     </svg>
                                     <div className="absolute inset-0 flex items-center justify-center">
-                                        <span className="text-xs font-semibold">{Math.round(attachment.progress * 100)}%</span>
+                                        <span className="text-xs font-semibold text-neutral-800 dark:text-neutral-200">{Math.round(attachment.progress * 100)}%</span>
                                     </div>
                                 </div>
                             </div>
@@ -1891,9 +1818,9 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                         )}
                         <div className="flex-grow min-w-0">
                             {!isUploadingAttachment(attachment) && (
-                                <p className="text-sm font-medium truncate">{attachment.name}</p>
+                                <p className="text-sm font-medium truncate text-neutral-800 dark:text-neutral-200">{attachment.name}</p>
                             )}
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-neutral-500 dark:text-neutral-400">
                                 {isUploadingAttachment(attachment)
                                     ? 'Uploading...'
                                     : formatFileSize((attachment as Attachment).size)}
@@ -1903,14 +1830,14 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             onClick={(e) => { e.stopPropagation(); onRemove(); }}
-                            className="absolute -top-2 -right-2 p-0.5 m-0 rounded-full bg-background border border-input shadow-sm hover:bg-muted transition-colors z-20"
+                            className="absolute -top-2 -right-2 p-0.5 m-0 rounded-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors z-20"
                         >
-                            <X size={14} />
+                            <X size={14} className="text-neutral-500 dark:text-neutral-400" />
                         </motion.button>
                     </motion.div>
                 </HoverCardTrigger>
                 {!isUploadingAttachment(attachment) && (
-                    <HoverCardContent className="w-fit p-1 bg-black border-none rounded-xl !z-40">
+                    <HoverCardContent className="w-fit p-1 bg-white dark:bg-neutral-800 border-none rounded-xl !z-40">
                         <Image
                             src={(attachment as Attachment).url}
                             alt={`Full preview of ${attachment.name}`}
@@ -2055,9 +1982,9 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                 }}
                 className={`
                     ${hasSubmitted ? 'fixed bottom-4 left-1/2 -translate-x-1/2 max-w-[90%] sm:max-w-2xl' : 'max-w-full'}
-                    ${attachments.length > 0 || uploadingAttachments.length > 0 ? 'rounded-2xl' : 'rounded-full'}
-                    w-full 
-                    bg-background border border-input
+                    ${attachments.length > 0 || uploadingAttachments.length > 0 ? 'rounded-2xl' : 'rounded-xl'}
+                    w-full
+                    bg-background border border-input dark:border-neutral-700
                     overflow-hidden mb-4
                     transition-all duration-300 ease-in-out
                     z-50
@@ -2102,11 +2029,9 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                             onChange={handleInputChange}
                             disabled={isLoading}
                             className={cn(
-                                "w-full h-12 pr-12 bg-muted",
-                                "ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                                "text-sm sm:text-base rounded-full",
-                                { 'pl-10': selectedModel !== 'openai/o1-mini' },
-                                { 'pl-6': selectedModel === 'openai/o1-mini' }
+                                "w-full min-h-[48px] max-h-[200px] h-full pr-12 bg-muted pl-10",
+                                "ring-offset-background focus-visible:outline-none focus-visible:ring-0 border-none",
+                                "text-sm sm:text-base rounded-md overflow-hidden",
                             )}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -2156,12 +2081,12 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                         <button
                             key={index}
                             onClick={() => handleExampleClick(card)}
-                            className="bg-gray-100 rounded-xl py-3 sm:py-4 px-4 text-left hover:bg-gray-200 transition-colors duration-200"
+                            className="bg-neutral-100 dark:bg-neutral-800 rounded-xl py-3 sm:py-4 px-4 text-left hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-200"
                         >
-                            <div className="flex items-center space-x-2 text-gray-700">
-                                <span>{selectedModel === 'openai/o1-mini' ? card.o1Icon : card.icon}</span>
+                            <div className="flex items-center space-x-2 text-neutral-700 dark:text-neutral-300">
+                                <span>{card.icon}</span>
                                 <span className="text-xs sm:text-sm font-medium">
-                                    {selectedModel === 'openai/o1-mini' ? card.o1Examples : card.text}
+                                    {card.text}
                                 </span>
                             </div>
                         </button>
@@ -2191,24 +2116,20 @@ You can know set MiniPerplx as your default search engine using the URL paramete
             switch (color) {
                 case 'emerald':
                     return isSelected
-                        ? '!bg-emerald-500 !text-white hover:!bg-emerald-600'
-                        : '!text-emerald-700 hover:!bg-emerald-100';
+                        ? '!bg-emerald-500 dark:!bg-emerald-700 !text-white hover:!bg-emerald-600 dark:hover:!bg-emerald-800'
+                        : '!text-emerald-700 dark:!text-emerald-300 hover:!bg-emerald-100 dark:hover:!bg-emerald-800/30';
                 case 'indigo':
                     return isSelected
-                        ? '!bg-indigo-500 !text-white hover:!bg-indigo-600'
-                        : '!text-indigo-700 hover:!bg-indigo-100';
-                case 'orange':
-                    return isSelected
-                        ? '!bg-orange-500 !text-white hover:!bg-orange-600'
-                        : '!text-orange-700 hover:!bg-orange-100';
+                        ? '!bg-indigo-500 dark:!bg-indigo-700 !text-white hover:!bg-indigo-600 dark:hover:!bg-indigo-800'
+                        : '!text-indigo-700 dark:!text-indigo-300 hover:!bg-indigo-100 dark:hover:!bg-indigo-800/30';
                 case 'blue':
                     return isSelected
-                        ? '!bg-blue-500 !text-white hover:!bg-blue-600'
-                        : '!text-blue-700 hover:!bg-blue-100';
+                        ? '!bg-blue-500 dark:!bg-blue-700 !text-white hover:!bg-blue-600 dark:hover:!bg-blue-800'
+                        : '!text-blue-700 dark:!text-blue-300 hover:!bg-blue-100 dark:hover:!bg-blue-800/30';
                 default:
                     return isSelected
-                        ? 'bg-gray-500 text-white hover:bg-gray-600'
-                        : 'text-gray-700 hover:bg-gray-100';
+                        ? 'bg-neutral-500 dark:bg-neutral-600 text-white hover:bg-neutral-600 dark:hover:bg-neutral-700'
+                        : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800/30';
             }
         }
 
@@ -2232,7 +2153,7 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                         isOpen && "transform rotate-180"
                     )} />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[200px] p-1 !font-sans ml-2 sm:m-auto rounded-lg shadow-md">
+                <DropdownMenuContent className="w-[200px] p-1 !font-sans ml-2 sm:m-auto rounded-lg shadow-md bg-white dark:bg-neutral-800">
                     {models.map((model) => (
                         <DropdownMenuItem
                             key={model.value}
@@ -2246,18 +2167,18 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                         >
                             <model.icon className={cn(
                                 "w-5 h-5 mt-0.5",
-                                selectedModel === model.value ? "text-white" : `text-${model.color}-500`
+                                selectedModel === model.value ? "text-white" : `text-${model.color}-500 dark:text-${model.color}-400`
                             )} />
                             <div>
                                 <div className={cn(
                                     "font-bold",
-                                    selectedModel === model.value ? "text-white" : `text-${model.color}-700`
+                                    selectedModel === model.value ? "text-white" : `text-${model.color}-700 dark:text-${model.color}-300`
                                 )}>
                                     {model.label}
                                 </div>
                                 <div className={cn(
                                     "text-xs",
-                                    selectedModel === model.value ? "text-white/80" : `text-${model.color}-600`
+                                    selectedModel === model.value ? "text-white/80" : `text-${model.color}-600 dark:text-${model.color}-400`
                                 )}>
                                     {model.description}
                                 </div>
@@ -2284,13 +2205,13 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                     <div className="text-center">
                         <Badge
                             onClick={() => setOpenChangelog(true)}
-                            className="cursor-pointer gap-1 mb-2"
-                            variant="green"
+                            className="cursor-pointer gap-1 mb-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+                            variant="secondary"
                         >
                             <Flame size={14} /> What&apos;s new
                         </Badge>
-                        <h1 className="text-4xl sm:text-6xl mb-1 text-gray-800 font-serif">MiniPerplx</h1>
-                        <h2 className='text-xl sm:text-2xl font-serif text-balance text-center mb-6 text-gray-600'>
+                        <h1 className="text-4xl sm:text-6xl mb-1 text-neutral-800 dark:text-neutral-100 font-serif">MiniPerplx</h1>
+                        <h2 className='text-xl sm:text-2xl font-serif text-balance text-center mb-6 text-neutral-600 dark:text-neutral-400'>
                             In search for minimalism and simplicity
                         </h2>
                     </div>
@@ -2324,7 +2245,6 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                     )}
                 </AnimatePresence>
 
-
                 <div className="space-y-4 sm:space-y-6 mb-32">
                     {messages.map((message, index) => (
                         <div key={index}>
@@ -2342,7 +2262,7 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                                                 <Input
                                                     value={input}
                                                     onChange={(e) => setInput(e.target.value)}
-                                                    className="flex-grow"
+                                                    className="flex-grow bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
                                                 />
                                                 <Button
                                                     variant="secondary"
@@ -2354,21 +2274,20 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                                                         setInput('')
                                                     }}
                                                     disabled={isLoading}
+                                                    className="bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200"
                                                 >
                                                     <X size={16} />
                                                 </Button>
-                                                <Button type="submit" size="sm">
+                                                <Button type="submit" size="sm" className="bg-primary text-white">
                                                     <ArrowRight size={16} />
                                                 </Button>
                                             </form>
                                         ) : (
                                             <div>
-                                                <p className="text-xl sm:text-2xl font-medium font-serif break-words">
+                                                <p className="text-xl sm:text-2xl font-medium font-serif break-words text-neutral-800 dark:text-neutral-200">
                                                     {message.content}
                                                 </p>
-                                                <div
-                                                    className='flex flex-row gap-2'
-                                                >
+                                                <div className='flex flex-row gap-2'>
                                                     {message.experimental_attachments?.map((attachment, attachmentIndex) => (
                                                         <div key={attachmentIndex} className="mt-2">
                                                             {attachment.contentType!.startsWith('image/') && (
@@ -2386,14 +2305,12 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                                     </div>
 
                                     {!isEditingMessage && index === lastUserMessageIndex && (
-                                        <div
-                                            className="flex items-center space-x-2"
-                                        >
+                                        <div className="flex items-center space-x-2">
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => handleMessageEdit(index)}
-                                                className="ml-2"
+                                                className="ml-2 text-neutral-500 dark:text-neutral-400"
                                                 disabled={isLoading}
                                             >
                                                 <Edit2 size={16} />
@@ -2407,11 +2324,9 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                                     <div className='flex items-center justify-between mb-2'>
                                         <div className='flex items-center gap-2'>
                                             <Sparkles className="size-5 text-primary" />
-                                            <h2 className="text-base font-semibold">Answer</h2>
+                                            <h2 className="text-base font-semibold text-neutral-800 dark:text-neutral-200">Answer</h2>
                                         </div>
-                                        <div
-                                            className='flex items-center gap-2'
-                                        >
+                                        <div className='flex items-center gap-2'>
                                             <ModelSwitcher
                                                 selectedModel={selectedModel}
                                                 setSelectedModel={handleModelChange}
@@ -2443,14 +2358,14 @@ You can know set MiniPerplx as your default search engine using the URL paramete
                         >
                             <div className="flex items-center gap-2 mb-4">
                                 <AlignLeft className="w-5 h-5 text-primary" />
-                                <h2 className="font-semibold text-base">Suggested questions</h2>
+                                <h2 className="font-semibold text-base text-neutral-800 dark:text-neutral-200">Suggested questions</h2>
                             </div>
                             <div className="space-y-2 flex flex-col">
                                 {suggestedQuestions.map((question, index) => (
                                     <Button
                                         key={index}
                                         variant="ghost"
-                                        className="w-fit font-light rounded-2xl p-1 justify-start text-left h-auto py-2 px-4 bg-neutral-100 text-neutral-950 hover:bg-muted-foreground/10 whitespace-normal"
+                                        className="w-fit font-light rounded-2xl p-1 justify-start text-left h-auto py-2 px-4 bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 hover:bg-neutral-200 dark:hover:bg-neutral-700 whitespace-normal"
                                         onClick={() => handleSuggestedQuestionClick(question)}
                                     >
                                         {question}
@@ -2485,12 +2400,12 @@ You can know set MiniPerplx as your default search engine using the URL paramete
 }
 
 const LoadingFallback = () => (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100">
         <div className="text-center space-y-4">
-            <h1 className="text-4xl sm:text-6xl mb-1 text-gray-800 font-serif animate-pulse">
+            <h1 className="text-4xl sm:text-6xl mb-1 text-neutral-800 dark:text-neutral-100 font-serif animate-pulse">
                 MiniPerplx
             </h1>
-            <p className="text-xl sm:text-2xl font-serif text-gray-600 animate-pulse">
+            <p className="text-xl sm:text-2xl font-serif text-neutral-600 dark:text-neutral-400 animate-pulse">
                 Loading your minimalist AI experience...
             </p>
             <Loader2 className="w-10 h-10 text-primary mx-auto animate-spin" />
