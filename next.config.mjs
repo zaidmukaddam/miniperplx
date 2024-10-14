@@ -49,6 +49,13 @@ const nextConfig = {
                 port: '',
                 pathname: '**'
             },
+            // media.theresanaiforthat.com
+            {
+                protocol: 'https',
+                hostname: 'media.theresanaiforthat.com',
+                port: '',
+                pathname: '**'
+            },
         ]
     },
 };

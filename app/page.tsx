@@ -745,6 +745,23 @@ const LandingPage: React.FC = () => {
                       alt="Peerlist"
                       width={32}
                       height={32}
+                      className="h-12 w-auto block dark:hidden"
+                    />
+                    <Image
+                      src="/Launch_SVG_Dark.svg"
+                      alt="Peerlist"
+                      width={32}
+                      height={32}
+                      className="h-12 w-auto hidden dark:block"
+                    />
+                  </NextLink>
+                  {/* <a href="https://theresanaiforthat.com/ai/miniperplx/?ref=featured&v=2143659" target="_blank" rel="nofollow"><img width="300" src="https://media.theresanaiforthat.com/featured-on-taaft.png?width=600" /></a> */}
+                  <NextLink href="https://theresanaiforthat.com/ai/miniperplx/?ref=featured&v=2143659" target="_blank" rel="nofollow" passHref>
+                    <Image
+                      src="https://media.theresanaiforthat.com/featured-on-taaft.png?width=600"
+                      alt="There's an AI for that"
+                      width={300}
+                      height={150}
                       className="h-12 w-auto"
                     />
                   </NextLink>
