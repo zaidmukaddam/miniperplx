@@ -19,7 +19,7 @@ import Marked, { ReactRenderer } from 'marked-react';
 import { track } from '@vercel/analytics';
 import { useSearchParams } from 'next/navigation';
 import { useChat } from 'ai/react';
-import { ToolInvocation } from 'ai';
+import { ChatRequestOptions, CreateMessage, Message, ToolInvocation } from 'ai';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
@@ -122,6 +122,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import Autoplay from 'embla-carousel-autoplay';
+import FormComponent from '@/components/ui/form-component';
 
 export const maxDuration = 60;
 
@@ -155,13 +156,13 @@ const HomeContent = () => {
     const [editingMessageIndex, setEditingMessageIndex] = useState(-1);
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
 
     const { theme } = useTheme();
 
     const [openChangelog, setOpenChangelog] = useState(false);
 
-    const { isLoading, input, messages, setInput, handleInputChange, append, handleSubmit, setMessages, reload } = useChat({
+    const { isLoading, input, messages, setInput, handleInputChange, append, handleSubmit, setMessages, reload, stop } = useChat({
         maxToolRoundtrips: selectedModel === 'mistral:pixtral-12b-2409' ? 1 : 2,
         body: {
             model: selectedModel,
@@ -1746,342 +1747,18 @@ The most requested feature is finally here! You can now toggle between light and
         progress: number;
     }
 
-    interface AttachmentPreviewProps {
-        attachment: Attachment | UploadingAttachment;
-        onRemove: () => void;
-        isUploading: boolean;
-    }
 
-    const AttachmentPreview: React.FC<AttachmentPreviewProps> = React.memo(({ attachment, onRemove, isUploading }) => {
-        const formatFileSize = (bytes: number): string => {
-            if (bytes < 1024) return bytes + ' bytes';
-            else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-            else return (bytes / 1048576).toFixed(1) + ' MB';
-        };
-
-        const isUploadingAttachment = (attachment: Attachment | UploadingAttachment): attachment is UploadingAttachment => {
-            return 'progress' in attachment;
-        };
-
-        return (
-            <HoverCard>
-                <HoverCardTrigger asChild>
-                    <motion.div
-                        layout
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ duration: 0.2 }}
-                        className="relative flex items-center bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-2xl p-2 pr-8 gap-2 cursor-pointer shadow-sm !z-30"
-                    >
-                        {isUploading ? (
-                            <div className="w-10 h-10 flex items-center justify-center">
-                                <Loader2 className="h-5 w-5 animate-spin text-neutral-500 dark:text-neutral-400" />
-                            </div>
-                        ) : isUploadingAttachment(attachment) ? (
-                            <div className="w-10 h-10 flex items-center justify-center">
-                                <div className="relative w-8 h-8">
-                                    <svg className="w-full h-full" viewBox="0 0 100 100">
-                                        <circle
-                                            className="text-neutral-300 dark:text-neutral-600 stroke-current"
-                                            strokeWidth="10"
-                                            cx="50"
-                                            cy="50"
-                                            r="40"
-                                            fill="transparent"
-                                        ></circle>
-                                        <circle
-                                            className="text-primary stroke-current"
-                                            strokeWidth="10"
-                                            strokeLinecap="round"
-                                            cx="50"
-                                            cy="50"
-                                            r="40"
-                                            fill="transparent"
-                                            strokeDasharray={`${attachment.progress * 251.2}, 251.2`}
-                                            transform="rotate(-90 50 50)"
-                                        ></circle>
-                                    </svg>
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <span className="text-xs font-semibold text-neutral-800 dark:text-neutral-200">{Math.round(attachment.progress * 100)}%</span>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <img
-                                src={(attachment as Attachment).url}
-                                alt={`Preview of ${attachment.name}`}
-                                width={40}
-                                height={40}
-                                className="rounded-lg h-10 w-10 object-cover"
-                            />
-                        )}
-                        <div className="flex-grow min-w-0">
-                            {!isUploadingAttachment(attachment) && (
-                                <p className="text-sm font-medium truncate text-neutral-800 dark:text-neutral-200">{attachment.name}</p>
-                            )}
-                            <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                                {isUploadingAttachment(attachment)
-                                    ? 'Uploading...'
-                                    : formatFileSize((attachment as Attachment).size)}
-                            </p>
-                        </div>
-                        <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={(e) => { e.stopPropagation(); onRemove(); }}
-                            className="absolute -top-2 -right-2 p-0.5 m-0 rounded-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors z-20"
-                        >
-                            <X size={14} className="text-neutral-500 dark:text-neutral-400" />
-                        </motion.button>
-                    </motion.div>
-                </HoverCardTrigger>
-                {!isUploadingAttachment(attachment) && (
-                    <HoverCardContent className="w-fit p-1 bg-white dark:bg-neutral-800 border-none rounded-xl !z-40">
-                        <Image
-                            src={(attachment as Attachment).url}
-                            alt={`Full preview of ${attachment.name}`}
-                            width={300}
-                            height={300}
-                            objectFit="contain"
-                            className="rounded-md"
-                        />
-                    </HoverCardContent>
-                )}
-            </HoverCard>
-        );
-    });
-
-    AttachmentPreview.displayName = 'AttachmentPreview';
-
-    interface FormComponentProps {
-        input: string;
-        setInput: (input: string) => void;
-        attachments: Attachment[];
-        setAttachments: React.Dispatch<React.SetStateAction<Attachment[]>>;
-        hasSubmitted: boolean;
-        setHasSubmitted: (value: boolean) => void;
-        isLoading: boolean;
-        handleSubmit: (event: React.FormEvent<HTMLFormElement>, options?: { experimental_attachments?: Attachment[] }) => void;
-        fileInputRef: React.RefObject<HTMLInputElement>;
-        inputRef: React.RefObject<HTMLInputElement>;
-    }
-
-    const FormComponent: React.FC<FormComponentProps> = ({
-        input,
-        setInput,
-        attachments,
-        setAttachments,
-        hasSubmitted,
-        setHasSubmitted,
-        isLoading,
-        handleSubmit,
-        fileInputRef,
-        inputRef,
-    }) => {
-        const [uploadingAttachments, setUploadingAttachments] = useState<UploadingAttachment[]>([]);
-
-        const uploadFile = async (file: File): Promise<Attachment> => {
-            const formData = new FormData();
-            formData.append('file', file);
-
-            const response = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to upload file');
-            }
-
-            return await response.json();
-        };
-
-        const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-            const selectedFiles = event.target.files;
-            if (selectedFiles) {
-                const imageFiles = Array.from(selectedFiles).filter(file => file.type.startsWith('image/'));
-                if (imageFiles.length > 0) {
-                    if (imageFiles.length + attachments.length + uploadingAttachments.length > MAX_IMAGES) {
-                        toast.error(`You can only attach up to ${MAX_IMAGES} images.`);
-                        return;
-                    }
-
-                    const newUploadingAttachments = imageFiles.map(file => ({ file, progress: 0 }));
-                    setUploadingAttachments(prev => [...prev, ...newUploadingAttachments]);
-
-                    for (const file of imageFiles) {
-                        try {
-                            const uploadedFile = await uploadFile(file);
-                            setAttachments(prev => [...prev, uploadedFile]);
-                            setUploadingAttachments(prev => prev.filter(ua => ua.file !== file));
-                        } catch (error) {
-                            console.error("Error uploading file:", error);
-                            toast.error(`Failed to upload ${file.name}`);
-                            setUploadingAttachments(prev => prev.filter(ua => ua.file !== file));
-                        }
-                    }
-                } else {
-                    toast.error("Please select image files only.");
-                }
-            }
-        };
-
-        const removeAttachment = (index: number) => {
-            setAttachments(prev => prev.filter((_, i) => i !== index));
-        };
-
-        const removeUploadingAttachment = (index: number) => {
-            setUploadingAttachments(prev => prev.filter((_, i) => i !== index));
-        };
-
-        useEffect(() => {
-            if (inputRef.current) {
-                inputRef.current.focus();
-            }
-        }, [inputRef]);
-
-        const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-            event.preventDefault();
-            event.stopPropagation();
-
-            if (input.trim() || (selectedModel !== 'openai/o1-mini' && attachments.length > 0)) {
-                track("search enter", { query: input.trim() });
-                setHasSubmitted(true);
-
-                handleSubmit(event, {
-                    experimental_attachments: attachments,
-                });
-
-                setAttachments([]);
-                setUploadingAttachments([]);
-                setSuggestedQuestions([]);
-                if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
-                }
-            } else {
-                toast.error("Please enter a search query or attach an image.");
-            }
-        };
-
-
-        return (
-            <motion.form
-                layout
-                onSubmit={onSubmit}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        onSubmit(e);
-                    }
-                }}
-                onDrag={e => e.preventDefault()}
-                onDrop={e => {
-                    e.preventDefault();
-                    handleFileChange({ target: { files: e.dataTransfer?.files } } as React.ChangeEvent<HTMLInputElement>);
-                }}
-                className={`
-                    ${hasSubmitted ? 'fixed bottom-4 left-1/2 -translate-x-1/2 max-w-[90%] sm:max-w-2xl' : 'max-w-full'}
-                    ${attachments.length > 0 || uploadingAttachments.length > 0 ? 'rounded-2xl' : 'rounded-xl'}
-                    w-full
-                    bg-background border border-input dark:border-neutral-700
-                    overflow-hidden mb-4
-                    transition-all duration-300 ease-in-out
-                    z-50
-                `}
-            >
-                <div className={cn('w-full space-y-2', attachments.length > 0 || uploadingAttachments.length > 0 ? 'p-2' : 'p-0')}>
-                    <AnimatePresence initial={false}>
-                        {selectedModel !== 'openai/o1-mini' && (attachments.length > 0 || uploadingAttachments.length > 0) && (
-                            <motion.div
-                                key="file-previews"
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                transition={{ duration: 0.3 }}
-                                className="flex flex-wrap gap-2 z-30 relative"
-                            >
-                                {uploadingAttachments.map((attachment, index) => (
-                                    <AttachmentPreview
-                                        key={`uploading-${index}`}
-                                        attachment={attachment}
-                                        onRemove={() => removeUploadingAttachment(index)}
-                                        isUploading={true}
-                                    />
-                                ))}
-                                {attachments.map((attachment, index) => (
-                                    <AttachmentPreview
-                                        key={attachment.url}
-                                        attachment={attachment}
-                                        onRemove={() => removeAttachment(index)}
-                                        isUploading={false}
-                                    />
-                                ))}
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                    <div className="relative flex items-center z-20 w-full">
-                        <Input
-                            ref={inputRef}
-                            name="search"
-                            placeholder={hasSubmitted ? "Ask a new question..." : "Ask a question..."}
-                            value={input}
-                            onChange={handleInputChange}
-                            disabled={isLoading}
-                            className={cn(
-                                "w-full min-h-[48px] max-h-[200px] h-full pr-12 bg-muted pl-10",
-                                "ring-offset-background focus-visible:outline-none focus-visible:ring-0 border-none",
-                                "text-sm sm:text-base rounded-md overflow-hidden",
-                            )}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    onSubmit(e as any);
-                                }
-                            }}
-                        />
-                        <label
-                            htmlFor={hasSubmitted ? "file-upload-bottom" : "file-upload-top"}
-                            className={`absolute left-3 cursor-pointer ${attachments.length + uploadingAttachments.length >= MAX_IMAGES ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                            <Paperclip className="h-5 w-5 text-muted-foreground" />
-                            <input
-                                id={hasSubmitted ? "file-upload-bottom" : "file-upload-top"}
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                onChange={handleFileChange}
-                                className="hidden"
-                                disabled={attachments.length + uploadingAttachments.length >= MAX_IMAGES}
-                                ref={fileInputRef}
-                            />
-                        </label>
-
-                        <Button
-                            type="submit"
-                            size="icon"
-                            variant="ghost"
-                            className="absolute right-2"
-                            disabled={input.trim().length === 0 || isLoading || uploadingAttachments.length > 0}
-                        >
-                            <ArrowRight size={20} />
-                        </Button>
-                    </div>
-                </div>
-            </motion.form>
-        );
-    };
 
 
     const SuggestionCards: React.FC<{ selectedModel: string }> = ({ selectedModel }) => {
         return (
-            <div className="flex gap-3">
-                <div className="flex flex-grow sm:flex-row gap-2 sm:gap-4 sm:mx-auto w-full">
+            <div className="flex gap-3 mt-4">
+                <div className="flex flex-grow sm:flex-row sm:mx-auto w-full gap-2 sm:gap-[21px]">
                     {suggestionCards.map((card, index) => (
                         <button
                             key={index}
                             onClick={() => handleExampleClick(card)}
-                            className="bg-neutral-100 dark:bg-neutral-800 rounded-xl py-3 sm:py-4 px-4 text-left hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-200"
+                            className="bg-neutral-100 dark:bg-neutral-800 rounded-xl p-2 sm:p-4 text-left  hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-200"
                         >
                             <div className="flex items-center space-x-2 text-neutral-700 dark:text-neutral-300">
                                 <span>{card.icon}</span>
@@ -2098,7 +1775,6 @@ The most requested feature is finally here! You can now toggle between light and
 
     const models = [
         { value: "azure:gpt4o-mini", label: "OpenAI", icon: Zap, description: "High speed, lower quality", color: "emerald" },
-        { value: "mistral:pixtral-12b-2409", label: "Mistral", icon: Camera, description: "Pixtral 12B", color: "blue" },
         { value: "anthropicVertex:claude-3-5-sonnet@20240620", label: "Claude", icon: Sparkles, description: "High quality, lower speed", color: "indigo" },
     ]
 
@@ -2216,11 +1892,11 @@ The most requested feature is finally here! You can now toggle between light and
                         </h2>
                     </div>
                 )}
-                {!hasSubmitted &&
+                {!hasSubmitted && (
                     <div className="flex items-center justify-between !-mb-2">
                         <ModelSwitcher selectedModel={selectedModel} setSelectedModel={handleModelChange} />
                     </div>
-                }
+                )}
                 <AnimatePresence>
                     {!hasSubmitted && (
                         <motion.div
@@ -2235,15 +1911,19 @@ The most requested feature is finally here! You can now toggle between light and
                                 setAttachments={setAttachments}
                                 hasSubmitted={hasSubmitted}
                                 setHasSubmitted={setHasSubmitted}
-                                handleSubmit={handleSubmit}
                                 isLoading={isLoading}
+                                handleSubmit={handleSubmit}
                                 fileInputRef={fileInputRef}
                                 inputRef={inputRef}
+                                stop={stop}
+                                messages={messages}
+                                append={append}
                             />
                             <SuggestionCards selectedModel={selectedModel} />
                         </motion.div>
                     )}
                 </AnimatePresence>
+
 
                 <div className="space-y-4 sm:space-y-6 mb-32">
                     {messages.map((message, index) => (
@@ -2380,18 +2060,29 @@ The most requested feature is finally here! You can now toggle between light and
 
             <AnimatePresence>
                 {hasSubmitted && (
-                    <FormComponent
-                        input={input}
-                        setInput={setInput}
-                        attachments={attachments}
-                        setAttachments={setAttachments}
-                        hasSubmitted={hasSubmitted}
-                        setHasSubmitted={setHasSubmitted}
-                        handleSubmit={handleSubmit}
-                        isLoading={isLoading}
-                        fileInputRef={fileInputRef}
-                        inputRef={inputRef}
-                    />
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        transition={{ duration: 0.5 }}
+                        className="fixed bottom-4 w-full max-w-[90%] sm:max-w-2xl"
+                    >
+                        <FormComponent
+                            input={input}
+                            setInput={setInput}
+                            attachments={attachments}
+                            setAttachments={setAttachments}
+                            hasSubmitted={hasSubmitted}
+                            setHasSubmitted={setHasSubmitted}
+                            isLoading={isLoading}
+                            handleSubmit={handleSubmit}
+                            fileInputRef={fileInputRef}
+                            inputRef={inputRef}
+                            stop={stop}
+                            messages={messages}
+                            append={append}
+                        />
+                    </motion.div>
                 )}
             </AnimatePresence>
             <ChangeLogs open={openChangelog} setOpen={setOpenChangelog} />
