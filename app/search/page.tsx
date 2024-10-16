@@ -133,8 +133,6 @@ declare global {
     }
 }
 
-const MAX_IMAGES = 3;
-
 interface Attachment {
     name: string;
     contentType: string;
@@ -244,12 +242,22 @@ const HomeContent = () => {
             id: "1",
             title: "Dark mode is here!",
             images: [
-                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-dark-mode.png",
+                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-dark-mode-promo.png",
+                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-new-input-bar-promo.png",
+                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-gpt-4o-back-Lwzx44RD4XofYLAmrEsLD3Fngnn33K.png"
             ],
             content:
                 `## **Dark Mode**
 
-The most requested feature is finally here! You can now toggle between light and dark mode. Default is set to your system preference.`,
+The most requested feature is finally here! You can now toggle between light and dark mode. Default is set to your system preference.
+
+## **New Input Bar Design**
+
+The input bar has been redesigned to make it more focused, user-friendly and accessible. The model selection dropdown has been moved to the bottom left corner inside the input bar.
+
+## **GPT-4o is back!**
+
+GPT-4o has been re-enabled! You can use it by selecting the model from the dropdown.`,
         }
     ];
 
@@ -1742,14 +1750,6 @@ The most requested feature is finally here! You can now toggle between light and
         );
     };
 
-    interface UploadingAttachment {
-        file: File;
-        progress: number;
-    }
-
-
-
-
     const SuggestionCards: React.FC<{ selectedModel: string }> = ({ selectedModel }) => {
         return (
             <div className="flex gap-3 mt-4">
@@ -1773,110 +1773,22 @@ The most requested feature is finally here! You can now toggle between light and
         );
     };
 
-    const models = [
-        { value: "azure:gpt4o-mini", label: "OpenAI", icon: Zap, description: "High speed, lower quality", color: "emerald" },
-        { value: "anthropicVertex:claude-3-5-sonnet@20240620", label: "Claude", icon: Sparkles, description: "High quality, lower speed", color: "indigo" },
-    ]
-
-    interface ModelSwitcherProps {
-        selectedModel: string;
-        setSelectedModel: (value: string) => void;
-        className?: string;
-    }
-
-    const ModelSwitcher: React.FC<ModelSwitcherProps> = ({ selectedModel, setSelectedModel, className }) => {
-        const selectedModelData = models.find(model => model.value === selectedModel) || models[0];
-        const [isOpen, setIsOpen] = useState(false);
-
-        const getColorClasses = (color: string, isSelected: boolean = false) => {
-            switch (color) {
-                case 'emerald':
-                    return isSelected
-                        ? '!bg-emerald-500 dark:!bg-emerald-700 !text-white hover:!bg-emerald-600 dark:hover:!bg-emerald-800'
-                        : '!text-emerald-700 dark:!text-emerald-300 hover:!bg-emerald-100 dark:hover:!bg-emerald-800/30';
-                case 'indigo':
-                    return isSelected
-                        ? '!bg-indigo-500 dark:!bg-indigo-700 !text-white hover:!bg-indigo-600 dark:hover:!bg-indigo-800'
-                        : '!text-indigo-700 dark:!text-indigo-300 hover:!bg-indigo-100 dark:hover:!bg-indigo-800/30';
-                case 'blue':
-                    return isSelected
-                        ? '!bg-blue-500 dark:!bg-blue-700 !text-white hover:!bg-blue-600 dark:hover:!bg-blue-800'
-                        : '!text-blue-700 dark:!text-blue-300 hover:!bg-blue-100 dark:hover:!bg-blue-800/30';
-                default:
-                    return isSelected
-                        ? 'bg-neutral-500 dark:bg-neutral-600 text-white hover:bg-neutral-600 dark:hover:bg-neutral-700'
-                        : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800/30';
-            }
-        }
-
-        return (
-            <DropdownMenu onOpenChange={setIsOpen}>
-                <DropdownMenuTrigger
-                    className={cn(
-                        "flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all duration-300 shadow-sm text-sm",
-                        getColorClasses(selectedModelData.color, true),
-                        "focus:outline-none focus:ring-none",
-                        "transform hover:scale-105 active:scale-95",
-                        "disabled:opacity-50 disabled:cursor-not-allowed",
-                        className
-                    )}
-                    disabled={isLoading}
-                >
-                    <selectedModelData.icon className="w-4 h-4" />
-                    <span className="font-medium">{selectedModelData.label}</span>
-                    <ChevronDown className={cn(
-                        "w-3 h-3 transition-transform duration-200",
-                        isOpen && "transform rotate-180"
-                    )} />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[200px] p-1 !font-sans ml-2 sm:m-auto rounded-lg shadow-md bg-white dark:bg-neutral-800">
-                    {models.map((model) => (
-                        <DropdownMenuItem
-                            key={model.value}
-                            onSelect={() => setSelectedModel(model.value)}
-                            className={cn(
-                                "flex items-start gap-2 px-2 py-1.5 rounded-lg text-sm mb-1 last:mb-0",
-                                "transition-colors duration-200",
-                                getColorClasses(model.color, selectedModel === model.value),
-                                selectedModel === model.value && "hover:opacity-90"
-                            )}
-                        >
-                            <model.icon className={cn(
-                                "w-5 h-5 mt-0.5",
-                                selectedModel === model.value ? "text-white" : `text-${model.color}-500 dark:text-${model.color}-400`
-                            )} />
-                            <div>
-                                <div className={cn(
-                                    "font-bold",
-                                    selectedModel === model.value ? "text-white" : `text-${model.color}-700 dark:text-${model.color}-300`
-                                )}>
-                                    {model.label}
-                                </div>
-                                <div className={cn(
-                                    "text-xs",
-                                    selectedModel === model.value ? "text-white/80" : `text-${model.color}-600 dark:text-${model.color}-400`
-                                )}>
-                                    {model.description}
-                                </div>
-                            </div>
-                        </DropdownMenuItem>
-                    ))}
-                </DropdownMenuContent>
-            </DropdownMenu>
-        )
-    }
-
     const handleModelChange = useCallback((newModel: string) => {
         setSelectedModel(newModel);
         setSuggestedQuestions([]);
         reload({ body: { model: newModel } });
     }, [reload]);
 
+    const resetSuggestedQuestions = useCallback(() => {
+        setSuggestedQuestions([]);
+    }, []);
+
+
     return (
         <div className="flex flex-col font-sans items-center justify-center p-2 sm:p-4 bg-background text-foreground transition-all duration-500">
             <Navbar />
 
-            <div className={`w-full max-w-[90%] sm:max-w-2xl space-y-6 p-0 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[20vh] sm:mt-[30vh]'}`}>
+            <div className={`w-full max-w-[90%] sm:max-w-2xl space-y-6 p-0 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[20vh] sm:mt-[25vh]'}`}>
                 {!hasSubmitted && (
                     <div className="text-center">
                         <Badge
@@ -1890,11 +1802,6 @@ The most requested feature is finally here! You can now toggle between light and
                         <h2 className='text-xl sm:text-2xl font-serif text-balance text-center mb-6 text-neutral-600 dark:text-neutral-400'>
                             In search for minimalism and simplicity
                         </h2>
-                    </div>
-                )}
-                {!hasSubmitted && (
-                    <div className="flex items-center justify-between !-mb-2">
-                        <ModelSwitcher selectedModel={selectedModel} setSelectedModel={handleModelChange} />
                     </div>
                 )}
                 <AnimatePresence>
@@ -1918,6 +1825,9 @@ The most requested feature is finally here! You can now toggle between light and
                                 stop={stop}
                                 messages={messages}
                                 append={append}
+                                selectedModel={selectedModel}
+                                setSelectedModel={handleModelChange}
+                                resetSuggestedQuestions={resetSuggestedQuestions}
                             />
                             <SuggestionCards selectedModel={selectedModel} />
                         </motion.div>
@@ -2007,11 +1917,6 @@ The most requested feature is finally here! You can now toggle between light and
                                             <h2 className="text-base font-semibold text-neutral-800 dark:text-neutral-200">Answer</h2>
                                         </div>
                                         <div className='flex items-center gap-2'>
-                                            <ModelSwitcher
-                                                selectedModel={selectedModel}
-                                                setSelectedModel={handleModelChange}
-                                                className="!px-4 rounded-full"
-                                            />
                                             <CopyButton text={message.content} />
                                         </div>
                                     </div>
@@ -2081,6 +1986,9 @@ The most requested feature is finally here! You can now toggle between light and
                             stop={stop}
                             messages={messages}
                             append={append}
+                            selectedModel={selectedModel}
+                            setSelectedModel={handleModelChange}
+                            resetSuggestedQuestions={resetSuggestedQuestions}
                         />
                     </motion.div>
                 )}

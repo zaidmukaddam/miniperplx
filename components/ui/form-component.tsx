@@ -1,13 +1,101 @@
 /* eslint-disable @next/next/no-img-element */
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ChatRequestOptions, CreateMessage, Message } from 'ai';
+import { track } from '@vercel/analytics';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
-import { cn } from '@/lib/utils';
 import useWindowSize from '@/hooks/use-window-size';
-import { X } from 'lucide-react';
+import { Sparkles, X, Zap, Cpu } from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { cn } from '@/lib/utils';
+
+interface ModelSwitcherProps {
+    selectedModel: string;
+    setSelectedModel: (value: string) => void;
+    className?: string;
+}
+
+const models = [
+    { value: "azure:gpt4o-mini", label: "GPT-4o Mini", icon: Zap, description: "High speed, good quality", color: "emerald" },
+    { value: "anthropicVertex:claude-3-5-sonnet@20240620", label: "Claude", icon: Sparkles, description: "High quality, lower speed", color: "indigo" },
+    { value: "azure:gpt-4o", label: "GPT-4o", icon: Cpu, description: "Higher quality, normal speed", color: "blue" },
+];
+
+
+const getColorClasses = (color: string, isSelected: boolean = false) => {
+    const baseClasses = "transition-colors duration-200";
+    const selectedClasses = isSelected ? "!bg-opacity-90 dark:!bg-opacity-90" : "";
+
+    switch (color) {
+        case 'emerald':
+            return isSelected
+                ? `${baseClasses} ${selectedClasses} !bg-emerald-500 dark:!bg-emerald-600 !text-white hover:!bg-emerald-600 dark:hover:!bg-emerald-700`
+                : `${baseClasses} !text-emerald-700 dark:!text-emerald-300 hover:!bg-emerald-200 dark:hover:!bg-emerald-800/70`;
+        case 'indigo':
+            return isSelected
+                ? `${baseClasses} ${selectedClasses} !bg-indigo-500 dark:!bg-indigo-600 !text-white hover:!bg-indigo-600 dark:hover:!bg-indigo-700`
+                : `${baseClasses} !text-indigo-700 dark:!text-indigo-300 hover:!bg-indigo-200 dark:hover:!bg-indigo-800/70`;
+        case 'blue':
+            return isSelected
+                ? `${baseClasses} ${selectedClasses} !bg-blue-500 dark:!bg-blue-600 !text-white hover:!bg-blue-600 dark:hover:!bg-blue-700`
+                : `${baseClasses} !text-blue-700 dark:!text-blue-300 hover:!bg-blue-200 dark:hover:!bg-blue-800/70`;
+        default:
+            return isSelected
+                ? `${baseClasses} ${selectedClasses} !bg-neutral-500 dark:!bg-neutral-600 !text-white hover:!bg-neutral-600 dark:hover:!bg-neutral-700`
+                : `${baseClasses} !text-neutral-700 dark:!text-neutral-300 hover:!bg-neutral-200 dark:hover:!bg-neutral-800/70`;
+    }
+}
+
+
+const ModelSwitcher: React.FC<ModelSwitcherProps> = ({ selectedModel, setSelectedModel, className }) => {
+    const selectedModelData = models.find(model => model.value === selectedModel) || models[0];
+    const [isOpen, setIsOpen] = useState(false);
+
+    return (
+        <DropdownMenu onOpenChange={setIsOpen}>
+            <DropdownMenuTrigger
+                className={cn(
+                    "flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300",
+                    getColorClasses(selectedModelData.color, true),
+                    "focus:outline-none focus:ring-2 focus:ring-opacity-50",
+                    `focus:ring-${selectedModelData.color}-500`,
+                    className
+                )}
+            >
+                <selectedModelData.icon className="w-4 h-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-[220px] p-1 !font-sans rounded-md shadow-md bg-white dark:bg-neutral-800 ml-4 sm:m-auto">
+                {models.map((model) => (
+                    <DropdownMenuItem
+                        key={model.value}
+                        onSelect={() => setSelectedModel(model.value)}
+                        className={cn(
+                            "flex items-start gap-2 px-2 py-1.5 rounded-md text-xs mb-1 last:mb-0",
+                            getColorClasses(model.color, selectedModel === model.value)
+                        )}
+                    >
+                        <model.icon className={cn(
+                            "w-4 h-4 mt-0.5",
+                            selectedModel === model.value ? "text-white" : `text-${model.color}-500 dark:text-${model.color}-400`
+                        )} />
+                        <div>
+                            <div className="font-bold">{model.label}</div>
+                            <div className="text-xs opacity-70">{model.description}</div>
+                        </div>
+                    </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    )
+}
+
 
 interface Attachment {
     name: string;
@@ -98,6 +186,9 @@ interface FormComponentProps {
         message: Message | CreateMessage,
         chatRequestOptions?: ChatRequestOptions,
     ) => Promise<string | null | undefined>;
+    selectedModel: string;
+    setSelectedModel: (value: string) => void;
+    resetSuggestedQuestions: () => void;
 }
 
 const AttachmentPreview: React.FC<{ attachment: Attachment | UploadingAttachment, onRemove: () => void, isUploading: boolean }> = ({ attachment, onRemove, isUploading }) => {
@@ -118,7 +209,7 @@ const AttachmentPreview: React.FC<{ attachment: Attachment | UploadingAttachment
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.2 }}
-            className="relative flex items-center bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg p-2 pr-8 gap-2 cursor-pointer shadow-sm flex-shrink-0"
+            className="relative flex items-center bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg p-2 pr-8 gap-2 shadow-sm flex-shrink-0"
         >
             {isUploading ? (
                 <div className="w-10 h-10 flex items-center justify-center">
@@ -203,9 +294,13 @@ const FormComponent: React.FC<FormComponentProps> = ({
     handleSubmit,
     fileInputRef,
     inputRef,
-    stop
+    stop,
+    messages,
+    append,
+    selectedModel,
+    setSelectedModel,
+    resetSuggestedQuestions,
 }) => {
-    const [uploadingAttachments, setUploadingAttachments] = useState<UploadingAttachment[]>([]);
     const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
     const { width } = useWindowSize();
     const postSubmitFileInputRef = useRef<HTMLInputElement>(null);
@@ -253,6 +348,12 @@ const FormComponent: React.FC<FormComponentProps> = ({
 
     const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(event.target.files || []);
+        const totalAttachments = attachments.length + files.length;
+
+        if (totalAttachments > MAX_IMAGES) {
+            toast.error(`You can only attach up to ${MAX_IMAGES} images.`);
+            return;
+        }
 
         setUploadQueue(files.map((file) => file.name));
 
@@ -265,11 +366,12 @@ const FormComponent: React.FC<FormComponentProps> = ({
             ]);
         } catch (error) {
             console.error("Error uploading files!", error);
+            toast.error("Failed to upload one or more files. Please try again.");
         } finally {
             setUploadQueue([]);
             event.target.value = '';
         }
-    }, [setAttachments]);
+    }, [attachments, setAttachments]);
 
     const removeAttachment = (index: number) => {
         setAttachments(prev => prev.filter((_, i) => i !== index));
@@ -281,56 +383,53 @@ const FormComponent: React.FC<FormComponentProps> = ({
 
         if (input.trim() || attachments.length > 0) {
             setHasSubmitted(true);
+            track("search input", {query: input.trim()})
 
             handleSubmit(event, {
                 experimental_attachments: attachments,
             });
 
             setAttachments([]);
-            setUploadingAttachments([]);
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
         } else {
             toast.error("Please enter a search query or attach an image.");
         }
-    }, [input, attachments, setHasSubmitted, handleSubmit, setAttachments, setUploadingAttachments, fileInputRef]);
+    }, [input, attachments, setHasSubmitted, handleSubmit, setAttachments, fileInputRef]);
 
     const submitForm = useCallback(() => {
         onSubmit({ preventDefault: () => { }, stopPropagation: () => { } } as React.FormEvent<HTMLFormElement>);
+        resetSuggestedQuestions();
 
         if (width && width > 768) {
             inputRef.current?.focus();
         }
-    }, [onSubmit, width, inputRef]);
+    }, [onSubmit, resetSuggestedQuestions, width, inputRef]);
 
     const triggerFileInput = useCallback(() => {
+        if (attachments.length >= MAX_IMAGES) {
+            toast.error(`You can only attach up to ${MAX_IMAGES} images.`);
+            return;
+        }
+
         if (hasSubmitted) {
             postSubmitFileInputRef.current?.click();
         } else {
             fileInputRef.current?.click();
         }
-    }, [hasSubmitted, fileInputRef]);
+    }, [attachments.length, hasSubmitted, fileInputRef]);
 
 
     return (
-        <div className="relative w-full flex flex-col gap-4">
-            <input
-                type="file"
-                className="hidden"
-                ref={fileInputRef}
-                multiple
-                onChange={handleFileChange}
-                tabIndex={-1}
-            />
-            <input
-                type="file"
-                className="hidden"
-                ref={postSubmitFileInputRef}
-                multiple
-                onChange={handleFileChange}
-                tabIndex={-1}
-            />
+        <div className={cn(
+            "relative w-full flex flex-col gap-2 rounded-lg transition-all duration-300",
+            attachments.length > 0 || uploadQueue.length > 0
+                ? "bg-gray-100/70 dark:bg-neutral-800 p-1"
+                : "bg-transparent"
+        )}>
+            <input type="file" className="hidden" ref={fileInputRef} multiple onChange={handleFileChange} tabIndex={-1} />
+            <input type="file" className="hidden" ref={postSubmitFileInputRef} multiple onChange={handleFileChange} tabIndex={-1} />
 
             {(attachments.length > 0 || uploadQueue.length > 0) && (
                 <div className="flex flex-row gap-2 overflow-x-auto py-2 max-h-32 z-10">
@@ -342,7 +441,6 @@ const FormComponent: React.FC<FormComponentProps> = ({
                             isUploading={false}
                         />
                     ))}
-
                     {uploadQueue.map((filename) => (
                         <AttachmentPreview
                             key={filename}
@@ -359,60 +457,80 @@ const FormComponent: React.FC<FormComponentProps> = ({
                 </div>
             )}
 
-            <Textarea
-                ref={inputRef}
-                placeholder={hasSubmitted ? "Ask a new question..." : "Ask a question..."}
-                value={input}
-                onChange={handleInput}
-                className="min-h-[24px] overflow-hidden resize-none rounded-lg text-base bg-muted"
-                rows={3}
-                onKeyDown={(event) => {
-                    if (event.key === "Enter" && !event.shiftKey) {
-                        event.preventDefault();
-
-                        if (isLoading) {
-                            toast.error("Please wait for the model to finish its response!");
-                        } else {
-                            submitForm();
+            <div className="relative">
+                <Textarea
+                    ref={inputRef}
+                    placeholder={hasSubmitted ? "Ask a new question..." : "Ask a question..."}
+                    value={input}
+                    onChange={handleInput}
+                    disabled={isLoading}
+                    className={cn(
+                        "min-h-[48px] overflow-hidden resize-none rounded-lg text-base",
+                        "bg-neutral-100 dark:bg-neutral-900",
+                        "text-neutral-900 dark:text-neutral-100",
+                        "border border-neutral-200 dark:border-neutral-700",
+                        "focus:border-neutral-300 dark:focus:border-neutral-600",
+                        "focus:ring-2 focus:ring-neutral-300 dark:focus:ring-neutral-600",
+                        "pr-20 py-2"
+                    )}
+                    rows={3}
+                    onKeyDown={(event) => {
+                        if (event.key === "Enter" && !event.shiftKey) {
+                            event.preventDefault();
+                            if (isLoading) {
+                                toast.error("Please wait for the model to finish its response!");
+                            } else {
+                                submitForm();
+                            }
                         }
-                    }
-                }}
-            />
-
-            {isLoading ? (
-                <Button
-                    className="rounded-full p-1.5 h-fit absolute bottom-2 right-2 m-0.5"
-                    onClick={(event) => {
-                        event.preventDefault();
-                        stop();
                     }}
-                >
-                    <StopIcon size={14} />
-                </Button>
-            ) : (
-                <Button
-                    className="rounded-full p-1.5 h-fit absolute bottom-2 right-2 m-0.5"
-                    onClick={(event) => {
-                        event.preventDefault();
-                        submitForm();
-                    }}
-                    disabled={input.length === 0 && attachments.length === 0 || uploadQueue.length > 0}
-                >
-                    <ArrowUpIcon size={14} />
-                </Button>
-            )}
+                />
 
-            <Button
-                className="rounded-full p-1.5 h-fit absolute bottom-2 right-10 m-0.5 dark:border-zinc-700"
-                onClick={(event) => {
-                    event.preventDefault();
-                    triggerFileInput();
-                }}
-                variant="outline"
-                disabled={isLoading}
-            >
-                <PaperclipIcon size={14} />
-            </Button>
+                <div className="absolute left-2 bottom-2">
+                    <ModelSwitcher
+                        selectedModel={selectedModel}
+                        setSelectedModel={setSelectedModel}
+                    />
+                </div>
+
+                <div className="absolute right-2 bottom-2 flex items-center gap-2">
+                    <Button
+                        className="rounded-full p-1.5 h-8 w-8 bg-white dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-600"
+                        onClick={(event) => {
+                            event.preventDefault();
+                            triggerFileInput();
+                        }}
+                        variant="outline"
+                        disabled={isLoading}
+                    >
+                        <PaperclipIcon size={14} />
+                    </Button>
+
+                    {isLoading ? (
+                        <Button
+                            className="rounded-full p-1.5 h-8 w-8"
+                            onClick={(event) => {
+                                event.preventDefault();
+                                stop();
+                            }}
+                            variant="destructive"
+                        >
+                            <StopIcon size={14} />
+                        </Button>
+                    ) : (
+                        <Button
+                            className="rounded-full p-1.5 h-8 w-8 "
+                            onClick={(event) => {
+                                event.preventDefault();
+                                submitForm();
+                            }}
+                            disabled={input.length === 0 && attachments.length === 0 || uploadQueue.length > 0}
+                        >
+                            <ArrowUpIcon size={14} />
+                        </Button>
+                    )}
+                </div>
+            </div>
         </div>
     );
 };
