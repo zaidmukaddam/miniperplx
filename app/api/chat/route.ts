@@ -1,16 +1,15 @@
 import { z } from "zod";
 import { createAzure } from '@ai-sdk/azure';
+import { anthropic } from '@ai-sdk/anthropic'
 import {
   convertToCoreMessages,
   streamText,
   tool,
   experimental_createProviderRegistry
 } from "ai";
-import { createAnthropicVertex } from 'anthropic-vertex-ai';
 import { BlobRequestAbortedError, put } from '@vercel/blob';
 import { CodeInterpreter } from "@e2b/code-interpreter";
 import FirecrawlApp from '@mendable/firecrawl-js';
-import { GoogleAuth } from 'google-auth-library';
 
 // Allow streaming responses up to 60 seconds
 export const maxDuration = 120;
@@ -21,33 +20,9 @@ const azure = createAzure({
   apiKey: process.env.AZURE_API_KEY,
 });
 
-// Helper function to get Google credentials
-// You can encode your service account key using the following command:
-// base64 -i /path/to/your-service-account-key.json | tr -d '\n' > encoded_credentials.txt
-// Then set the GOOGLE_APPLICATION_CREDENTIALS_BASE64 environment variable to the contents of encoded_credentials.txt
-function getCredentials() {
-  const credentialsBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
-  if (!credentialsBase64) {
-    throw new Error('GOOGLE_APPLICATION_CREDENTIALS_BASE64 environment variable is not set');
-  }
-  return JSON.parse(Buffer.from(credentialsBase64, 'base64').toString());
-}
-
-// Google Vertex setup for Anthropic
-const auth = new GoogleAuth({
-  scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-  credentials: getCredentials(),
-});
-
-const anthropicVertex = createAnthropicVertex({
-  region: process.env.GOOGLE_VERTEX_REGION,
-  projectId: process.env.GOOGLE_VERTEX_PROJECT_ID,
-  googleAuth: auth,
-});
-
 // Provider registry
 const registry = experimental_createProviderRegistry({
-  anthropicVertex,
+  anthropic,
   azure,
 });
 
@@ -75,6 +50,7 @@ export async function POST(req: Request) {
     topP: 0.5,
     frequencyPenalty: 0,
     presencePenalty: 0,
+    experimental_activeTools: ["get_weather_data","programming", "web_search", "text_translate"],
     system: `
 You are an expert AI web search engine called MiniPerplx, that helps users find information on the internet with no bullshit talks.
 Always start with running the tool(s) and then and then only write your response AT ALL COSTS!!

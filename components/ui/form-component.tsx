@@ -24,7 +24,7 @@ interface ModelSwitcherProps {
 
 const models = [
     { value: "azure:gpt4o-mini", label: "GPT-4o Mini", icon: Zap, description: "High speed, good quality", color: "emerald" },
-    { value: "anthropicVertex:claude-3-5-sonnet@20240620", label: "Claude", icon: Sparkles, description: "High quality, lower speed", color: "indigo" },
+    { value: "anthropic:claude-3-5-sonnet-latest", label: "Claude", icon: Sparkles, description: "High quality, lower speed", color: "indigo" },
     { value: "azure:gpt-4o", label: "GPT-4o", icon: Cpu, description: "Higher quality, normal speed", color: "blue" },
 ];
 
