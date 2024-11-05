@@ -149,7 +149,7 @@ const HomeContent = () => {
     const [openChangelog, setOpenChangelog] = useState(false);
 
     const { isLoading, input, messages, setInput, handleInputChange, append, handleSubmit, setMessages, reload, stop } = useChat({
-        maxToolRoundtrips: selectedModel === 'mistral:pixtral-12b-2409' ? 1 : 2,
+        maxSteps: 10,
         body: {
             model: selectedModel,
         },
@@ -162,7 +162,7 @@ const HomeContent = () => {
             }
         },
         onError: (error) => {
-            console.error("Chat error:", error);
+            console.error("Chat error:", error.cause, error.message);
             toast.error("An error occurred.", {
                 description: "We must have ran out of credits. Sponsor us on GitHub to keep this service running.",
                 action: {

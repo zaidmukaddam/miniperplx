@@ -209,7 +209,7 @@ const InteractiveChart: React.FC<ChartProps> = ({
       <CardContent>
         <ReactECharts
           option={options}
-          style={{ height: '400px', width: '100%' }}
+          style={{ height: '460px', width: '105%', gap: '20px' }}
         />
       </CardContent>
     </Card>

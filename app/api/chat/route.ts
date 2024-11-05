@@ -12,7 +12,7 @@ import CodeInterpreter from "@e2b/code-interpreter";
 import FirecrawlApp from '@mendable/firecrawl-js';
 
 // Allow streaming responses up to 60 seconds
-export const maxDuration = 120;
+export const maxDuration = 60;
 
 // Azure setup
 const azure = createAzure({
@@ -54,10 +54,9 @@ export async function POST(req: Request) {
   const provider = model.split(":")[0];
 
   const result = await streamText({
-    maxSteps: 10,
     model: registry.languageModel(model),
-    messages: convertToCoreMessages(messages),
-    temperature: provider === "azure" ? 0.72 : 0,
+    messages: messages,
+    temperature: provider === "azure" ? 0.72 : 0.2,
     topP: 0.5,
     frequencyPenalty: 0,
     presencePenalty: 0,
@@ -176,12 +175,6 @@ When asked a "What is" question, maintain the same format as the question and an
             .describe(
               "A list of domains to specifically exclude from the search results. Default is None, which doesn't exclude any domains.",
             ),
-          need_overview: z
-            .boolean()
-            .optional()
-            .describe(
-              "A boolean value to determine if the overview of the search results is needed. Default is false.",
-            ),
         }),
         execute: async ({
           query,
@@ -189,17 +182,21 @@ When asked a "What is" question, maintain the same format as the question and an
           topic,
           searchDepth,
           exclude_domains,
-          need_overview
         }: {
           query: string;
           maxResults: number;
           topic: "general" | "news";
           searchDepth: "basic" | "advanced";
           exclude_domains?: string[];
-          need_overview?: boolean;
         }) => {
           const apiKey = process.env.TAVILY_API_KEY;
           const includeImageDescriptions = true
+          // log all the parameters
+          console.log("Query:", query);
+          console.log("Max Results:", maxResults);
+          console.log("Topic:", topic);
+          console.log("Search Depth:", searchDepth);
+          console.log("Exclude Domains:", exclude_domains);
 
           let body = JSON.stringify({
             api_key: apiKey,
@@ -276,8 +273,7 @@ When asked a "What is" question, maintain the same format as the question and an
 
           return {
             results: context,
-            images: processedImages,
-            need_overview
+            images: processedImages
           };
         },
       }),
@@ -371,10 +367,14 @@ When asked a "What is" question, maintain the same format as the question and an
         description: "Write and execute Python code.",
         parameters: z.object({
           title: z.string().describe("The title of the code snippet."),
-          code: z.string().describe("The Python code to execute."),
+          code: z.string().describe("The Python code to execute. put the variables in the end of the code to print them. do not use the print function."),
           icon: z.enum(["stock", "date", "calculation", "default"]).describe("The icon to display for the code snippet."),
         }),
-        execute: async ({ code }: { code: string }) => {
+        execute: async ({ code, title, icon }: { code: string, title: string, icon: string }) => {
+          console.log("Code:", code);
+          console.log("Title:", title);
+          console.log("Icon:", icon);
+
           const sandbox = await CodeInterpreter.create();
           const execution = await sandbox.runCode(code);
           let message = "";
@@ -440,7 +440,7 @@ When asked a "What is" question, maintain the same format as the question and an
             console.log("Error: ", execution.error);
           }
 
-          console.log(execution.results[0].chart)
+          console.log(execution.results)
           if (execution.results[0].chart) {
             execution.results[0].chart.elements.map((element: any) => {
               console.log(element.points)
