@@ -10,6 +10,7 @@ import {
 import { BlobRequestAbortedError, put } from '@vercel/blob';
 import CodeInterpreter from "@e2b/code-interpreter";
 import FirecrawlApp from '@mendable/firecrawl-js';
+import { tavily } from '@tavily/core'
 
 // Allow streaming responses up to 60 seconds
 export const maxDuration = 60;
@@ -55,7 +56,7 @@ export async function POST(req: Request) {
 
   const result = await streamText({
     model: registry.languageModel(model),
-    messages: messages,
+    messages: convertToCoreMessages(messages),
     temperature: provider === "azure" ? 0.72 : 0.2,
     topP: 0.5,
     frequencyPenalty: 0,
@@ -76,7 +77,7 @@ Always put citations at the end of each paragraph and in the end of sentences wh
 
 Here are the tools available to you:
 <available_tools>
-web_search, results_overview, retrieve, get_weather_data, programming, nearby_search, find_place, text_search, text_translate
+web_search, retrieve, get_weather_data, programming, text_translate
 </available_tools>
 
 ## Basic Guidelines:
@@ -91,7 +92,6 @@ Please use the '$' latex format in equations instead of \( ones, same for comple
 
 DO's:
 - Use the web_search tool to gather relevant information. The query should only be the word that need's context for search. Then write the response based on the information gathered. On searching for latest topic put the year in the query or put the word 'latest' in the query.
-- If the user query was about a celebrity, call the results_overview tool to generate an overview of the information retrieved using the web_search tool. Not all web search results need an overview, use them only and only if it is about a celebrity. Use all the sources from the 'web_search' tool's response to compose your response after running the 'results_overview' tool. No images should be included in the composed response at all costs.
 - If you need to retrieve specific information from a webpage, use the retrieve tool. Analyze the user's query to set the topic type either normal or news. Then, compose your response based on the retrieved information.
 - For weather-related queries, use the get_weather_data tool. The weather results are 5 days weather forecast data with 3-hour step. Then, provide the weather information in your response.
 - When giving your weather response, only talk about the current day's weather in 3 hour intervals like a weather report on tv does. Do not provide the weather for the next 5 days.
@@ -107,8 +107,6 @@ DO's:
 - Assume the stock name from the user query and use it in the code to get the stock data and plot the stock chart. This will help in getting the stock chart for the user query. ALWAYS REMEMBER TO INSTALL YFINANCE USING !pip install yfinance AT ALL COSTS!!
 
 DON'Ts and IMPORTANT GUIDELINES:
-- DO NOT RUN THE 'results_overview' if the user query is 'not about a celebrity' at all costs!!!!
-- Do not run the 'results_overview' tool without running the 'web_search' tool first at all costs!! 'results_overview' tool should only be called after the 'web_search' tool, no other tool works with it.
 - No images should be included in the composed response at all costs, except for the programming tool.
 - DO NOT TALK BEFORE RUNNING THE TOOL AT ALL COSTS!! JUST RUN THE TOOL AND THEN WRITE YOUR RESPONSE AT ALL COSTS!!!!!
 - Do not call the same tool twice in a single response at all costs!!
@@ -190,53 +188,29 @@ When asked a "What is" question, maintain the same format as the question and an
           exclude_domains?: string[];
         }) => {
           const apiKey = process.env.TAVILY_API_KEY;
+          const tvly = tavily({ apiKey });
           const includeImageDescriptions = true
-          // log all the parameters
+
+
           console.log("Query:", query);
           console.log("Max Results:", maxResults);
           console.log("Topic:", topic);
           console.log("Search Depth:", searchDepth);
           console.log("Exclude Domains:", exclude_domains);
 
-          let body = JSON.stringify({
-            api_key: apiKey,
-            query,
+          const data = await tvly.search(query, {
             topic: topic,
-            max_results: maxResults < 5 ? 5 : maxResults,
-            search_depth: searchDepth,
-            include_answers: true,
-            include_images: true,
-            include_image_descriptions: includeImageDescriptions,
-            exclude_domains: exclude_domains,
-          });
-
-          if (topic === "news") {
-            body = JSON.stringify({
-              api_key: apiKey,
-              query,
-              topic: topic,
-              days: 7,
-              max_results: maxResults < 5 ? 5 : maxResults,
-              search_depth: searchDepth,
-              include_answers: true,
-              include_images: true,
-              include_image_descriptions: includeImageDescriptions,
-              exclude_domains: exclude_domains,
-            });
-          }
-
-          const response = await fetch("https://api.tavily.com/search", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body,
-          });
-
-          const data = await response.json();
+            days: topic === "news" ? 7 : undefined,
+            maxResults: maxResults < 5 ? 5 : maxResults,
+            searchDepth: searchDepth,
+            includeAnswer: true,
+            includeImages: true,
+            includeImageDescriptions: includeImageDescriptions,
+            excludeDomains: exclude_domains,
+          })
 
           let context = data.results.map(
-            (obj: { url: any; content: any; title: any; raw_content: any, published_date: any }, index: number) => {
+            (obj: any, index: number) => {
               if (topic === "news") {
                 return {
                   url: obj.url,
@@ -255,21 +229,22 @@ When asked a "What is" question, maintain the same format as the question and an
             },
           );
 
+
           const processedImages = includeImageDescriptions
             ? data.images
-              .map(({ url, description }: { url: string; description: string }) => ({
+              .map(({ url, description }: { url: string; description?: string }) => ({
                 url: sanitizeUrl(url),
-                description
+                description: description ?? ''
               }))
               .filter(
                 (
-                  image: SearchResultImage
+                  image: { url: string; description: string }
                 ): image is { url: string; description: string } =>
                   typeof image === 'object' &&
                   image.description !== undefined &&
                   image.description !== ''
               )
-            : data.images.map((url: string) => sanitizeUrl(url))
+            : data.images.map(({ url }: { url: string }) => sanitizeUrl(url))
 
           return {
             results: context,
@@ -319,48 +294,6 @@ When asked a "What is" question, maintain the same format as the question and an
           );
           const data = await response.json();
           return data;
-        },
-      }),
-      results_overview: tool({
-        description: "Generate an overview of the celebrity from the wikipedia url retrieved from the web_search tool.",
-        parameters: z.object({
-          website_url: z.string().describe("The Website URL to generate the overview from like personal website, wikipedia or official website of the thing/person/place to generate overview of."),
-        }),
-        execute: async ({ website_url }: { website_url: string }) => {
-          const app = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY });
-          console.log("website_url", website_url);
-
-          const schema = z.object({
-            image: z.string().describe("The URL of the image put https:// before the URL."),
-            title: z.string().describe("The title of the overview.").max(30),
-            description: z.string().describe("The description of the overview.").max(100),
-            table_data: z.array(
-              z.object({
-                title: z.string().describe("The title of the data.").max(30),
-                content: z.string().describe("The content of the data.").max(100),
-              })
-            ),
-          });
-
-          const scrapeResult = await app.scrapeUrl(website_url, {
-            formats: ["extract"],
-            extract: { schema: schema }
-          });
-
-          if (!scrapeResult.success || scrapeResult.error) {
-            console.error("Failed to scrape:", scrapeResult.error);
-            throw new Error(`Failed to scrape: ${scrapeResult.error}`)
-          }
-          const object = scrapeResult.extract;
-          if (!object) {
-            throw new Error("Failed to extract overview");
-          }
-          return {
-            title: object.title,
-            description: object.description,
-            table_data: object.table_data,
-            image: object.image
-          };
         },
       }),
       programming: tool({
