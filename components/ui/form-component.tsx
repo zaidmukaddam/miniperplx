@@ -23,8 +23,9 @@ interface ModelSwitcherProps {
 }
 
 const models = [
-    { value: "azure:gpt4o-mini", label: "GPT-4o Mini", icon: Zap, description: "High speed, good quality", color: "emerald" },
-    { value: "anthropic:claude-3-5-sonnet-latest", label: "Claude 3.5 Sonnet (New)", icon: Sparkles, description: "High quality, lower speed", color: "indigo" },
+    { value: "azure:gpt4o-mini", label: "GPT-4o Mini", icon: Zap, description: "God speed, good quality", color: "emerald" },
+    { value: "anthropic:claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku", icon: Sparkles, description: "Good quality, high speed", color: "orange" },
+    { value: "anthropic:claude-3-5-sonnet-latest", label: "Claude 3.5 Sonnet (New)", icon: Sparkles, description: "High quality, good speed", color: "indigo" },
     { value: "azure:gpt-4o", label: "GPT-4o", icon: Cpu, description: "Higher quality, normal speed", color: "blue" },
 ];
 
@@ -46,6 +47,10 @@ const getColorClasses = (color: string, isSelected: boolean = false) => {
             return isSelected
                 ? `${baseClasses} ${selectedClasses} !bg-blue-500 dark:!bg-blue-600 !text-white hover:!bg-blue-600 dark:hover:!bg-blue-700`
                 : `${baseClasses} !text-blue-700 dark:!text-blue-300 hover:!bg-blue-200 dark:hover:!bg-blue-800/70`;
+        case 'orange':
+            return isSelected
+                ? `${baseClasses} ${selectedClasses} !bg-orange-500 dark:!bg-orange-600 !text-white hover:!bg-orange-600 dark:hover:!bg-orange-700`
+                : `${baseClasses} !text-orange-700 dark:!text-orange-300 hover:!bg-orange-200 dark:hover:!bg-orange-800/70`;
         default:
             return isSelected
                 ? `${baseClasses} ${selectedClasses} !bg-neutral-500 dark:!bg-neutral-600 !text-white hover:!bg-neutral-600 dark:hover:!bg-neutral-700`
@@ -486,14 +491,14 @@ const FormComponent: React.FC<FormComponentProps> = ({
                     }}
                 />
 
-                <div className="absolute left-2 bottom-2">
+                <div className="absolute left-2 bottom-2 mt-4">
                     <ModelSwitcher
                         selectedModel={selectedModel}
                         setSelectedModel={setSelectedModel}
                     />
                 </div>
 
-                <div className="absolute right-2 bottom-2 flex items-center gap-2">
+                <div className="absolute right-2 bottom-2 flex items-center gap-2 mt-4">
                     <Button
                         className="rounded-full p-1.5 h-8 w-8 bg-white dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-600"
                         onClick={(event) => {

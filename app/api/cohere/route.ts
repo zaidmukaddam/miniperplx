@@ -1,6 +1,6 @@
 import { cohere } from '@ai-sdk/cohere'
 import { convertToCoreMessages, streamText, tool } from "ai";
-import { CodeInterpreter } from "@e2b/code-interpreter";
+import CodeInterpreter  from "@e2b/code-interpreter";
 import { z } from "zod";
 import { geolocation } from "@vercel/functions";
 
@@ -272,7 +272,7 @@ Remember to always run the appropriate tool(s) first and compose your response b
         }),
         execute: async ({ code }: { code: string }) => {
           const sandbox = await CodeInterpreter.create();
-          const execution = await sandbox.notebook.execCell(code);
+          const execution = await sandbox.runCode(code);
           let message = "";
           let images = [];
 
@@ -307,7 +307,6 @@ Remember to always run the appropriate tool(s) first and compose your response b
             }
           }
 
-          sandbox.close();
           return { message: message.trim(), images };
         },
       }),

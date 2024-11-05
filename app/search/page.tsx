@@ -19,7 +19,7 @@ import Marked, { ReactRenderer } from 'marked-react';
 import { track } from '@vercel/analytics';
 import { useSearchParams } from 'next/navigation';
 import { useChat } from 'ai/react';
-import { ChatRequestOptions, CreateMessage, Message, ToolInvocation } from 'ai';
+import { ToolInvocation } from 'ai';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
@@ -88,32 +88,17 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Line, LineChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import {
     Card,
     CardContent,
-    CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import {
-    ChartConfig,
-    ChartContainer,
-    ChartTooltip,
-    ChartTooltipContent,
-} from "@/components/ui/chart";
 import { GitHubLogoIcon, PlusCircledIcon } from '@radix-ui/react-icons';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { cn } from '@/lib/utils';
 import {
     Table,
@@ -124,6 +109,8 @@ import {
 import Autoplay from 'embla-carousel-autoplay';
 import FormComponent from '@/components/ui/form-component';
 import WeatherChart from '@/components/weather-chart';
+import { MapContainer } from '@/components/map-components';
+import InteractiveChart from '@/components/interactive-charts';
 
 export const maxDuration = 60;
 
@@ -884,7 +871,7 @@ GPT-4o has been re-enabled! You can use it by selecting the model from the dropd
                             <MapPin className="h-5 w-5 text-neutral-700 dark:text-neutral-300 animate-pulse" />
                             <span className="text-neutral-700 dark:text-neutral-300 text-lg">Searching nearby places...</span>
                         </div>
-                        <div className="flex space-x-1">
+                        <motion.div className="flex space-x-1">
                             {[0, 1, 2].map((index) => (
                                 <motion.div
                                     key={index}
@@ -899,49 +886,18 @@ GPT-4o has been re-enabled! You can use it by selecting the model from the dropd
                                     }}
                                 />
                             ))}
-                        </div>
+                        </motion.div>
                     </div>
                 );
             }
 
-            if (isLoading) {
-                return (
-                    <Card className="w-full my-4 overflow-hidden bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700">
-                        <CardHeader>
-                            <Skeleton className="h-6 w-3/4 bg-neutral-200 dark:bg-neutral-700" />
-                        </CardHeader>
-                        <CardContent className="p-0 rounded-t-none rounded-b-xl">
-                            <MapSkeleton />
-                        </CardContent>
-                    </Card>
-                );
-            }
-
             return (
-                <Card className="w-full my-4 overflow-hidden bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-neutral-800 dark:text-neutral-100">
-                            <MapPin className="h-5 w-5 text-primary" />
-                            <span>Nearby {args.type ? args.type.charAt(0).toUpperCase() + args.type.slice(1) + 's' : 'Places'}</span>
-                            {args.keyword && <Badge variant="secondary" className="bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200">{args.keyword}</Badge>}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        <MapComponent center={result.center} places={result.results} />
-                        <Accordion type="single" collapsible className="w-full">
-                            <AccordionItem value="place-details">
-                                <AccordionTrigger className="px-4 text-neutral-800 dark:text-neutral-200">Place Details</AccordionTrigger>
-                                <AccordionContent>
-                                    <div className="px-4 space-y-4 max-h-64 overflow-y-auto">
-                                        {result.results.map((place: any, placeIndex: number) => (
-                                            <PlaceDetails key={placeIndex} place={place} />
-                                        ))}
-                                    </div>
-                                </AccordionContent>
-                            </AccordionItem>
-                        </Accordion>
-                    </CardContent>
-                </Card>
+                <MapContainer
+                    title={`Nearby ${args.type ? args.type.charAt(0).toUpperCase() + args.type.slice(1) + 's' : 'Places'}`}
+                    center={result.center}
+                    places={result.results}
+                    loading={isLoading}
+                />
             );
         }
 
@@ -973,7 +929,19 @@ GPT-4o has been re-enabled! You can use it by selecting the model from the dropd
                 );
             }
 
-            return <FindPlaceResult result={result} />;
+            const place = result.candidates[0];
+            return (
+                <MapContainer
+                    title={place.name}
+                    center={place.geometry.location}
+                    places={[{
+                        name: place.name,
+                        location: place.geometry.location,
+                        rating: place.rating,
+                        vicinity: place.formatted_address
+                    }]}
+                />
+            );
         }
 
         if (toolInvocation.toolName === 'text_search') {
@@ -1004,7 +972,18 @@ GPT-4o has been re-enabled! You can use it by selecting the model from the dropd
                 );
             }
 
-            return <TextSearchResult result={result} />;
+            const centerLocation = result.results[0]?.geometry?.location;
+            return (
+                <MapContainer
+                    title="Search Results"
+                    center={centerLocation}
+                    places={result.results.map((place: any) => ({
+                        name: place.name,
+                        location: place.geometry.location,
+                        vicinity: place.formatted_address
+                    }))}
+                />
+            );
         }
 
         if (toolInvocation.toolName === 'get_weather_data') {
@@ -1089,6 +1068,14 @@ GPT-4o has been re-enabled! You can use it by selecting the model from the dropd
                                                 className="px-4 py-2 text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-neutral-800 data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
                                             >
                                                 Images
+                                            </TabsTrigger>
+                                        )}
+                                        {result?.chart && (
+                                            <TabsTrigger
+                                                value="visualization"
+                                                className="px-4 py-2 text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-neutral-800 data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
+                                            >
+                                                Visualization
                                             </TabsTrigger>
                                         )}
                                     </TabsList>
@@ -1176,6 +1163,19 @@ GPT-4o has been re-enabled! You can use it by selecting the model from the dropd
                                                     </div>
                                                 ))}
                                             </div>
+                                        </TabsContent>
+                                    )}
+                                    {result?.chart && (
+                                        <TabsContent value="visualization" className="p-4 m-0 bg-white dark:bg-neutral-800">
+                                            <InteractiveChart
+                                                type={result.chart.type as 'bar' | 'line'}
+                                                title={result.chart.title}
+                                                xLabel={result.chart.x_label}
+                                                yLabel={result.chart.y_label}
+                                                xUnit={result.chart.x_unit}
+                                                yUnit={result.chart.y_unit}
+                                                elements={result.chart.elements}
+                                            />
                                         </TabsContent>
                                     )}
                                 </Tabs>

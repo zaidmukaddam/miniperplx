@@ -1,6 +1,5 @@
 'use server';
 
-import { OpenAI } from 'openai';
 import { generateObject } from 'ai';
 import { createOpenAI as createGroq } from '@ai-sdk/openai';
 import { z } from 'zod';
@@ -15,7 +14,7 @@ export async function suggestQuestions(history: any[]) {
   'use server';
 
   const { object } = await generateObject({
-    model: groq('llama-3.2-90b-text-preview'),
+    model: groq('llama-3.2-11b-text-preview'),
     temperature: 0,
     system:
       `You are a search engine query generator. You 'have' to create only '3' questions for the search engine based on the message history which has been provided to you.

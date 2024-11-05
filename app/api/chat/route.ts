@@ -5,10 +5,10 @@ import {
   convertToCoreMessages,
   streamText,
   tool,
-  experimental_createProviderRegistry
+  experimental_createProviderRegistry,
 } from "ai";
 import { BlobRequestAbortedError, put } from '@vercel/blob';
-import { CodeInterpreter } from "@e2b/code-interpreter";
+import CodeInterpreter from "@e2b/code-interpreter";
 import FirecrawlApp from '@mendable/firecrawl-js';
 
 // Allow streaming responses up to 60 seconds
@@ -38,19 +38,30 @@ type SearchResultImage =
     number_of_results?: number
   }
 
+// Helper function to geocode an address
+const geocodeAddress = async (address: string) => {
+  const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
+  const response = await fetch(
+    `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${mapboxToken}`
+  );
+  const data = await response.json();
+  return data.features[0];
+};
+
 export async function POST(req: Request) {
   const { messages, model } = await req.json();
 
   const provider = model.split(":")[0];
 
   const result = await streamText({
+    maxSteps: 10,
     model: registry.languageModel(model),
     messages: convertToCoreMessages(messages),
     temperature: provider === "azure" ? 0.72 : 0,
     topP: 0.5,
     frequencyPenalty: 0,
     presencePenalty: 0,
-    experimental_activeTools: ["get_weather_data","programming", "web_search", "text_translate"],
+    experimental_activeTools: ["get_weather_data", "programming", "web_search", "text_translate"],
     system: `
 You are an expert AI web search engine called MiniPerplx, that helps users find information on the internet with no bullshit talks.
 Always start with running the tool(s) and then and then only write your response AT ALL COSTS!!
@@ -365,7 +376,7 @@ When asked a "What is" question, maintain the same format as the question and an
         }),
         execute: async ({ code }: { code: string }) => {
           const sandbox = await CodeInterpreter.create();
-          const execution = await sandbox.notebook.execCell(code);
+          const execution = await sandbox.runCode(code);
           let message = "";
           let images = [];
 
@@ -424,98 +435,177 @@ When asked a "What is" question, maintain the same format as the question and an
             }
           }
 
-          sandbox.close();
-          return { message: message.trim(), images };
+          if (execution.error) {
+            message += `Error: ${execution.error}\n`;
+            console.log("Error: ", execution.error);
+          }
+
+          console.log(execution.results[0].chart)
+          if (execution.results[0].chart) {
+            execution.results[0].chart.elements.map((element: any) => {
+              console.log(element.points)
+            })
+          }
+
+          return { message: message.trim(), images, chart: execution.results[0].chart ?? "" };
         },
       }),
       nearby_search: tool({
-        description: "Search for nearby places using Google Maps API.",
+        description: "Search for nearby places using Mapbox API.",
         parameters: z.object({
           location: z.string().describe("The location to search near (e.g., 'New York City' or '1600 Amphitheatre Parkway, Mountain View, CA')."),
           type: z.string().describe("The type of place to search for (e.g., restaurant, cafe, park)."),
           keyword: z.string().describe("An optional keyword to refine the search."),
           radius: z.number().default(3000).describe("The radius of the search area in meters (max 50000, default 3000)."),
         }),
-        execute: async ({ location, type, keyword, radius }: { location: string; type: string; keyword?: string; radius: number }) => {
-          const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+        execute: async ({ location, type, keyword, radius }: {
+          location: string;
+          type: string;
+          keyword?: string;
+          radius: number;
+        }) => {
+          const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
 
-          // First, use the Geocoding API to get the coordinates
-          const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${apiKey}`;
-          const geocodeResponse = await fetch(geocodeUrl);
-          const geocodeData = await geocodeResponse.json();
+          // First geocode the location
+          const locationData = await geocodeAddress(location);
+          const [lng, lat] = locationData.center;
 
-          if (geocodeData.status !== "OK" || !geocodeData.results[0]) {
-            throw new Error("Failed to geocode the location");
-          }
-
-          const { lat, lng } = geocodeData.results[0].geometry.location;
-
-          // perform the nearby search
-          let searchUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${type}&key=${apiKey}`;
-
+          // Construct search query
+          let searchQuery = type;
           if (keyword) {
-            searchUrl += `&keyword=${encodeURIComponent(keyword)}`;
+            searchQuery = `${keyword} ${type}`;
           }
 
-          const searchResponse = await fetch(searchUrl);
-          const searchData = await searchResponse.json();
+          // Search for places using Mapbox Geocoding API
+          const response = await fetch(
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?proximity=${lng},${lat}&limit=10&types=poi&access_token=${mapboxToken}`
+          );
+          const data = await response.json();
+
+          // Filter results by distance
+          const radiusInDegrees = radius / 111320; // Approximate conversion from meters to degrees
+          const results = data.features
+            .filter((feature: any) => {
+              const [placeLng, placeLat] = feature.center;
+              const distance = Math.sqrt(
+                Math.pow(placeLng - lng, 2) + Math.pow(placeLat - lat, 2)
+              );
+              return distance <= radiusInDegrees;
+            })
+            .map((feature: any) => ({
+              name: feature.text,
+              vicinity: feature.place_name,
+              place_id: feature.id,
+              location: {
+                lat: feature.center[1],
+                lng: feature.center[0]
+              },
+              // Note: Mapbox doesn't provide ratings, so we'll exclude those
+            }));
 
           return {
-            results: searchData.results.slice(0, 5).map((place: any) => ({
-              name: place.name,
-              vicinity: place.vicinity,
-              rating: place.rating,
-              user_ratings_total: place.user_ratings_total,
-              place_id: place.place_id,
-              location: place.geometry.location,
-            })),
+            results: results.slice(0, 5),
             center: { lat, lng },
-            formatted_address: geocodeData.results[0].formatted_address,
+            formatted_address: locationData.place_name,
           };
         },
       }),
       find_place: tool({
-        description: "Find a specific place using Google Maps API.",
+        description: "Find a specific place using Mapbox API.",
         parameters: z.object({
           input: z.string().describe("The place to search for (e.g., 'Museum of Contemporary Art Australia')."),
           inputtype: z.enum(["textquery", "phonenumber"]).describe("The type of input (textquery or phonenumber)."),
         }),
-        execute: async ({ input, inputtype }: { input: string; inputtype: "textquery" | "phonenumber" }) => {
-          console.log("input", input);
-          const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-          const url = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?fields=formatted_address,name,rating,opening_hours,geometry&input=${encodeURIComponent(input)}&inputtype=${inputtype}&key=${apiKey}`;
+        execute: async ({ input, inputtype }: {
+          input: string;
+          inputtype: "textquery" | "phonenumber";
+        }) => {
+          const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
 
-          const response = await fetch(url);
+          let searchEndpoint = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(input)}.json`;
+          if (inputtype === "phonenumber") {
+            // Note: Mapbox doesn't support phone number search directly
+            // We'll just search the number as text
+            searchEndpoint = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(input)}.json`;
+          }
+
+          const response = await fetch(`${searchEndpoint}?types=poi&access_token=${mapboxToken}`);
           const data = await response.json();
 
-          return data;
+          if (!data.features || data.features.length === 0) {
+            return { candidates: [] };
+          }
+
+          const place = data.features[0];
+
+          return {
+            candidates: [{
+              name: place.text,
+              formatted_address: place.place_name,
+              geometry: {
+                location: {
+                  lat: place.center[1],
+                  lng: place.center[0]
+                }
+              },
+              // Note: Mapbox doesn't provide these fields
+              rating: null,
+              opening_hours: null
+            }]
+          };
         },
       }),
       text_search: tool({
-        description: "Perform a text-based search for places using Google Maps API.",
+        description: "Perform a text-based search for places using Mapbox API.",
         parameters: z.object({
           query: z.string().describe("The search query (e.g., '123 main street')."),
           location: z.string().describe("The location to center the search (e.g., '42.3675294,-71.186966')."),
           radius: z.number().describe("The radius of the search area in meters (max 50000)."),
         }),
-        execute: async ({ query, location, radius }: { query: string; location?: string; radius?: number }) => {
-          const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-          console.log("query", query);
-          console.log("location", location);
-          console.log("radius", radius);
-          let url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${apiKey}`;
+        execute: async ({ query, location, radius }: {
+          query: string;
+          location?: string;
+          radius?: number;
+        }) => {
+          const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
 
+          let proximity = '';
           if (location) {
-            url += `&location=${encodeURIComponent(location)}`;
-          }
-          if (radius) {
-            url += `&radius=${radius}`;
+            const [lng, lat] = location.split(',').map(Number);
+            proximity = `&proximity=${lng},${lat}`;
           }
 
-          const response = await fetch(url);
+          const response = await fetch(
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?types=poi${proximity}&access_token=${mapboxToken}`
+          );
           const data = await response.json();
 
-          return data;
+          // If location and radius provided, filter results by distance
+          let results = data.features;
+          if (location && radius) {
+            const [centerLng, centerLat] = location.split(',').map(Number);
+            const radiusInDegrees = radius / 111320;
+            results = results.filter((feature: any) => {
+              const [placeLng, placeLat] = feature.center;
+              const distance = Math.sqrt(
+                Math.pow(placeLng - centerLng, 2) + Math.pow(placeLat - centerLat, 2)
+              );
+              return distance <= radiusInDegrees;
+            });
+          }
+
+          return {
+            results: results.map((feature: any) => ({
+              name: feature.text,
+              formatted_address: feature.place_name,
+              geometry: {
+                location: {
+                  lat: feature.center[1],
+                  lng: feature.center[0]
+                }
+              }
+            }))
+          };
         },
       }),
       text_translate: tool({
