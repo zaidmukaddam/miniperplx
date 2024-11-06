@@ -46,7 +46,6 @@ import {
     Heart,
     X,
     MapPin,
-    Star,
     Plus,
     Download,
     Flame,
@@ -58,12 +57,9 @@ import {
     Calendar,
     Calculator,
     ImageIcon,
-    Paperclip,
     ChevronDown,
-    Zap,
     Edit2,
     ChevronUp,
-    Camera,
     Moon
 } from 'lucide-react';
 import {
@@ -1418,7 +1414,7 @@ GPT-4o has been re-enabled! You can use it by selecting the model from the dropd
     }, []);
 
 
-    const memoizedMessages = useMemo(() => messages, [messages]);
+    // const memoizedMessages = useMemo(() => messages, [messages]);
 
     return (
         <div className="flex flex-col font-sans items-center justify-center p-2 sm:p-4 bg-background text-foreground transition-all duration-500">
@@ -1472,7 +1468,7 @@ GPT-4o has been re-enabled! You can use it by selecting the model from the dropd
 
 
                 <div className="space-y-4 sm:space-y-6 mb-32">
-                    {memoizedMessages.map((message, index) => (
+                    {messages.map((message, index) => (
                         <div key={index}>
                             {message.role === 'user' && (
                                 <motion.div
