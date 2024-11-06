@@ -88,7 +88,7 @@ const MapComponent = ({ center, places = [], zoom = 14 }: MapProps) => {
   }, [places]);
 
   return (
-    <div className="w-full h-64 rounded-lg overflow-hidden shadow-lg">
+    <div className="w-full h-64 rounded-lg overflow-hidden shadow-lg mt-6">
       <div ref={mapRef} className="w-full h-full" />
     </div>
   );
