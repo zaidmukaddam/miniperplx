@@ -31,14 +31,6 @@ function sanitizeUrl(url: string): string {
   return url.replace(/\s+/g, '%20')
 }
 
-type SearchResultImage =
-  | string
-  | {
-    url: string
-    description: string
-    number_of_results?: number
-  }
-
 // Helper function to geocode an address
 const geocodeAddress = async (address: string) => {
   const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
@@ -61,7 +53,7 @@ export async function POST(req: Request) {
     topP: 0.5,
     frequencyPenalty: 0,
     presencePenalty: 0,
-    experimental_activeTools: ["get_weather_data", "programming", "web_search", "text_translate"],
+    experimental_activeTools: ["get_weather_data", "programming", "web_search", "text_translate", "find_place"],
     system: `
 You are an expert AI web search engine called MiniPerplx, that helps users find information on the internet with no bullshit talks.
 Always start with running the tool(s) and then and then only write your response AT ALL COSTS!!
@@ -444,47 +436,28 @@ When asked a "What is" question, maintain the same format as the question and an
         },
       }),
       find_place: tool({
-        description: "Find a specific place using Mapbox API.",
+        description: "Find a place using Mapbox v6 reverse geocoding API.",
         parameters: z.object({
-          input: z.string().describe("The place to search for (e.g., 'Museum of Contemporary Art Australia')."),
-          inputtype: z.enum(["textquery", "phonenumber"]).describe("The type of input (textquery or phonenumber)."),
+          latitude: z.number().describe("The latitude of the location."),
+          longitude: z.number().describe("The longitude of the location."),
         }),
-        execute: async ({ input, inputtype }: {
-          input: string;
-          inputtype: "textquery" | "phonenumber";
-        }) => {
+        execute: async ({ latitude, longitude }: { latitude: number; longitude: number }) => {
           const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
-
-          let searchEndpoint = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(input)}.json`;
-          if (inputtype === "phonenumber") {
-            // Note: Mapbox doesn't support phone number search directly
-            // We'll just search the number as text
-            searchEndpoint = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(input)}.json`;
-          }
-
-          const response = await fetch(`${searchEndpoint}?types=poi&access_token=${mapboxToken}`);
+          const response = await fetch(
+            `https://api.mapbox.com/search/geocode/v6/reverse?longitude=${longitude}&latitude=${latitude}&access_token=${mapboxToken}`
+          );
           const data = await response.json();
 
           if (!data.features || data.features.length === 0) {
-            return { candidates: [] };
+            return { features: [] };
           }
 
-          const place = data.features[0];
-
           return {
-            candidates: [{
-              name: place.text,
-              formatted_address: place.place_name,
-              geometry: {
-                location: {
-                  lat: place.center[1],
-                  lng: place.center[0]
-                }
-              },
-              // Note: Mapbox doesn't provide these fields
-              rating: null,
-              opening_hours: null
-            }]
+            features: data.features.map((feature: any) => ({
+              name: feature.properties.name_preferred || feature.properties.name,
+              formatted_address: feature.properties.full_address,
+              geometry: feature.geometry,
+            })),
           };
         },
       }),
