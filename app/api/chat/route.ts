@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     topP: 0.5,
     frequencyPenalty: 0,
     presencePenalty: 0,
-    experimental_activeTools: ["get_weather_data", "programming", "web_search", "text_translate", "find_place"],
+    experimental_activeTools: ["get_weather_data", "find_place", "programming", "web_search", "text_translate",],
     system: `
 You are an expert AI web search engine called MiniPerplx, that helps users find information on the internet with no bullshit talks.
 Always start with running the tool(s) and then and then only write your response AT ALL COSTS!!
@@ -117,7 +117,7 @@ You can also accept and analyze images, like what is in the image, or what is th
 Follow the format and guidelines for each tool and provide the response accordingly. Remember to use the appropriate tool for each task. No need to panic, just follow the guidelines and you'll do great!
 
 ## Trip based queries:
-- For queries related to trips, use the find_place tool for map location and web_search tool to find information about places, directions, or reviews.
+- For queries related to trips, always use the find_place tool for map location and then run the web_search tool to find information about places, directions, or reviews.
 - Calling web and find place tools in the same response is allowed, but do not call the same tool in a response at all costs!!
 
 ## Programming Tool Guidelines:

@@ -437,9 +437,6 @@ GPT-4o has been re-enabled! You can use it by selecting the model from the dropd
     };
 
 
-
-    // Google Maps components
-
     const TranslationTool: React.FC<{ toolInvocation: ToolInvocation; result: any }> = ({ toolInvocation, result }) => {
         const [isPlaying, setIsPlaying] = useState(false);
         const [audioUrl, setAudioUrl] = useState<string | null>(null);
