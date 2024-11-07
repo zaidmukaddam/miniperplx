@@ -1,21 +1,23 @@
 'use server';
 
 import { generateObject } from 'ai';
-import { createOpenAI as createGroq } from '@ai-sdk/openai';
+import { google } from '@ai-sdk/google'
 import { z } from 'zod';
 import { load } from 'cheerio';
-
-const groq = createGroq({
-  baseURL: 'https://api.groq.com/openai/v1',
-  apiKey: process.env.GROQ_API_KEY,
-});
 
 export async function suggestQuestions(history: any[]) {
   'use server';
 
+  console.log(history); 
+
   const { object } = await generateObject({
-    model: groq('llama-3.2-90b-text-preview'),
-    temperature: 0,
+    model: google('gemini-1.5-pro-002',{
+      structuredOutputs: true,
+    }),
+    temperature: 1,
+    maxTokens: 300,
+    topP: 0.95,
+    topK: 40,
     system:
       `You are a search engine query generator. You 'have' to create only '3' questions for the search engine based on the message history which has been provided to you.
 The questions should be open-ended and should encourage further discussion while maintaining the whole context. Limit it to 5-10 words per question. 
@@ -54,7 +56,7 @@ export async function generateSpeech(text: string, voice: 'alloy' | 'echo' | 'fa
     'xi-api-key': ELEVENLABS_API_KEY,
     'Content-Type': 'application/json',
   }
-  
+
   const data = {
     text,
     model_id: 'eleven_turbo_v2_5',

@@ -15,8 +15,8 @@ dependencies:
     specifier: latest
     version: 0.0.28(zod@3.23.8)
   '@ai-sdk/google':
-    specifier: ^0.0.52
-    version: 0.0.52(zod@3.23.8)
+    specifier: ^0.0.55
+    version: 0.0.55(zod@3.23.8)
   '@ai-sdk/groq':
     specifier: ^0.0.1
     version: 0.0.1(zod@3.23.8)
@@ -281,15 +281,14 @@ packages:
       zod: 3.23.8
     dev: false
 
-  /@ai-sdk/google@0.0.52(zod@3.23.8):
-    resolution: {integrity: sha512-bfsA/1Ae0SQ6NfLwWKs5SU4MBwlzJjVhK6bTVBicYFjUxg9liK/W76P1Tq/qK9OlrODACz3i1STOIWsFPpIOuQ==}
+  /@ai-sdk/google@0.0.55(zod@3.23.8):
+    resolution: {integrity: sha512-dvEMS8Ex2H0OeuFBiT4Q1Kfrxi1ckjooy/PazNLjRQ3w9o9VQq4O24eMQGCuW1Z47qgMdXjhDzsH6qD0HOX6Cw==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.0.0
     dependencies:
-      '@ai-sdk/provider': 0.0.24
-      '@ai-sdk/provider-utils': 1.0.20(zod@3.23.8)
-      json-schema: 0.4.0
+      '@ai-sdk/provider': 0.0.26
+      '@ai-sdk/provider-utils': 1.0.22(zod@3.23.8)
       zod: 3.23.8
     dev: false
 

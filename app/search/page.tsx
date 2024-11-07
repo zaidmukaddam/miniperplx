@@ -261,7 +261,7 @@ const HomeContent = () => {
     const initialQuery = searchParams.get('query') || '';
     const initialModel = searchParams.get('model') || 'azure:gpt4o-mini';
 
-    const [lastSubmittedQuery, setLastSubmittedQuery] = useState(initialQuery);
+    const lastSubmittedQueryRef = useRef(initialQuery);
     const [hasSubmitted, setHasSubmitted] = useState(!!initialQuery);
     const [selectedModel, setSelectedModel] = useState(initialModel);
     const bottomRef = useRef<HTMLDivElement>(null);
@@ -284,7 +284,7 @@ const HomeContent = () => {
         onFinish: async (message, { finishReason }) => {
             console.log("[finish reason]:", finishReason);
             if (message.content && finishReason === 'stop' || finishReason === 'length') {
-                const newHistory = [...messages, { role: "user", content: lastSubmittedQuery }, { role: "assistant", content: message.content }];
+                const newHistory = [...messages, { role: "user", content: lastSubmittedQueryRef.current }, { role: "assistant", content: message.content }];
                 const { questions } = await suggestQuestions(newHistory);
                 setSuggestedQuestions(questions);
             }
@@ -1264,33 +1264,30 @@ GPT-4o has been re-enabled! You can use it by selecting the model from the dropd
         }
     }, [messages, suggestedQuestions]);
 
-    const handleExampleClick = useCallback(async (card: typeof suggestionCards[number]) => {
+    const handleExampleClick = async (card: typeof suggestionCards[number]) => {
         const exampleText = card.text;
         track("search example", { query: exampleText });
-        setLastSubmittedQuery(exampleText.trim());
+        lastSubmittedQueryRef.current = exampleText;
         setHasSubmitted(true);
         setSuggestedQuestions([]);
-
+        console.log('exampleText', exampleText);
+        console.log('lastSubmittedQuery', lastSubmittedQueryRef.current);
 
         await append({
             content: exampleText.trim(),
             role: 'user',
         });
-
-    }, [append, setLastSubmittedQuery, setHasSubmitted, setSuggestedQuestions]);
+    };
 
     const handleSuggestedQuestionClick = useCallback(async (question: string) => {
         setHasSubmitted(true);
         setSuggestedQuestions([]);
 
-
-        setInput(question.trim());
         await append({
             content: question.trim(),
             role: 'user'
         });
-
-    }, [setInput, append]);
+    }, [append]);
 
     const handleMessageEdit = useCallback((index: number) => {
         setIsEditingMessage(true);
