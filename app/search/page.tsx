@@ -103,7 +103,7 @@ import {
 import Autoplay from 'embla-carousel-autoplay';
 import FormComponent from '@/components/ui/form-component';
 import WeatherChart from '@/components/weather-chart';
-import { MapComponent, MapContainer, MapSkeleton, PlaceDetails } from '@/components/map-components';
+import { MapComponent, MapContainer, MapSkeleton, MapView, Place, PlaceDetails } from '@/components/map-components';
 import InteractiveChart from '@/components/interactive-charts';
 
 export const maxDuration = 60;
@@ -271,6 +271,7 @@ const HomeContent = () => {
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
+    const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
 
     const { theme } = useTheme();
 
@@ -552,8 +553,7 @@ GPT-4o has been re-enabled! You can use it by selecting the model from the dropd
         );
     };
 
- 
-    
+
 
     interface TableData {
         title: string;
@@ -667,7 +667,6 @@ GPT-4o has been re-enabled! You can use it by selecting the model from the dropd
                             ]}
                             zoom={15}
                         />
-                        <PlaceDetails place={place} />
                     </div>
                 );
             }
@@ -675,20 +674,81 @@ GPT-4o has been re-enabled! You can use it by selecting the model from the dropd
             if (toolInvocation.toolName === 'nearby_search') {
                 if (!result) {
                     return (
-                        <div key={index}>
-                            <MapSkeleton />
-                            <p>Loading nearby places...</p>
+                        <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-2">
+                                <MapPin className="h-5 w-5 text-neutral-700 dark:text-neutral-300 animate-pulse" />
+                                <span className="text-neutral-700 dark:text-neutral-300 text-lg">
+                                    Finding nearby {args.type}s...
+                                </span>
+                            </div>
+                            <motion.div className="flex space-x-1">
+                                {[0, 1, 2].map((index) => (
+                                    <motion.div
+                                        key={index}
+                                        className="w-2 h-2 bg-neutral-400 dark:bg-neutral-600 rounded-full"
+                                        initial={{ opacity: 0.3 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{
+                                            repeat: Infinity,
+                                            duration: 0.8,
+                                            delay: index * 0.2,
+                                            repeatType: "reverse",
+                                        }}
+                                    />
+                                ))}
+                            </motion.div>
                         </div>
                     );
                 }
 
+
                 return (
-                    <div key={index}>
-                        <MapComponent
+                    <div key={index} className="my-4">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+                                Nearby {args.type}s
+                            </h2>
+                            <Badge variant="secondary" className="bg-neutral-200 dark:bg-neutral-700">
+                                Found {result.results.length} places
+                            </Badge>
+                        </div>
+
+                        <MapView
                             center={result.center}
                             places={result.results}
                             zoom={14}
+                            view={viewMode}
+                            onViewChange={(newView) => setViewMode(newView)}
                         />
+
+                        {viewMode === 'list' && (
+                            <div className="mt-4 space-y-4">
+                                {result.results.map((place: Place, placeIndex: number) => (
+                                    <PlaceDetails
+                                        key={placeIndex}
+                                        {...place}
+                                        onDirectionsClick={() => {
+                                            const url = `https://www.google.com/maps/dir/?api=1&destination=${place.location.lat},${place.location.lng}`;
+                                            window.open(url, '_blank');
+                                        }}
+                                        onWebsiteClick={() => {
+                                            if (place.place_id) {
+                                                window.open(`https://www.tripadvisor.com/Attraction_Review-g-d${place.place_id}`, '_blank');
+                                            } else {
+                                                toast.info("Website not available");
+                                            }
+                                        }}
+                                        onCallClick={() => {
+                                            if (place.phone) {
+                                                window.open(`tel:${place.phone}`);
+                                            } else {
+                                                toast.info("Phone number not available");
+                                            }
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        )}
                     </div>
                 );
             }

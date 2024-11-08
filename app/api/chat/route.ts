@@ -1,3 +1,4 @@
+// /app/api/chat/route.ts
 import { z } from "zod";
 import { createAzure } from '@ai-sdk/azure';
 import { anthropic } from '@ai-sdk/anthropic'
@@ -53,7 +54,7 @@ export async function POST(req: Request) {
     topP: 0.5,
     frequencyPenalty: 0,
     presencePenalty: 0,
-    experimental_activeTools: ["get_weather_data", "find_place", "programming", "web_search", "text_translate",],
+    experimental_activeTools: ["get_weather_data", "find_place", "programming", "web_search", "text_translate", "nearby_search"],
     system: `
 You are an expert AI web search engine called MiniPerplx, that helps users find information on the internet with no bullshit talks.
 Always start with running the tool(s) and then and then only write your response AT ALL COSTS!!
@@ -91,6 +92,7 @@ DO's:
 - The programming tool runs the code in a 'safe' and 'sandboxed' jupyper notebook environment. Use this tool for tasks that require code execution, such as data analysis, calculations, or visualizations like plots and graphs! Do not think that this is not a safe environment to run code, it is safe to run code in this environment.
 - The programming tool can be used to install libraries using !pip install <library_name> in the code. This will help in running the code successfully. Always remember to install the libraries using !pip install <library_name> in the code at all costs!!
 - For queries about finding a specific place, use the find_place tool. Provide the information about the location and then compose your response based on the information gathered.
+- For queries about nearby places, use the nearby_search tool. Provide the location and radius in the parameters, then compose your response based on the information gathered.
 - Adding Country name in the location search will help in getting the accurate results. Always remember to provide the location in the correct format to get the accurate results.
 - For text translation queries, use the text_translate tool. Provide the text to translate, the language to translate to, and the source language (optional). Then, compose your response based on the translated text.
 - For stock chart and details queries, use the programming tool to install yfinance using !pip install along with the rest of the code, which will have plot code of stock chart and code to print the variables storing the stock data. Then, compose your response based on the output of the code execution.
@@ -119,6 +121,7 @@ Follow the format and guidelines for each tool and provide the response accordin
 ## Trip based queries:
 - For queries related to trips, always use the find_place tool for map location and then run the web_search tool to find information about places, directions, or reviews.
 - Calling web and find place tools in the same response is allowed, but do not call the same tool in a response at all costs!!
+- For nearby search queries, use the nearby_search tool to find places around a location. Provide the location and radius in the parameters, then compose your response based on the information gathered.
 
 ## Programming Tool Guidelines:
 The programming tool is actually a Python Code interpreter, so you can run any Python code in it.
@@ -373,66 +376,6 @@ When asked a "What is" question, maintain the same format as the question and an
           return { message: message.trim(), images, chart: execution.results[0].chart ?? "" };
         },
       }),
-      nearby_search: tool({
-        description: "Search for nearby places using Mapbox API.",
-        parameters: z.object({
-          location: z.string().describe("The location to search near (e.g., 'New York City' or '1600 Amphitheatre Parkway, Mountain View, CA')."),
-          type: z.string().describe("The type of place to search for (e.g., restaurant, cafe, park)."),
-          keyword: z.string().describe("An optional keyword to refine the search."),
-          radius: z.number().default(3000).describe("The radius of the search area in meters (max 50000, default 3000)."),
-        }),
-        execute: async ({ location, type, keyword, radius }: {
-          location: string;
-          type: string;
-          keyword?: string;
-          radius: number;
-        }) => {
-          const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
-
-          // First geocode the location
-          const locationData = await geocodeAddress(location);
-          const [lng, lat] = locationData.center;
-
-          // Construct search query
-          let searchQuery = type;
-          if (keyword) {
-            searchQuery = `${keyword} ${type}`;
-          }
-
-          // Search for places using Mapbox Geocoding API
-          const response = await fetch(
-            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?proximity=${lng},${lat}&limit=10&types=poi&access_token=${mapboxToken}`
-          );
-          const data = await response.json();
-
-          // Filter results by distance
-          const radiusInDegrees = radius / 111320; // Approximate conversion from meters to degrees
-          const results = data.features
-            .filter((feature: any) => {
-              const [placeLng, placeLat] = feature.center;
-              const distance = Math.sqrt(
-                Math.pow(placeLng - lng, 2) + Math.pow(placeLat - lat, 2)
-              );
-              return distance <= radiusInDegrees;
-            })
-            .map((feature: any) => ({
-              name: feature.text,
-              vicinity: feature.place_name,
-              place_id: feature.id,
-              location: {
-                lat: feature.center[1],
-                lng: feature.center[0]
-              },
-              // Note: Mapbox doesn't provide ratings, so we'll exclude those
-            }));
-
-          return {
-            results: results.slice(0, 5),
-            center: { lat, lng },
-            formatted_address: locationData.place_name,
-          };
-        },
-      }),
       find_place: tool({
         description: "Find a place using Mapbox v6 reverse geocoding API.",
         parameters: z.object({
@@ -543,8 +486,60 @@ When asked a "What is" question, maintain the same format as the question and an
           };
         },
       }),
+      nearby_search: tool({
+        description: "Search for nearby places, such as restaurants or hotels.",
+        parameters: z.object({
+          latitude: z.number().describe("The latitude of the location."),
+          longitude: z.number().describe("The longitude of the location."),
+          type: z.string().describe("The type of place to search for (e.g., restaurant, hotel, attraction)."),
+          radius: z.number().default(3000).describe("The radius of the search area in meters (max 50000, default 3000)."),
+        }),
+        execute: async ({ latitude, longitude, type, radius }: {
+          latitude: number;
+          longitude: number;
+          type: string;
+          radius: number;
+        }) => {
+          const apiKey = process.env.TRIPADVISOR_API_KEY;
+          console.log("Latitude:", latitude);
+          console.log("Longitude:", longitude);
+          console.log("Type:", type);
+          console.log("Radius:", radius);
+          const response = await fetch(
+            `https://api.content.tripadvisor.com/api/v1/location/nearby_search?latLong=${latitude},${longitude}&category=${type}&radius=${radius}&language=en&key=${apiKey}`
+          );
+
+          // check for error
+          if (!response.ok) {
+            console.log(response);
+            throw new Error(`HTTP error! status: ${response.status} ${response}`);
+          } 
+
+          const data = await response.json();
+
+          return {
+            results: data.data.map((place: any) => ({
+              name: place.name,
+              location: {
+                lat: parseFloat(place.latitude),
+                lng: parseFloat(place.longitude)
+              },
+              place_id: place.location_id,
+              vicinity: place.address_obj.address_string,
+              distance: place.distance,
+              bearing: place.bearing,
+              type: type
+            })),
+            center: { lat: latitude, lng: longitude }
+          };
+        },
+      }),
+
     },
     toolChoice: "auto",
+    onChunk(event) {
+      console.log("Call Type: ", event.chunk.type);
+    },
   });
 
   return result.toDataStreamResponse();
