@@ -109,7 +109,7 @@ const NearbySearchMapView: React.FC<NearbySearchMapViewProps> = ({
 
           {/* Selected Place Overlay - Only show in map view */}
           {selectedPlace && viewMode === 'map' && (
-            <div className="absolute left-4 right-4 bottom-4 z-10">
+            <div className="absolute left-4 right-4 bottom-4 z-0">
               <PlaceCard
                 place={selectedPlace}
                 onClick={() => {}}
