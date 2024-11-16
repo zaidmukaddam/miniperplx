@@ -32,16 +32,16 @@ body {
   margin-bottom: 1em;
 }
 
-.markdown-body .katex-display > .katex {
+.markdown-body .katex-display>.katex {
   font-size: 1.21em;
 }
 
-.markdown-body .katex-display > .katex > .katex-html {
+.markdown-body .katex-display>.katex>.katex-html {
   display: block;
   position: relative;
 }
 
-.markdown-body .katex-display > .katex > .katex-html > .tag {
+.markdown-body .katex-display>.katex>.katex-html>.tag {
   position: absolute;
   right: 0;
 }
@@ -67,7 +67,7 @@ body {
   flex-direction: column;
 }
 
-.tweet-container > div {
+.tweet-container>div {
   flex: 1;
 }
 
@@ -80,6 +80,7 @@ h1 {
     text-wrap: balance;
   }
 }
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -141,6 +142,7 @@ h1 {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }

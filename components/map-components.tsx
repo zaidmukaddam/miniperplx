@@ -1,12 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+// /app/components/map-components.tsx
+import React, { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Badge } from "@/components/ui/badge";
-import { Star, MapPin, Globe, Phone } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
@@ -19,15 +15,6 @@ export interface Place {
   name: string;
   location: Location;
   vicinity?: string;
-  rating?: number;
-  user_ratings_total?: number;
-  place_id?: string;         // TripAdvisor location_id
-  distance?: string;         // Distance from search center
-  bearing?: string;         // Direction from search center (e.g., "north", "southeast")
-  type?: string;           // Type of place (e.g., "restaurant", "hotel")
-  phone?: string;          // Phone number if available
-  website?: string;        // Website URL if available
-  photos?: string[];       // Array of photo URLs
 }
 
 interface MapProps {
@@ -129,63 +116,6 @@ interface PlaceDetailsProps extends Place {
   onCallClick?: () => void;
 }
 
-const PlaceDetails = ({
-  name,
-  vicinity,
-  rating,
-  user_ratings_total,
-  onDirectionsClick,
-  onWebsiteClick,
-  onCallClick
-}: PlaceDetailsProps) => (
-  <Card className="w-full bg-white dark:bg-neutral-800 shadow-lg">
-    <CardContent className="p-4">
-      <div className="flex justify-between items-start">
-        <div className="space-y-1">
-          <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{name}</h3>
-          {vicinity && <p className="text-sm text-neutral-500 dark:text-neutral-400">{vicinity}</p>}
-        </div>
-        {rating && (
-          <Badge variant="secondary" className="flex items-center gap-1">
-            <Star className="h-3 w-3 text-yellow-400" />
-            <span>{rating}</span>
-            {user_ratings_total && <span className="text-xs">({user_ratings_total})</span>}
-          </Badge>
-        )}
-      </div>
-      <div className="flex gap-2 mt-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onDirectionsClick}
-          className="flex-1"
-        >
-          <MapPin className="h-4 w-4 mr-2" />
-          Directions
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onWebsiteClick}
-          className="flex-1"
-        >
-          <Globe className="h-4 w-4 mr-2" />
-          Website
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onCallClick}
-          className="flex-1"
-        >
-          <Phone className="h-4 w-4 mr-2" />
-          Call
-        </Button>
-      </div>
-    </CardContent>
-  </Card>
-);
-
 interface MapContainerProps {
   title: string;
   center: Location;
@@ -212,64 +142,8 @@ const MapContainer: React.FC<MapContainerProps> = ({
     <div className="my-4">
       <h2 className="text-xl font-semibold mb-2">{title}</h2>
       <MapComponent center={center} places={places} />
-      {places.map((place, index) => (
-        <PlaceDetails key={index} {...place} />
-      ))}
     </div>
   );
 };
 
-interface MapViewProps extends MapProps {
-  view: 'map' | 'list';
-  onViewChange: (view: 'map' | 'list') => void;
-}
-
-const MapView: React.FC<MapViewProps> = ({
-  center,
-  places = [],
-  zoom = 14,
-  view,
-  onViewChange
-}) => {
-  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
-          Nearby Places
-        </h2>
-        <Tabs value={view} onValueChange={(v) => onViewChange(v as 'map' | 'list')}>
-          <TabsList>
-            <TabsTrigger value="map">Map</TabsTrigger>
-            <TabsTrigger value="list">List</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-
-      {view === 'map' ? (
-        <div className="relative">
-          <MapComponent
-            center={center}
-            places={places}
-            zoom={zoom}
-            onMarkerClick={setSelectedPlace}
-          />
-          {selectedPlace && (
-            <div className="absolute bottom-4 left-4 right-4">
-              <PlaceDetails {...selectedPlace} />
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {places.map((place, index) => (
-            <PlaceDetails key={index} {...place} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-export { MapComponent, MapSkeleton, MapContainer, PlaceDetails, MapView };
+export { MapComponent, MapSkeleton, MapContainer };

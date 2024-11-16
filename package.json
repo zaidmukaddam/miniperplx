@@ -58,7 +58,7 @@
     "lucide-react": "^0.424.0",
     "mapbox-gl": "^3.7.0",
     "marked-react": "^2.0.0",
-    "next": "^14.2.10",
+    "next": "^14.2.17",
     "next-themes": "^0.3.0",
     "openai": "^4.56.0",
     "react": "^18",

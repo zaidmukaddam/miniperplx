@@ -18,6 +18,10 @@ const config = {
       },
     },
     extend: {
+      height: {
+        screen: '100vh',
+        'screen-small': '100svh',
+      },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
         serif: ['var(--font-serif)', 'serif'],

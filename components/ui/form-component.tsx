@@ -194,6 +194,7 @@ interface FormComponentProps {
     selectedModel: string;
     setSelectedModel: (value: string) => void;
     resetSuggestedQuestions: () => void;
+    lastSubmittedQueryRef: React.MutableRefObject<string>;
 }
 
 const AttachmentPreview: React.FC<{ attachment: Attachment | UploadingAttachment, onRemove: () => void, isUploading: boolean }> = ({ attachment, onRemove, isUploading }) => {
@@ -214,7 +215,7 @@ const AttachmentPreview: React.FC<{ attachment: Attachment | UploadingAttachment
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.2 }}
-            className="relative flex items-center bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg p-2 pr-8 gap-2 shadow-sm flex-shrink-0"
+            className="relative flex items-center bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg p-2 pr-8 gap-2 shadow-sm flex-shrink-0 z-0"
         >
             {isUploading ? (
                 <div className="w-10 h-10 flex items-center justify-center">
@@ -305,6 +306,7 @@ const FormComponent: React.FC<FormComponentProps> = ({
     selectedModel,
     setSelectedModel,
     resetSuggestedQuestions,
+    lastSubmittedQueryRef,
 }) => {
     const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
     const { width } = useWindowSize();
@@ -388,6 +390,7 @@ const FormComponent: React.FC<FormComponentProps> = ({
 
         if (input.trim() || attachments.length > 0) {
             setHasSubmitted(true);
+            lastSubmittedQueryRef.current = input.trim();
             track("search input", {query: input.trim()})
 
             handleSubmit(event, {
@@ -401,7 +404,7 @@ const FormComponent: React.FC<FormComponentProps> = ({
         } else {
             toast.error("Please enter a search query or attach an image.");
         }
-    }, [input, attachments, setHasSubmitted, handleSubmit, setAttachments, fileInputRef]);
+    }, [input, attachments, setHasSubmitted, handleSubmit, setAttachments, fileInputRef, lastSubmittedQueryRef]);
 
     const submitForm = useCallback(() => {
         onSubmit({ preventDefault: () => { }, stopPropagation: () => { } } as React.FormEvent<HTMLFormElement>);
@@ -428,7 +431,7 @@ const FormComponent: React.FC<FormComponentProps> = ({
 
     return (
         <div className={cn(
-            "relative w-full flex flex-col gap-2 rounded-lg transition-all duration-300",
+            "relative w-full flex flex-col gap-2 rounded-lg transition-all duration-300 z-[9999]",
             attachments.length > 0 || uploadQueue.length > 0
                 ? "bg-gray-100/70 dark:bg-neutral-800 p-1"
                 : "bg-transparent"

@@ -8,13 +8,13 @@ import {
   tool,
   experimental_createProviderRegistry,
 } from "ai";
-import { BlobRequestAbortedError, put } from '@vercel/blob';
+import { BlobRequestAbortedError, put, list } from '@vercel/blob';
 import CodeInterpreter from "@e2b/code-interpreter";
 import FirecrawlApp from '@mendable/firecrawl-js';
 import { tavily } from '@tavily/core'
 
 // Allow streaming responses up to 60 seconds
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 // Azure setup
 const azure = createAzure({
@@ -108,7 +108,7 @@ DON'Ts and IMPORTANT GUIDELINES:
 - Show plots from the programming tool using plt.show() function. The tool will automatically capture the plot and display it in the response.
 - If asked for multiple plots, make it happen in one run of the tool. The tool will automatically capture the plots and display them in the response.
 - the web search may return an incorrect latex format, please correct it before using it in the response. Check the Latex in Markdown rules for more information.
-- The location search tools return images in the response, please do not include them in the response at all costs.
+- The location search tools return images in the response, please DO NOT include them in the response at all costs!!!!!!!! This is extremely important to follow!!
 - Do not use the $ symbol in the stock chart queries at all costs. Use the word USD instead of the $ symbol in the stock chart queries.
 - Never run web_search tool for stock chart queries at all costs.
 
@@ -122,6 +122,7 @@ Follow the format and guidelines for each tool and provide the response accordin
 - For queries related to trips, always use the find_place tool for map location and then run the web_search tool to find information about places, directions, or reviews.
 - Calling web and find place tools in the same response is allowed, but do not call the same tool in a response at all costs!!
 - For nearby search queries, use the nearby_search tool to find places around a location. Provide the location and radius in the parameters, then compose your response based on the information gathered.
+- Never call find_place tool before or after the nearby_search tool in the same response at all costs!! THIS IS NOT ALLOWED AT ALL COSTS!!!
 
 ## Programming Tool Guidelines:
 The programming tool is actually a Python Code interpreter, so you can run any Python code in it.
@@ -487,58 +488,204 @@ When asked a "What is" question, maintain the same format as the question and an
         },
       }),
       nearby_search: tool({
-        description: "Search for nearby places, such as restaurants or hotels.",
+        description: "Search for nearby places, such as restaurants or hotels based on the details given.",
         parameters: z.object({
+          location: z.string().describe("The location name given by user."),
           latitude: z.number().describe("The latitude of the location."),
           longitude: z.number().describe("The longitude of the location."),
-          type: z.string().describe("The type of place to search for (e.g., restaurant, hotel, attraction)."),
-          radius: z.number().default(3000).describe("The radius of the search area in meters (max 50000, default 3000)."),
+          type: z.string().describe("The type of place to search for (restaurants, hotels, attractions, geos)."),
+          radius: z.number().default(6000).describe("The radius in meters (max 50000, default 6000)."),
         }),
-        execute: async ({ latitude, longitude, type, radius }: {
+        execute: async ({ location, latitude, longitude, type, radius }: {
           latitude: number;
           longitude: number;
+          location: string;
           type: string;
           radius: number;
         }) => {
           const apiKey = process.env.TRIPADVISOR_API_KEY;
-          console.log("Latitude:", latitude);
-          console.log("Longitude:", longitude);
-          console.log("Type:", type);
-          console.log("Radius:", radius);
-          const response = await fetch(
-            `https://api.content.tripadvisor.com/api/v1/location/nearby_search?latLong=${latitude},${longitude}&category=${type}&radius=${radius}&language=en&key=${apiKey}`
-          );
+          let finalLat = latitude;
+          let finalLng = longitude;
 
-          // check for error
-          if (!response.ok) {
-            console.log(response);
-            throw new Error(`HTTP error! status: ${response.status} ${response}`);
-          } 
+          try {
+            // Try geocoding first
+            const geocodingData = await fetch(
+              `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${process.env.GOOGLE_MAPS_API_KEY}`
+            );
 
-          const data = await response.json();
+            const geocoding = await geocodingData.json();
 
-          return {
-            results: data.data.map((place: any) => ({
-              name: place.name,
-              location: {
-                lat: parseFloat(place.latitude),
-                lng: parseFloat(place.longitude)
-              },
-              place_id: place.location_id,
-              vicinity: place.address_obj.address_string,
-              distance: place.distance,
-              bearing: place.bearing,
-              type: type
-            })),
-            center: { lat: latitude, lng: longitude }
-          };
+            if (geocoding.results?.[0]?.geometry?.location) {
+              let trimmedLat = geocoding.results[0].geometry.location.lat.toString().split('.');
+              finalLat =  parseFloat(trimmedLat[0] + '.' + trimmedLat[1].slice(0, 6));
+              let trimmedLng = geocoding.results[0].geometry.location.lng.toString().split('.');
+              finalLng = parseFloat(trimmedLng[0] + '.' + trimmedLng[1].slice(0, 6));
+              console.log('Using geocoded coordinates:', finalLat, finalLng);
+            } else {
+              console.log('Using provided coordinates:', finalLat, finalLng);
+            }
+
+            // Get nearby places
+            const nearbyResponse = await fetch(
+              `https://api.content.tripadvisor.com/api/v1/location/nearby_search?latLong=${finalLat},${finalLng}&category=${type}&radius=${radius}&language=en&key=${apiKey}`,
+              {
+                method: 'GET',
+                headers: {
+                  'Accept': 'application/json',
+                  'origin': 'https://mplx.local',
+                  'referer': 'https://mplx.local',
+                },
+              }
+            );
+
+            if (!nearbyResponse.ok) {
+              throw new Error(`Nearby search failed: ${nearbyResponse.status}`);
+            }
+
+            const nearbyData = await nearbyResponse.json();
+
+            if (!nearbyData.data || nearbyData.data.length === 0) {
+              console.log('No nearby places found');
+              return {
+                results: [],
+                center: { lat: finalLat, lng: finalLng }
+              };
+            }
+
+            // Process each place
+            const detailedPlaces = await Promise.all(
+              nearbyData.data.map(async (place: any) => {
+                try {
+                  if (!place.location_id) {
+                    console.log(`Skipping place "${place.name}": No location_id`);
+                    return null;
+                  }
+
+                  // Fetch place details
+                  const detailsResponse = await fetch(
+                    `https://api.content.tripadvisor.com/api/v1/location/${place.location_id}/details?language=en&currency=USD&key=${apiKey}`,
+                    {
+                      method: 'GET',
+                      headers: {
+                        'Accept': 'application/json',
+                        'origin': 'https://mplx.local',
+                        'referer': 'https://mplx.local',
+                      },
+                    }
+                  );
+
+                  if (!detailsResponse.ok) {
+                    console.log(`Failed to fetch details for "${place.name}"`);
+                    return null;
+                  }
+
+                  const details = await detailsResponse.json();
+
+                  // Fetch place photos
+                  let photos = [];
+                  try {
+                    const photosResponse = await fetch(
+                      `https://api.content.tripadvisor.com/api/v1/location/${place.location_id}/photos?language=en&key=${apiKey}`,
+                      {
+                        method: 'GET',
+                        headers: {
+                          'Accept': 'application/json',
+                          'origin': 'https://mplx.local',
+                          'referer': 'https://mplx.local',
+                        },
+                      }
+                    );
+
+                    if (photosResponse.ok) {
+                      const photosData = await photosResponse.json();
+                      photos = photosData.data?.map((photo: any) => ({
+                        thumbnail: photo.images?.thumbnail?.url,
+                        small: photo.images?.small?.url,
+                        medium: photo.images?.medium?.url,
+                        large: photo.images?.large?.url,
+                        original: photo.images?.original?.url,
+                        caption: photo.caption
+                      })).filter((photo: any) => photo.medium) || [];
+                    }
+                  } catch (error) {
+                    console.log(`Photo fetch failed for "${place.name}":`, error);
+                  }
+
+                  // Process hours and status
+                  const now = new Date();
+                  const currentDay = now.getDay();
+                  const currentTime = now.getHours() * 100 + now.getMinutes();
+
+                  let is_closed = true;
+                  let next_open_close = '';
+
+                  if (details.hours?.periods) {
+                    const todayPeriod = details.hours.periods.find((period: any) =>
+                      period.open?.day === currentDay
+                    );
+
+                    if (todayPeriod) {
+                      const openTime = parseInt(todayPeriod.open.time);
+                      const closeTime = todayPeriod.close ? parseInt(todayPeriod.close.time) : 2359;
+                      is_closed = currentTime < openTime || currentTime > closeTime;
+                      next_open_close = is_closed ? todayPeriod.open.time : todayPeriod.close?.time;
+                    }
+                  }
+
+                  // Return processed place data
+                  return {
+                    name: place.name || 'Unnamed Place',
+                    location: {
+                      lat: parseFloat(details.latitude || place.latitude || finalLat),
+                      lng: parseFloat(details.longitude || place.longitude || finalLng)
+                    },
+                    place_id: place.location_id,
+                    vicinity: place.address_obj?.address_string || '',
+                    distance: parseFloat(place.distance || '0'),
+                    bearing: place.bearing || '',
+                    type: type,
+                    rating: parseFloat(details.rating || '0'),
+                    price_level: details.price_level || '',
+                    cuisine: details.cuisine?.[0]?.name || '',
+                    description: details.description || '',
+                    phone: details.phone || '',
+                    website: details.website || '',
+                    reviews_count: parseInt(details.num_reviews || '0'),
+                    is_closed,
+                    hours: details.hours?.weekday_text || [],
+                    next_open_close,
+                    photos,
+                    source: details.source?.name || 'TripAdvisor'
+                  };
+                } catch (error) {
+                  console.log(`Failed to process place "${place.name}":`, error);
+                  return null;
+                }
+              })
+            );
+
+            // Filter and sort results
+            const validPlaces = detailedPlaces
+              .filter(place => place !== null)
+              .sort((a, b) => (a?.distance || 0) - (b?.distance || 0));
+
+            return {
+              results: validPlaces,
+              center: { lat: finalLat, lng: finalLng }
+            };
+
+          } catch (error) {
+            console.error('Nearby search error:', error);
+            throw error;
+          }
         },
-      }),
-
+      })
     },
     toolChoice: "auto",
     onChunk(event) {
-      console.log("Call Type: ", event.chunk.type);
+      if (event.chunk.type === "tool-call") {
+        console.log("Called Tool: ", event.chunk.toolName);
+      }
     },
   });
 

@@ -103,8 +103,9 @@ import {
 import Autoplay from 'embla-carousel-autoplay';
 import FormComponent from '@/components/ui/form-component';
 import WeatherChart from '@/components/weather-chart';
-import { MapComponent, MapContainer, MapSkeleton, MapView, Place, PlaceDetails } from '@/components/map-components';
 import InteractiveChart from '@/components/interactive-charts';
+import NearbySearchMapView from '@/components/nearby-search-map-view';
+import { MapComponent, MapContainer, MapSkeleton } from '@/components/map-components';
 
 export const maxDuration = 60;
 
@@ -271,7 +272,6 @@ const HomeContent = () => {
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
-    const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
 
     const { theme } = useTheme();
 
@@ -701,54 +701,15 @@ GPT-4o has been re-enabled! You can use it by selecting the model from the dropd
                     );
                 }
 
+                console.log(result);
 
                 return (
-                    <div key={index} className="my-4">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
-                                Nearby {args.type}s
-                            </h2>
-                            <Badge variant="secondary" className="bg-neutral-200 dark:bg-neutral-700">
-                                Found {result.results.length} places
-                            </Badge>
-                        </div>
-
-                        <MapView
+                    <div className="my-4">
+                        <NearbySearchMapView
                             center={result.center}
                             places={result.results}
-                            zoom={14}
-                            view={viewMode}
-                            onViewChange={(newView) => setViewMode(newView)}
+                            type={args.type}
                         />
-
-                        {viewMode === 'list' && (
-                            <div className="mt-4 space-y-4">
-                                {result.results.map((place: Place, placeIndex: number) => (
-                                    <PlaceDetails
-                                        key={placeIndex}
-                                        {...place}
-                                        onDirectionsClick={() => {
-                                            const url = `https://www.google.com/maps/dir/?api=1&destination=${place.location.lat},${place.location.lng}`;
-                                            window.open(url, '_blank');
-                                        }}
-                                        onWebsiteClick={() => {
-                                            if (place.place_id) {
-                                                window.open(`https://www.tripadvisor.com/Attraction_Review-g-d${place.place_id}`, '_blank');
-                                            } else {
-                                                toast.info("Website not available");
-                                            }
-                                        }}
-                                        onCallClick={() => {
-                                            if (place.phone) {
-                                                window.open(`tel:${place.phone}`);
-                                            } else {
-                                                toast.info("Phone number not available");
-                                            }
-                                        }}
-                                    />
-                                ))}
-                            </div>
-                        )}
                     </div>
                 );
             }
@@ -1388,7 +1349,7 @@ GPT-4o has been re-enabled! You can use it by selecting the model from the dropd
 
     const Navbar: React.FC<NavbarProps> = () => {
         return (
-            <div className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center p-4 bg-white dark:bg-neutral-950">
+            <div className="fixed top-0 left-0 right-0 z-[60] flex justify-between items-center p-4 bg-white dark:bg-neutral-950">
                 <Link href="/new">
                     <Button
                         type="button"
@@ -1514,6 +1475,7 @@ GPT-4o has been re-enabled! You can use it by selecting the model from the dropd
                                 selectedModel={selectedModel}
                                 setSelectedModel={handleModelChange}
                                 resetSuggestedQuestions={resetSuggestedQuestions}
+                                lastSubmittedQueryRef={lastSubmittedQueryRef}
                             />
                             <SuggestionCards selectedModel={selectedModel} />
                         </motion.div>
@@ -1675,6 +1637,7 @@ GPT-4o has been re-enabled! You can use it by selecting the model from the dropd
                             selectedModel={selectedModel}
                             setSelectedModel={handleModelChange}
                             resetSuggestedQuestions={resetSuggestedQuestions}
+                            lastSubmittedQueryRef={lastSubmittedQueryRef}
                         />
                     </motion.div>
                 )}
