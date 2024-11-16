@@ -678,7 +678,7 @@ GPT-4o has been re-enabled! You can use it by selecting the model from the dropd
                             <div className="flex items-center gap-2">
                                 <MapPin className="h-5 w-5 text-neutral-700 dark:text-neutral-300 animate-pulse" />
                                 <span className="text-neutral-700 dark:text-neutral-300 text-lg">
-                                    Finding nearby {args.type}s...
+                                    Finding nearby {args.type}...
                                 </span>
                             </div>
                             <motion.div className="flex space-x-1">
