@@ -6,6 +6,7 @@ import PlaceCard from './place-card';
 import { Badge } from './ui/badge';
 
 
+
 interface Location {
   lat: number;
   lng: number;
@@ -38,8 +39,9 @@ interface Place {
   phone?: string;
   website?: string;
   hours?: string[];
-  distance?: string;
+  distance?: number;
   bearing?: string;
+  timezone?: string;
 }
 
 // Dynamic import for the map component

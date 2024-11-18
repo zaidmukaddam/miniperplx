@@ -35,8 +35,7 @@ interface Place {
   phone?: string;
   website?: string;
   hours?: string[];
-  distance?: string;
-  bearing?: string;
+  timezone?: string;
 }
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
@@ -45,8 +44,9 @@ interface InteractiveMapProps {
   center: Location;
   places: Place[];
   selectedPlace: Place | null;
-  onPlaceSelect: (place: Place) => void;
+  onPlaceSelect: (place: Place | null) => void;
   className?: string;
+  viewMode?: 'map' | 'list';
 }
 
 const InteractiveMap: React.FC<InteractiveMapProps> = ({
@@ -54,7 +54,8 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
   places,
   selectedPlace,
   onPlaceSelect,
-  className
+  className,
+  viewMode = 'map'
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -71,9 +72,9 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
     mapRef.current = new mapboxgl.Map({
       container: mapContainerRef.current,
-      style: 'mapbox://styles/mapbox/standard',
+      style: 'mapbox://styles/mapbox/light-v11',
       center: [center.lng, center.lat],
-      zoom: 13,
+      zoom: 14,
       attributionControl: false,
     });
 
@@ -81,14 +82,14 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
     // Add minimal controls
     map.addControl(
-      new mapboxgl.NavigationControl({ showCompass: false }),
-      'bottom-right',
+      new mapboxgl.NavigationControl({ showCompass: false, showZoom: true }),
+      'bottom-right'
     );
 
     // Compact attribution
     map.addControl(
       new mapboxgl.AttributionControl({ compact: true }),
-      'bottom-right'
+      'bottom-left'
     );
 
     return () => {
@@ -105,14 +106,14 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
     Object.values(markersRef.current).forEach(marker => marker.remove());
     markersRef.current = {};
 
-    // Add new markers
+    // Create markers with click handlers
     places.forEach((place, index) => {
-      const isSelected = selectedPlace?.name === place.name;
+      const isSelected = selectedPlace?.place_id === place.place_id;
 
       // Create marker element
       const el = document.createElement('div');
       el.className = cn(
-        'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 cursor-pointer',
+        'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 cursor-pointer shadow-md',
         isSelected
           ? 'bg-black text-white scale-110'
           : 'bg-white text-black hover:scale-105'
@@ -135,7 +136,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
       });
 
       // Store marker reference
-      markersRef.current[place.name] = marker;
+      markersRef.current[place.place_id] = marker;
     });
   }, [places, selectedPlace, handleMarkerClick]);
 
@@ -153,7 +154,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
       // If click wasn't on a marker, deselect
       if (!clickedMarker) {
-        onPlaceSelect(null as any); // Type cast to satisfy TS
+        onPlaceSelect(null);
       }
     };
 
@@ -164,17 +165,65 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
     };
   }, [onPlaceSelect]);
 
-  // Fly to selected place
+  // Fly to selected place with proper padding for list view
   useEffect(() => {
     if (!mapRef.current || !selectedPlace) return;
 
-    mapRef.current.flyTo({
-      center: [selectedPlace.location.lng, selectedPlace.location.lat],
-      zoom: 15,
+    const map = mapRef.current;
+    const { clientWidth, clientHeight } = document.documentElement;
+
+    // Calculate the actual width of list view (60% of viewport height in list mode)
+    const listHeight = viewMode === 'list' ? clientHeight * 0.6 : 0;
+
+    // Set padding based on view mode
+    const padding = {
+      top: viewMode === 'list' ? listHeight : 50,
+      bottom: 50,
+      left: 50,
+      right: 50
+    };
+
+    // Get coordinates of the target location
+    const coordinates: [number, number] = [selectedPlace.location.lng, selectedPlace.location.lat];
+
+    // Calculate the optimal zoom level
+    const currentZoom = map.getZoom();
+    const targetZoom = currentZoom < 15 ? 15 : currentZoom;
+
+    // Fly to location with padding
+    map.flyTo({
+      center: coordinates,
+      zoom: targetZoom,
+      padding: padding,
       duration: 1500,
-      essential: true,
+      essential: true
     });
-  }, [selectedPlace]);
+
+    // Ensure padding is maintained after animation
+    setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.setPadding(padding);
+      }
+    }, 1600);
+
+  }, [selectedPlace, viewMode]);
+
+  // Update map padding when view mode changes
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    const { clientHeight } = document.documentElement;
+    const listHeight = viewMode === 'list' ? clientHeight * 0.6 : 0;
+
+    const padding = {
+      top: viewMode === 'list' ? listHeight : 50,
+      bottom: 50,
+      left: 50,
+      right: 50
+    };
+
+    mapRef.current.setPadding(padding);
+  }, [viewMode]);
 
   return (
     <div className={cn("w-full h-full relative z-0", className)}>

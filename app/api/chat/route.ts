@@ -517,7 +517,7 @@ When asked a "What is" question, maintain the same format as the question and an
 
             if (geocoding.results?.[0]?.geometry?.location) {
               let trimmedLat = geocoding.results[0].geometry.location.lat.toString().split('.');
-              finalLat =  parseFloat(trimmedLat[0] + '.' + trimmedLat[1].slice(0, 6));
+              finalLat = parseFloat(trimmedLat[0] + '.' + trimmedLat[1].slice(0, 6));
               let trimmedLng = geocoding.results[0].geometry.location.lng.toString().split('.');
               finalLng = parseFloat(trimmedLng[0] + '.' + trimmedLng[1].slice(0, 6));
               console.log('Using geocoded coordinates:', finalLat, finalLng);
@@ -581,6 +581,8 @@ When asked a "What is" question, maintain the same format as the question and an
 
                   const details = await detailsResponse.json();
 
+                  console.log(`Place details for "${place.name}":`, details);
+
                   // Fetch place photos
                   let photos = [];
                   try {
@@ -611,24 +613,72 @@ When asked a "What is" question, maintain the same format as the question and an
                     console.log(`Photo fetch failed for "${place.name}":`, error);
                   }
 
-                  // Process hours and status
-                  const now = new Date();
-                  const currentDay = now.getDay();
-                  const currentTime = now.getHours() * 100 + now.getMinutes();
+                  
+
+                  // Get timezone for the location
+                  const tzResponse = await fetch(
+                    `https://maps.googleapis.com/maps/api/timezone/json?location=${details.latitude},${details.longitude}&timestamp=${Math.floor(Date.now() / 1000)}&key=${process.env.GOOGLE_MAPS_API_KEY}`
+                  );
+                  const tzData = await tzResponse.json();
+                  const timezone = tzData.timeZoneId || 'UTC';
+
+                  // Process hours and status with timezone
+                  const localTime = new Date(new Date().toLocaleString('en-US', { timeZone: timezone }));
+                  const currentDay = localTime.getDay();
+                  const currentHour = localTime.getHours();
+                  const currentMinute = localTime.getMinutes();
+                  const currentTime = currentHour * 100 + currentMinute;
 
                   let is_closed = true;
-                  let next_open_close = '';
+                  let next_open_close = null;
+                  let next_day = currentDay;
 
                   if (details.hours?.periods) {
-                    const todayPeriod = details.hours.periods.find((period: any) =>
-                      period.open?.day === currentDay
-                    );
+                    // Sort periods by day and time for proper handling of overnight hours
+                    const sortedPeriods = [...details.hours.periods].sort((a, b) => {
+                      if (a.open.day !== b.open.day) return a.open.day - b.open.day;
+                      return parseInt(a.open.time) - parseInt(b.open.time);
+                    });
 
-                    if (todayPeriod) {
-                      const openTime = parseInt(todayPeriod.open.time);
-                      const closeTime = todayPeriod.close ? parseInt(todayPeriod.close.time) : 2359;
-                      is_closed = currentTime < openTime || currentTime > closeTime;
-                      next_open_close = is_closed ? todayPeriod.open.time : todayPeriod.close?.time;
+                    // Find current or next opening period
+                    for (let i = 0; i < sortedPeriods.length; i++) {
+                      const period = sortedPeriods[i];
+                      const openTime = parseInt(period.open.time);
+                      const closeTime = period.close ? parseInt(period.close.time) : 2359;
+                      const periodDay = period.open.day;
+
+                      // Handle overnight hours
+                      if (closeTime < openTime) {
+                        // Place is open from previous day
+                        if (currentDay === periodDay && currentTime < closeTime) {
+                          is_closed = false;
+                          next_open_close = period.close.time;
+                          break;
+                        }
+                        // Place is open today and extends to tomorrow
+                        if (currentDay === periodDay && currentTime >= openTime) {
+                          is_closed = false;
+                          next_open_close = period.close.time;
+                          next_day = (periodDay + 1) % 7;
+                          break;
+                        }
+                      } else {
+                        // Normal hours within same day
+                        if (currentDay === periodDay && currentTime >= openTime && currentTime < closeTime) {
+                          is_closed = false;
+                          next_open_close = period.close.time;
+                          break;
+                        }
+                      }
+
+                      // Find next opening time if currently closed
+                      if (is_closed) {
+                        if ((periodDay > currentDay) || (periodDay === currentDay && openTime > currentTime)) {
+                          next_open_close = period.open.time;
+                          next_day = periodDay;
+                          break;
+                        }
+                      }
                     }
                   }
 
@@ -639,6 +689,7 @@ When asked a "What is" question, maintain the same format as the question and an
                       lat: parseFloat(details.latitude || place.latitude || finalLat),
                       lng: parseFloat(details.longitude || place.longitude || finalLng)
                     },
+                    timezone,
                     place_id: place.location_id,
                     vicinity: place.address_obj?.address_string || '',
                     distance: parseFloat(place.distance || '0'),
@@ -654,6 +705,8 @@ When asked a "What is" question, maintain the same format as the question and an
                     is_closed,
                     hours: details.hours?.weekday_text || [],
                     next_open_close,
+                    next_day,
+                    periods: details.hours?.periods || [],
                     photos,
                     source: details.source?.name || 'TripAdvisor'
                   };
