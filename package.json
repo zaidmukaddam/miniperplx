@@ -11,11 +11,12 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^0.0.55",
     "@ai-sdk/azure": "^0.0.51",
-    "@ai-sdk/cohere": "latest",
+    "@ai-sdk/cohere": "^1.0.3",
     "@ai-sdk/google": "^0.0.55",
     "@ai-sdk/groq": "^0.0.1",
     "@ai-sdk/mistral": "^0.0.41",
     "@ai-sdk/openai": "^0.0.58",
+    "@ai-sdk/xai": "^1.0.3",
     "@e2b/code-interpreter": "^1.0.3",
     "@foobar404/wave": "^2.0.5",
     "@mendable/firecrawl-js": "^1.4.3",

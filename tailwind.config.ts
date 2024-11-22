@@ -88,11 +88,6 @@ const config = {
     },
   },
   plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
-  safelist: [
-    {
-      pattern: /katex-.*/,
-    },
-  ],
 } satisfies Config
 
 export default config

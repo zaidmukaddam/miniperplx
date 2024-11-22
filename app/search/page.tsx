@@ -106,6 +106,7 @@ import WeatherChart from '@/components/weather-chart';
 import InteractiveChart from '@/components/interactive-charts';
 import NearbySearchMapView from '@/components/nearby-search-map-view';
 import { MapComponent, MapContainer, MapSkeleton } from '@/components/map-components';
+import MultiSearch from '@/components/multi-search';
 
 export const maxDuration = 60;
 
@@ -115,147 +116,6 @@ interface Attachment {
     url: string;
     size: number;
 }
-
-interface SearchImage {
-    url: string;
-    description: string;
-}
-
-const ImageCarousel = ({ images, onClose }: { images: SearchImage[], onClose: () => void }) => {
-    return (
-        <Dialog open={true} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[90vw] max-h-[90vh] p-0 bg-white dark:bg-neutral-900">
-                <button
-                    onClick={onClose}
-                    className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground z-10"
-                >
-                    <X className="h-4 w-4 text-neutral-800 dark:text-neutral-200" />
-                    <span className="sr-only">Close</span>
-                </button>
-                <Carousel className="w-full h-full">
-                    <CarouselContent>
-                        {images.map((image, index) => (
-                            <CarouselItem key={index} className="flex flex-col items-center justify-center p-4">
-                                <img
-                                    src={image.url}
-                                    alt={image.description}
-                                    className="max-w-full max-h-[70vh] object-contain mb-4"
-                                />
-                                <p className="text-center text-sm text-neutral-800 dark:text-neutral-200">{image.description}</p>
-                            </CarouselItem>
-                        ))}
-                    </CarouselContent>
-                    <CarouselPrevious className="left-4" />
-                    <CarouselNext className="right-4" />
-                </Carousel>
-            </DialogContent>
-        </Dialog>
-    );
-};
-
-
-const WebSearchResults = ({ result, args }: { result: any, args: any }) => {
-    const [openDialog, setOpenDialog] = useState(false);
-    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-
-    const handleImageClick = (index: number) => {
-        setSelectedImageIndex(index);
-        setOpenDialog(true);
-    };
-
-    const handleCloseDialog = () => {
-        setOpenDialog(false);
-    };
-
-    return (
-        <div>
-            <Accordion type="single" collapsible className="w-full mt-4">
-                <AccordionItem value="item-1" className='border-none'>
-                    <AccordionTrigger className="hover:no-underline py-2">
-                        <div className="flex items-center justify-between w-full">
-                            <div className="flex items-center gap-2">
-                                <Newspaper className="h-5 w-5 text-primary" />
-                                <h2 className='text-base font-semibold text-neutral-800 dark:text-neutral-200'>Sources Found</h2>
-                            </div>
-                            {result && (
-                                <Badge variant="secondary" className='rounded-full bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200'>{result.results.length} results</Badge>
-                            )}
-                        </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                        {args?.query && (
-                            <Badge variant="secondary" className="mb-4 text-xs sm:text-sm font-light rounded-full bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200">
-                                <SearchIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                                {args.query}
-                            </Badge>
-                        )}
-                        {result && (
-                            <div className="flex flex-row gap-4 overflow-x-auto pb-2">
-                                {result.results.map((item: any, itemIndex: number) => (
-                                    <div key={itemIndex} className="flex flex-col w-[280px] flex-shrink-0 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg p-3">
-                                        <div className="flex items-start gap-3 mb-2">
-                                            <img
-                                                src={`https://www.google.com/s2/favicons?sz=128&domain=${new URL(item.url).hostname}`}
-                                                alt="Favicon"
-                                                className="w-8 h-8 sm:w-12 sm:h-12 flex-shrink-0 rounded-sm"
-                                            />
-                                            <div className="flex-grow min-w-0">
-                                                <h3 className="text-sm font-semibold line-clamp-2 text-neutral-800 dark:text-neutral-200">{item.title}</h3>
-                                                <p className="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-2 mt-1">{item.content}</p>
-                                            </div>
-                                        </div>
-                                        <a
-                                            href={item.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-xs text-primary truncate hover:underline"
-                                        >
-                                            {item.url}
-                                        </a>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </AccordionContent>
-                </AccordionItem>
-            </Accordion>
-            {result && result.images && result.images.length > 0 && (
-                <div className="mt-4">
-                    <div className='flex items-center gap-2 cursor-pointer mb-2'>
-                        <ImageIcon className="h-5 w-5 text-primary" />
-                        <h3 className="text-base font-semibold text-neutral-800 dark:text-neutral-200">Images</h3>
-                    </div>
-                    <div className="grid grid-cols-4 gap-2">
-                        {result.images.slice(0, 4).map((image: SearchImage, itemIndex: number) => (
-                            <div
-                                key={itemIndex}
-                                className="relative aspect-square cursor-pointer overflow-hidden rounded-md"
-                                onClick={() => handleImageClick(itemIndex)}
-                            >
-                                <img
-                                    src={image.url}
-                                    alt={image.description}
-                                    className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
-                                />
-                                {itemIndex === 3 && result.images.length > 4 && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                                        <PlusCircledIcon className="w-8 h-8 text-white" />
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-            {openDialog && result.images && (
-                <ImageCarousel
-                    images={result.images}
-                    onClose={handleCloseDialog}
-                />
-            )}
-        </div>
-    );
-};
 
 const HomeContent = () => {
     const searchParams = useSearchParams();
@@ -357,31 +217,33 @@ const HomeContent = () => {
     const changelogs: Changelog[] = [
         {
             id: "1",
-            title: "Dark mode is here!",
+            title: "New Updates!",
             images: [
-                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-dark-mode-promo.png",
-                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-new-input-bar-promo.png",
-                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-gpt-4o-back-Lwzx44RD4XofYLAmrEsLD3Fngnn33K.png"
+                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-maps-beta.png",
+                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-multi-run.png",
+                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-multi-results.png",
+                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-new-claude.png"
             ],
             content:
-                `## **Dark Mode**
+                `## **Nearby Map Search Beta**
 
-The most requested feature is finally here! You can now toggle between light and dark mode. Default is set to your system preference.
+The new Nearby Map Search tool is now available in beta! You can use it to find nearby places, restaurants, attractions, and more. Give it a try and let us know what you think!
 
-## **New Input Bar Design**
+## **Multi Search is here by default**
 
-The input bar has been redesigned to make it more focused, user-friendly and accessible. The model selection dropdown has been moved to the bottom left corner inside the input bar.
+The AI powered Multiple Query Search tool is now available by default. The LLM model will now automatically suggest multiple queries based on your input and run the searches in parallel.
 
-## **GPT-4o is back!**
+## **Claude 3.5 Sonnet(New) and 3.5 Haiku are here!**
 
-GPT-4o has been re-enabled! You can use it by selecting the model from the dropdown.`,
+The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now available on the platform.
+`
         }
     ];
 
     const ChangeLogs: React.FC<{ open: boolean; setOpen: (open: boolean) => void }> = ({ open, setOpen }) => {
         return (
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="no-scrollbar max-h-[80vh] overflow-y-auto rounded-xl border-none p-0 gap-0 font-sans bg-white dark:bg-neutral-900">
+                <DialogContent className="no-scrollbar max-h-[80vh] overflow-y-auto rounded-xl border-none p-0 gap-0 font-sans bg-white dark:bg-neutral-900 z-[1000]">
                     <div className="w-full py-3 flex justify-center items-center border-b border-neutral-200 dark:border-neutral-700">
                         <h2 className="text-lg font-bold flex items-center gap-2 text-neutral-800 dark:text-neutral-100">
                             <Flame size={20} /> What&apos;s new
@@ -958,33 +820,8 @@ GPT-4o has been re-enabled! You can use it by selecting the model from the dropd
 
             if (toolInvocation.toolName === 'web_search') {
                 return (
-                    <div>
-                        {!result ? (
-                            <div className="flex items-center justify-between w-full">
-                                <div className='flex items-center gap-2'>
-                                    <Globe className="h-5 w-5 text-neutral-700 dark:text-neutral-300 animate-spin" />
-                                    <span className="text-neutral-700 dark:text-neutral-300 text-lg">Running a search...</span>
-                                </div>
-                                <div className="flex space-x-1">
-                                    {[0, 1, 2].map((index) => (
-                                        <motion.div
-                                            key={index}
-                                            className="w-2 h-2 bg-neutral-400 dark:bg-neutral-600 rounded-full"
-                                            initial={{ opacity: 0.3 }}
-                                            animate={{ opacity: 1 }}
-                                            transition={{
-                                                repeat: Infinity,
-                                                duration: 0.8,
-                                                delay: index * 0.2,
-                                                repeatType: "reverse",
-                                            }}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        ) : (
-                            <WebSearchResults result={result} args={args} />
-                        )}
+                    <div className="mt-4">
+                        <MultiSearch result={result} args={args} />
                     </div>
                 );
             }

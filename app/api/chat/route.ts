@@ -32,16 +32,6 @@ function sanitizeUrl(url: string): string {
   return url.replace(/\s+/g, '%20')
 }
 
-// Helper function to geocode an address
-const geocodeAddress = async (address: string) => {
-  const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
-  const response = await fetch(
-    `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${mapboxToken}`
-  );
-  const data = await response.json();
-  return data.features[0];
-};
-
 export async function POST(req: Request) {
   const { messages, model } = await req.json();
 
@@ -144,105 +134,89 @@ When asked a "What is" question, maintain the same format as the question and an
 - The response that include latex equations, use always follow the formats: 
 - Do not wrap any equation or formulas or any sort of math related block in round brackets() as it will crash the response.`,
     tools: {
+      // Update the web_search tool parameters in app/api/chat/route.ts
       web_search: tool({
-        description:
-          "Search the web for information with the given query, max results and search depth.",
+        description: "Search the web for information with multiple queries, max results and search depth.",
         parameters: z.object({
-          query: z.string().describe("The search query to look up on the web."),
-          maxResults: z
+          queries: z.array(z.string().describe("Array of search queries to look up on the web.")),
+          maxResults: z.array(z
             .number()
-            .describe(
-              "The maximum number of results to return. Default to be used is 10.",
-            ),
-          topic: z
+            .describe("Array of maximum number of results to return per query. Default is 10.")),
+          topic: z.array(z
             .enum(["general", "news"])
-            .describe("The topic type to search for. Default is general."),
-          searchDepth: z
+            .describe("Array of topic types to search for. Default is general.")),
+          searchDepth: z.array(z
             .enum(["basic", "advanced"])
-            .describe(
-              "The search depth to use for the search. Default is basic.",
-            ),
+            .describe("Array of search depths to use. Default is basic.")),
           exclude_domains: z
             .array(z.string())
-            .describe(
-              "A list of domains to specifically exclude from the search results. Default is None, which doesn't exclude any domains.",
-            ),
+            .describe("A list of domains to exclude from all search results. Default is None."),
         }),
         execute: async ({
-          query,
+          queries,
           maxResults,
           topic,
           searchDepth,
           exclude_domains,
         }: {
-          query: string;
-          maxResults: number;
-          topic: "general" | "news";
-          searchDepth: "basic" | "advanced";
+          queries: string[];
+          maxResults: number[];
+          topic: ("general" | "news")[];
+          searchDepth: ("basic" | "advanced")[];
           exclude_domains?: string[];
         }) => {
           const apiKey = process.env.TAVILY_API_KEY;
           const tvly = tavily({ apiKey });
-          const includeImageDescriptions = true
+          const includeImageDescriptions = true;
 
-
-          console.log("Query:", query);
+          console.log("Queries:", queries);
           console.log("Max Results:", maxResults);
-          console.log("Topic:", topic);
-          console.log("Search Depth:", searchDepth);
+          console.log("Topics:", topic);
+          console.log("Search Depths:", searchDepth);
           console.log("Exclude Domains:", exclude_domains);
 
-          const data = await tvly.search(query, {
-            topic: topic,
-            days: topic === "news" ? 7 : undefined,
-            maxResults: maxResults < 5 ? 5 : maxResults,
-            searchDepth: searchDepth,
-            includeAnswer: true,
-            includeImages: true,
-            includeImageDescriptions: includeImageDescriptions,
-            excludeDomains: exclude_domains,
-          })
+          // Execute searches in parallel
+          const searchPromises = queries.map(async (query, index) => {
+            const data = await tvly.search(query, {
+              topic: topic[index] || topic[0] || "general",
+              days: topic[index] === "news" ? 7 : undefined,
+              maxResults: maxResults[index] || maxResults[0] || 10,
+              searchDepth: searchDepth[index] || searchDepth[0] || "basic",
+              includeAnswer: true,
+              includeImages: true,
+              includeImageDescriptions: includeImageDescriptions,
+              excludeDomains: exclude_domains,
+            });
 
-          let context = data.results.map(
-            (obj: any, index: number) => {
-              if (topic === "news") {
-                return {
-                  url: obj.url,
-                  title: obj.title,
-                  content: obj.content,
-                  raw_content: obj.raw_content,
-                  published_date: obj.published_date,
-                };
-              }
-              return {
+            return {
+              query,
+              results: data.results.map((obj: any) => ({
                 url: obj.url,
                 title: obj.title,
                 content: obj.content,
                 raw_content: obj.raw_content,
-              };
-            },
-          );
+                published_date: topic[index] === "news" ? obj.published_date : undefined,
+              })),
+              images: includeImageDescriptions
+                ? data.images
+                  .map(({ url, description }: { url: string; description?: string }) => ({
+                    url: sanitizeUrl(url),
+                    description: description ?? ''
+                  }))
+                  .filter(
+                    (image: { url: string; description: string }): image is { url: string; description: string } =>
+                      typeof image === 'object' &&
+                      image.description !== undefined &&
+                      image.description !== ''
+                  )
+                : data.images.map(({ url }: { url: string }) => sanitizeUrl(url))
+            };
+          });
 
-
-          const processedImages = includeImageDescriptions
-            ? data.images
-              .map(({ url, description }: { url: string; description?: string }) => ({
-                url: sanitizeUrl(url),
-                description: description ?? ''
-              }))
-              .filter(
-                (
-                  image: { url: string; description: string }
-                ): image is { url: string; description: string } =>
-                  typeof image === 'object' &&
-                  image.description !== undefined &&
-                  image.description !== ''
-              )
-            : data.images.map(({ url }: { url: string }) => sanitizeUrl(url))
+          const searchResults = await Promise.all(searchPromises);
 
           return {
-            results: context,
-            images: processedImages
+            searches: searchResults,
           };
         },
       }),
@@ -613,7 +587,7 @@ When asked a "What is" question, maintain the same format as the question and an
                     console.log(`Photo fetch failed for "${place.name}":`, error);
                   }
 
-                  
+
 
                   // Get timezone for the location
                   const tzResponse = await fetch(

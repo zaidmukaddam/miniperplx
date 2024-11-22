@@ -1,4 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
+// /components/ui/form-component.tsx
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { ChatRequestOptions, CreateMessage, Message } from 'ai';
@@ -431,7 +432,7 @@ const FormComponent: React.FC<FormComponentProps> = ({
 
     return (
         <div className={cn(
-            "relative w-full flex flex-col gap-2 rounded-lg transition-all duration-300 z-[9999]",
+            "relative w-full flex flex-col gap-2 rounded-lg transition-all duration-300 z-[99]",
             attachments.length > 0 || uploadQueue.length > 0
                 ? "bg-gray-100/70 dark:bg-neutral-800 p-1"
                 : "bg-transparent"
