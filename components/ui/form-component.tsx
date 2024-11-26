@@ -433,7 +433,6 @@ const FormComponent: React.FC<FormComponentProps> = ({
     return (
         <div className={cn(
             "relative w-full flex flex-col gap-2 rounded-lg transition-all duration-300 z-[51]",
-
             attachments.length > 0 || uploadQueue.length > 0
                 ? "bg-gray-100/70 dark:bg-neutral-800 p-1"
                 : "bg-transparent"
@@ -481,9 +480,11 @@ const FormComponent: React.FC<FormComponentProps> = ({
                         "overflow-y-auto overflow-x-hidden",
                         "text-base leading-relaxed",
                         "bg-neutral-100 dark:bg-neutral-900",
+                        "boder border-neutral-200 dark:border-neutral-700",
+                        "focus:border-neutral-300 dark:focus:border-neutral-600",
                         "text-neutral-900 dark:text-neutral-100",
                         "focus:ring-2 focus:ring-neutral-300 dark:focus:ring-neutral-600",
-                        "px-4 pt-3 pb-10" // Increased bottom padding to prevent overlap
+                        "px-4 pt-3 pb-5" // Increased bottom padding to prevent overlap
                     )}
                     rows={3}
                     onKeyDown={(event) => {
@@ -499,7 +500,9 @@ const FormComponent: React.FC<FormComponentProps> = ({
                 />
 
                 <div className={cn("absolute bottom-0 inset-x-0 flex justify-between items-center rounded-b-lg p-2 bg-neutral-100 dark:bg-neutral-900",
-                    "border border-t-0",
+                    "border border-t-0 border-neutral-200 dark:border-neutral-700",
+                    isFocused ? "border-neutral-300 dark:border-neutral-600" : "",
+                    isLoading ? "!opacity-40 !cursor-not-allowed" : ""
                 )}>
                     <ModelSwitcher
                         selectedModel={selectedModel}
