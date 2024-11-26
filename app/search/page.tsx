@@ -16,9 +16,9 @@ import ReactMarkdown from 'react-markdown';
 import { useTheme } from 'next-themes';
 import Marked, { ReactRenderer } from 'marked-react';
 import { track } from '@vercel/analytics';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useChat } from 'ai/react';
-import { ToolInvocation } from 'ai';
+import { Message, ToolInvocation } from 'ai';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
@@ -118,13 +118,20 @@ interface Attachment {
 }
 
 const HomeContent = () => {
+    const router = useRouter();
     const searchParams = useSearchParams();
     const initialQuery = searchParams.get('query') || '';
     const initialModel = searchParams.get('model') || 'azure:gpt4o-mini';
 
-    const lastSubmittedQueryRef = useRef(initialQuery);
-    const [hasSubmitted, setHasSubmitted] = useState(!!initialQuery);
-    const [selectedModel, setSelectedModel] = useState(initialModel);
+    // Memoize initial values to prevent re-calculation
+    const initialState = useMemo(() => ({
+        query: searchParams.get('query') || '',
+        model: searchParams.get('model') || 'azure:gpt4o-mini'
+    }), []); // Empty dependency array as we only want this on mount
+
+    const lastSubmittedQueryRef = useRef(initialState.query);
+    const [hasSubmitted, setHasSubmitted] = useState(() => !!initialState.query);
+    const [selectedModel, setSelectedModel] = useState(initialState.model);
     const bottomRef = useRef<HTMLDivElement>(null);
     const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
     const [isEditingMessage, setIsEditingMessage] = useState(false);
@@ -132,6 +139,7 @@ const HomeContent = () => {
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
+    const initializedRef = useRef(false);
 
     const { theme } = useTheme();
 
@@ -161,6 +169,19 @@ const HomeContent = () => {
             });
         },
     });
+
+    useEffect(() => {
+        if (!initializedRef.current && initialState.query && !messages.length) {
+            initializedRef.current = true;
+            setHasSubmitted(true);
+            console.log("[initial query]:", initialState.query);
+            append({
+                content: initialState.query,
+                role: 'user'
+            });
+        }
+    }, [initialState.query, append, setInput, messages.length]);
+
 
     const ThemeToggle: React.FC = () => {
         const { theme, setTheme } = useTheme();
@@ -219,10 +240,9 @@ const HomeContent = () => {
             id: "1",
             title: "New Updates!",
             images: [
-                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-maps-beta.png",
-                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-multi-run.png",
-                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-multi-results.png",
-                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-new-claude.png"
+                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-new-claude-models.png",
+                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-nearby-search-maps-demo.png",
+                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-multi-search-demo.png"
             ],
             content:
                 `## **Nearby Map Search Beta**
@@ -283,8 +303,12 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
                                     <h3 className="text-2xl font-medium font-serif text-neutral-800 dark:text-neutral-100">{changelog.title}</h3>
                                     <ReactMarkdown
                                         components={{
-                                            h2: ({ node, className, ...props }) => <h2 {...props} className={cn(className, "my-1 text-neutral-800 dark:text-neutral-100")} />,
-                                            p: ({ node, className, ...props }) => <p {...props} className={cn(className, "mb-2 text-neutral-700 dark:text-neutral-300")} />,
+                                            h2: ({ node, className, ...props }) => (
+                                                <h2 {...props} className={cn("my-2 text-lg font-medium text-neutral-800 dark:text-neutral-100", className)} />
+                                            ),
+                                            p: ({ node, className, ...props }) => (
+                                                <p {...props} className={cn("mb-3 text-neutral-700 dark:text-neutral-300 leading-relaxed", className)} />
+                                            ),
                                         }}
                                         className="text-sm"
                                     >

@@ -24,10 +24,10 @@ interface ModelSwitcherProps {
 }
 
 const models = [
-    { value: "azure:gpt4o-mini", label: "GPT-4o Mini", icon: Zap, description: "God speed, good quality", color: "emerald" },
-    { value: "anthropic:claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku", icon: Sparkles, description: "Good quality, high speed", color: "orange" },
-    { value: "anthropic:claude-3-5-sonnet-latest", label: "Claude 3.5 Sonnet (New)", icon: Sparkles, description: "High quality, good speed", color: "indigo" },
-    { value: "azure:gpt-4o", label: "GPT-4o", icon: Cpu, description: "Higher quality, normal speed", color: "blue" },
+    { value: "azure:gpt4o-mini", label: "GPT-4o Mini", icon: Zap, description: "God speed, good quality", color: "emerald", vision: true },
+    { value: "anthropic:claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku", icon: Sparkles, description: "Good quality, high speed", color: "orange", vision: false },
+    { value: "anthropic:claude-3-5-sonnet-latest", label: "Claude 3.5 Sonnet (New)", icon: Sparkles, description: "High quality, good speed", color: "indigo", vision: true },
+    { value: "azure:gpt-4o", label: "GPT-4o", icon: Cpu, description: "Higher quality, normal speed", color: "blue", vision: true },
 ];
 
 
@@ -71,13 +71,13 @@ const ModelSwitcher: React.FC<ModelSwitcherProps> = ({ selectedModel, setSelecte
                     "flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300",
                     getColorClasses(selectedModelData.color, true),
                     "focus:outline-none focus:ring-2 focus:ring-opacity-50",
-                    `focus:ring-${selectedModelData.color}-500`,
+                    `!focus:ring-${selectedModelData.color}-500`,
                     className
                 )}
             >
                 <selectedModelData.icon className="w-4 h-4" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-[220px] p-1 !font-sans rounded-md shadow-md bg-white dark:bg-neutral-800 ml-4 sm:m-auto">
+            <DropdownMenuContent className="w-[220px] p-1 !font-sans rounded-md shadow-md bg-white dark:bg-neutral-800 ml-4 !mt-0 sm:m-auto !z-[52]">
                 {models.map((model) => (
                     <DropdownMenuItem
                         key={model.value}
@@ -169,6 +169,11 @@ const PaperclipIcon = ({ size = 16 }: { size?: number }) => {
 
 
 const MAX_IMAGES = 3;
+
+const hasVisionSupport = (modelValue: string): boolean => {
+    const selectedModel = models.find(model => model.value === modelValue);
+    return selectedModel?.vision === true
+};
 
 interface FormComponentProps {
     input: string;
@@ -312,23 +317,18 @@ const FormComponent: React.FC<FormComponentProps> = ({
     const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
     const { width } = useWindowSize();
     const postSubmitFileInputRef = useRef<HTMLInputElement>(null);
-
-    const adjustHeight = useCallback(() => {
-        if (inputRef.current) {
-            inputRef.current.style.height = "auto";
-            inputRef.current.style.height = `${inputRef.current.scrollHeight + 2}px`;
-        }
-    }, [inputRef]);
-
-    useEffect(() => {
-        if (inputRef.current) {
-            adjustHeight();
-        }
-    }, [adjustHeight, input, inputRef]);
+    const [isFocused, setIsFocused] = useState(false);
 
     const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         setInput(event.target.value);
-        adjustHeight();
+    };
+
+    const handleFocus = () => {
+        setIsFocused(true);
+    };
+
+    const handleBlur = () => {
+        setIsFocused(false);
     };
 
     const uploadFile = async (file: File): Promise<Attachment> => {
@@ -392,7 +392,7 @@ const FormComponent: React.FC<FormComponentProps> = ({
         if (input.trim() || attachments.length > 0) {
             setHasSubmitted(true);
             lastSubmittedQueryRef.current = input.trim();
-            track("search input", {query: input.trim()})
+            track("search input", { query: input.trim() })
 
             handleSubmit(event, {
                 experimental_attachments: attachments,
@@ -432,7 +432,8 @@ const FormComponent: React.FC<FormComponentProps> = ({
 
     return (
         <div className={cn(
-            "relative w-full flex flex-col gap-2 rounded-lg transition-all duration-300 z-[99]",
+            "relative w-full flex flex-col gap-2 rounded-lg transition-all duration-300 z-[51]",
+
             attachments.length > 0 || uploadQueue.length > 0
                 ? "bg-gray-100/70 dark:bg-neutral-800 p-1"
                 : "bg-transparent"
@@ -473,14 +474,16 @@ const FormComponent: React.FC<FormComponentProps> = ({
                     value={input}
                     onChange={handleInput}
                     disabled={isLoading}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
                     className={cn(
-                        "min-h-[48px] overflow-hidden resize-none rounded-lg text-base",
+                        "min-h-[40px] max-h-[200px] w-full resize-none rounded-lg",
+                        "overflow-y-auto overflow-x-hidden",
+                        "text-base leading-relaxed",
                         "bg-neutral-100 dark:bg-neutral-900",
                         "text-neutral-900 dark:text-neutral-100",
-                        "border border-neutral-200 dark:border-neutral-700",
-                        "focus:border-neutral-300 dark:focus:border-neutral-600",
                         "focus:ring-2 focus:ring-neutral-300 dark:focus:ring-neutral-600",
-                        "pr-20 py-2"
+                        "px-4 pt-3 pb-10" // Increased bottom padding to prevent overlap
                     )}
                     rows={3}
                     onKeyDown={(event) => {
@@ -495,49 +498,53 @@ const FormComponent: React.FC<FormComponentProps> = ({
                     }}
                 />
 
-                <div className="absolute left-2 bottom-2 mt-4">
+                <div className={cn("absolute bottom-0 inset-x-0 flex justify-between items-center rounded-b-lg p-2 bg-neutral-100 dark:bg-neutral-900",
+                    "border border-t-0",
+                )}>
                     <ModelSwitcher
                         selectedModel={selectedModel}
                         setSelectedModel={setSelectedModel}
                     />
-                </div>
 
-                <div className="absolute right-2 bottom-2 flex items-center gap-2 mt-4">
-                    <Button
-                        className="rounded-full p-1.5 h-8 w-8 bg-white dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-600"
-                        onClick={(event) => {
-                            event.preventDefault();
-                            triggerFileInput();
-                        }}
-                        variant="outline"
-                        disabled={isLoading}
-                    >
-                        <PaperclipIcon size={14} />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        {hasVisionSupport(selectedModel) && (
+                            <Button
+                                className="rounded-full p-1.5 h-8 w-8 bg-white dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-600"
+                                onClick={(event) => {
+                                    event.preventDefault();
+                                    triggerFileInput();
+                                }}
+                                variant="outline"
+                                disabled={isLoading}
+                            >
+                                <PaperclipIcon size={14} />
+                            </Button>
+                        )}
 
-                    {isLoading ? (
-                        <Button
-                            className="rounded-full p-1.5 h-8 w-8"
-                            onClick={(event) => {
-                                event.preventDefault();
-                                stop();
-                            }}
-                            variant="destructive"
-                        >
-                            <StopIcon size={14} />
-                        </Button>
-                    ) : (
-                        <Button
-                            className="rounded-full p-1.5 h-8 w-8 "
-                            onClick={(event) => {
-                                event.preventDefault();
-                                submitForm();
-                            }}
-                            disabled={input.length === 0 && attachments.length === 0 || uploadQueue.length > 0}
-                        >
-                            <ArrowUpIcon size={14} />
-                        </Button>
-                    )}
+                        {isLoading ? (
+                            <Button
+                                className="rounded-full p-1.5 h-8 w-8"
+                                onClick={(event) => {
+                                    event.preventDefault();
+                                    stop();
+                                }}
+                                variant="destructive"
+                            >
+                                <StopIcon size={14} />
+                            </Button>
+                        ) : (
+                            <Button
+                                className="rounded-full p-1.5 h-8 w-8"
+                                onClick={(event) => {
+                                    event.preventDefault();
+                                    submitForm();
+                                }}
+                                disabled={input.length === 0 && attachments.length === 0 || uploadQueue.length > 0}
+                            >
+                                <ArrowUpIcon size={14} />
+                            </Button>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
