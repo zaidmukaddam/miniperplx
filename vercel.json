@@ -5,5 +5,10 @@
             "schedule": "0 * * * *"
         }
     ],
-    "regions": ["sfo1", "bom1", "sin1"]
+    "regions": [
+        "iad1",
+        "sfo1",
+        "bom1",
+        "sin1"
+    ]
 }
