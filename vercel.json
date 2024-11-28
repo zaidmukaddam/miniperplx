@@ -8,7 +8,6 @@
     "regions": [
         "iad1",
         "sfo1",
-        "bom1",
-        "sin1"
+        "bom1"
     ]
 }
