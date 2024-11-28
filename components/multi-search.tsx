@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, Calendar, ChevronLeft, ChevronRight, Clock, Globe, ImageIcon, Newspaper, Search, X } from 'lucide-react';
@@ -302,12 +302,12 @@ const MultiSearch: React.FC<{ result: MultiSearchResponse | null; args: MultiSea
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <div className="relative w-full">
                     <div className="w-full overflow-y-scroll">
-                        <TabsList className="inline-flex h-auto gap-2 dark:bg-neutral-900 bg-white p-2 rounded-xl dark:border-neutral-800 border-gray-200 border">
+                        <TabsList className="inline-flex h-auto gap-2 dark:bg-inherit bg-white p-0 m-0">
                             {result.searches.map((search, index) => (
                                 <TabsTrigger
                                     key={index}
                                     value={index.toString()}
-                                    className="flex-shrink-0 px-3 py-2 rounded-lg transition-all data-[state=active]:dark:bg-neutral-800 data-[state=active]:bg-gray-200 data-[state=active]:text-gray-900 data-[state=active]:dark:text-white text-gray-400 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-200"
+                                    className="flex-shrink-0 px-3 py-2 rounded-xl !shadow-none border transition-all data-[state=active]:dark:bg-neutral-800 data-[state=active]:border-neutral-400 data-[state=active]:text-gray-900 data-[state=active]:dark:text-white text-gray-400 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-200"
                                 >
                                     <SearchQueryTab
                                         query={search.query}
@@ -320,7 +320,7 @@ const MultiSearch: React.FC<{ result: MultiSearchResponse | null; args: MultiSea
                     </div>
                 </div>
 
-                <AnimatePresence mode="wait">
+                <AnimatePresence>
                     {result.searches.map((search, index) => (
                         <TabsContent key={index} value={index.toString()}>
                             <SearchResults
@@ -339,7 +339,8 @@ const MultiSearch: React.FC<{ result: MultiSearchResponse | null; args: MultiSea
 
             {galleryOpen && result.searches[selectedSearch].images && (
                 <Dialog open={galleryOpen} onOpenChange={setGalleryOpen}>
-                    <DialogContent className="max-w-3xl max-h-[85vh] p-0 dark:bg-neutral-900 bg-white dark:border-neutral-800 border-gray-200">
+                    <DialogTitle className='sr-only'>Image Gallery</DialogTitle>
+                    <DialogContent className="max-w-3xl max-h-[85vh] p-0 dark:bg-neutral-900 bg-white dark:border-neutral-800 border-gray-200 !font-sans">
                         <div className="relative w-full h-full">
                             <div className="absolute right-3 top-3 z-50 flex items-center gap-2">
                                 <span className="px-2 py-1 rounded-md dark:bg-neutral-800 bg-gray-100 text-xs dark:text-neutral-300 text-gray-600">
@@ -360,8 +361,8 @@ const MultiSearch: React.FC<{ result: MultiSearchResponse | null; args: MultiSea
                                     className="max-h-[70vh] object-contain rounded-md mx-auto p-4"
                                 />
                                 {result.searches[selectedSearch].images[selectedImage].description && (
-                                    <div className="absolute inset-x-0 bottom-4 mx-4 p-2 bg-gradient-to-t from-black/80 to-transparent rounded-b-md">
-                                        <p className="text-xs text-white/90 text-center">
+                                    <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/80 to-transparent rounded-b-md">
+                                        <p className="text-xs text-white text-center bg-black/50 p-1 rounded">
                                             {result.searches[selectedSearch].images[selectedImage].description}
                                         </p>
                                     </div>

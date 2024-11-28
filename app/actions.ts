@@ -11,7 +11,7 @@ export async function suggestQuestions(history: any[]) {
   console.log(history); 
 
   const { object } = await generateObject({
-    model: google('gemini-1.5-pro-002',{
+    model: google('gemini-1.5-flash-8b',{
       structuredOutputs: true,
     }),
     temperature: 1,
@@ -27,7 +27,7 @@ For weather based converations sent to you, always generate questions that are a
 For programming based conversations, always generate questions that are about the algorithms, data structures, or other topics that are related to it or an improvement of the question.
 For location based conversations, always generate questions that are about the culture, history, or other topics that are related to the location.
 For the translation based conversations, always generate questions that may continue the conversation or ask for more information or translations.
-Never use pronouns in the questions as they blur the context.`,
+Do not use pronouns like he, she, him, his, her, etc. in the questions as they blur the context. Always use the proper nouns from the context.`,
     messages: history,
     schema: z.object({
       questions: z.array(z.string()).describe('The generated questions based on the message history.')
