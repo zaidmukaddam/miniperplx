@@ -4,5 +4,6 @@
             "path": "/api/clean_images",
             "schedule": "0 * * * *"
         }
-    ]
+    ],
+    "regions": ["sfo1", "bom1", "sin1"]
 }

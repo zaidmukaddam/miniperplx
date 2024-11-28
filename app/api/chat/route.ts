@@ -8,7 +8,7 @@ import {
   tool,
   experimental_createProviderRegistry,
 } from "ai";
-import { BlobRequestAbortedError, put, list } from '@vercel/blob';
+import { BlobRequestAbortedError, put } from '@vercel/blob';
 import CodeInterpreter from "@e2b/code-interpreter";
 import FirecrawlApp from '@mendable/firecrawl-js';
 import { tavily } from '@tavily/core'
@@ -134,7 +134,6 @@ When asked a "What is" question, maintain the same format as the question and an
 - The response that include latex equations, use always follow the formats: 
 - Do not wrap any equation or formulas or any sort of math related block in round brackets() as it will crash the response.`,
     tools: {
-      // Update the web_search tool parameters in app/api/chat/route.ts
       web_search: tool({
         description: "Search the web for information with multiple queries, max results and search depth.",
         parameters: z.object({
