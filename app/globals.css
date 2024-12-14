@@ -75,6 +75,11 @@ h1 {
   font-family: var(--font-serif);
 }
 
+.gradient-mask {
+  mask-image: linear-gradient(to bottom, black 30%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 30%, transparent 100%);
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

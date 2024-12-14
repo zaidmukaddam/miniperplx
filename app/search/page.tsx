@@ -16,9 +16,9 @@ import ReactMarkdown from 'react-markdown';
 import { useTheme } from 'next-themes';
 import Marked, { ReactRenderer } from 'marked-react';
 import { track } from '@vercel/analytics';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useChat } from 'ai/react';
-import { Message, ToolInvocation } from 'ai';
+import { ToolInvocation } from 'ai';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
@@ -31,12 +31,10 @@ import { Wave } from "@foobar404/wave";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {
-    SearchIcon,
     Sparkles,
     ArrowRight,
     Globe,
     AlignLeft,
-    Newspaper,
     Copy,
     Cloud,
     Code,
@@ -56,11 +54,21 @@ import {
     TrendingUpIcon,
     Calendar,
     Calculator,
-    ImageIcon,
     ChevronDown,
     Edit2,
     ChevronUp,
-    Moon
+    Moon,
+    ShoppingBasket,
+    Star,
+    Truck,
+    YoutubeIcon,
+    LucideIcon,
+    PlayCircle,
+    FileText,
+    Book,
+    Eye,
+    ExternalLink,
+    Building
 } from 'lucide-react';
 import {
     HoverCard,
@@ -89,11 +97,13 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import { GitHubLogoIcon, PlusCircledIcon } from '@radix-ui/react-icons';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
+import { GitHubLogoIcon } from '@radix-ui/react-icons';
 import Link from 'next/link';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { cn } from '@/lib/utils';
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import { cn, SearchGroupId } from '@/lib/utils';
 import {
     Table,
     TableBody,
@@ -104,9 +114,16 @@ import Autoplay from 'embla-carousel-autoplay';
 import FormComponent from '@/components/ui/form-component';
 import WeatherChart from '@/components/weather-chart';
 import InteractiveChart from '@/components/interactive-charts';
-import NearbySearchMapView from '@/components/nearby-search-map-view';
 import { MapComponent, MapContainer, MapSkeleton } from '@/components/map-components';
 import MultiSearch from '@/components/multi-search';
+import { RedditLogo, RoadHorizon, XLogo } from '@phosphor-icons/react';
+import { BorderTrail } from '@/components/core/border-trail';
+import { TextShimmer } from '@/components/core/text-shimmer';
+import { Tweet } from 'react-tweet';
+import NearbySearchMapView from '@/components/nearby-search-map-view';
+import { Place } from '../../components/map-components';
+import { Separator } from '@/components/ui/separator';
+import { ChartTypes } from '@e2b/code-interpreter';
 
 export const maxDuration = 60;
 
@@ -117,11 +134,433 @@ interface Attachment {
     size: number;
 }
 
+interface ShoppingProduct {
+    title: string;
+    url: string;
+    image: string;
+    price: string;
+    rating?: number;
+    reviewCount?: number;
+}
+
+interface RedditResult {
+    title: string;
+    url: string;
+    subreddit?: string;
+    score?: number;
+}
+
+interface XResult {
+    id: string;
+    url: string;
+    title: string;
+    author?: string;
+    publishedDate?: string;
+    text: string;
+    highlights?: string[];
+    tweetId: string;
+}
+
+interface YouTubeVideo {
+    title: string;
+    link: string;
+    snippet?: string;
+    imageUrl?: string;
+    duration?: string;
+    source?: string;
+    channel?: string;
+    date?: string;
+}
+
+interface AcademicResult {
+    title: string;
+    url: string;
+    author?: string | null;
+    publishedDate?: string;
+    summary: string;
+}
+
+interface YouTubeVideo {
+    videoId: string;
+    url: string;
+    title: string;
+    description?: string;
+    author?: string;
+    publishedDate?: string;
+    views?: string;
+    likes?: string;
+    subscribers?: string;
+    summary?: string;
+    thumbnail?: string;
+}
+
+
+/* 
+Mapbox API interfaces
+*/
+
+interface MapboxCoordinates {
+    longitude: number;
+    latitude: number;
+}
+
+interface MapboxContext {
+    street?: {
+        mapbox_id: string;
+        name: string;
+    };
+    postcode?: {
+        mapbox_id: string;
+        name: string;
+    };
+    locality?: {
+        mapbox_id: string;
+        name: string;
+        wikidata_id?: string;
+    };
+    place?: {
+        mapbox_id: string;
+        name: string;
+        wikidata_id?: string;
+    };
+    district?: {
+        mapbox_id: string;
+        name: string;
+        wikidata_id?: string;
+    };
+    region?: {
+        mapbox_id: string;
+        name: string;
+        wikidata_id?: string;
+        region_code?: string;
+        region_code_full?: string;
+    };
+    country?: {
+        mapbox_id: string;
+        name: string;
+        wikidata_id?: string;
+        country_code: string;
+        country_code_alpha_3: string;
+    };
+}
+
+interface MapboxFeature {
+    id: string;
+    type: string;
+    geometry: {
+        type: string;
+        coordinates: [number, number]; // [longitude, latitude]
+    };
+    properties: {
+        mapbox_id: string;
+        feature_type: 'street' | 'locality' | 'address' | string;
+        name: string;
+        name_preferred?: string;
+        full_address?: string;
+        coordinates: MapboxCoordinates;
+        place_formatted?: string;
+        bbox?: [number, number, number, number];
+        context?: MapboxContext;
+    };
+}
+
+// Simplified feature interface for the UI
+interface SimplifiedFeature {
+    id: string;
+    name: string;
+    formatted_address?: string;
+    geometry: {
+        type: string;
+        coordinates: [number, number];
+    };
+    context?: MapboxContext;
+    place_formatted?: string;
+    feature_type: string;
+    coordinates: MapboxCoordinates;
+    bbox?: [number, number, number, number];
+}
+
+/*
+Mapbox API interfaces end
+*/
+
+// Updated SearchLoadingState with new colors and states
+const SearchLoadingState = ({
+    icon: Icon,
+    text,
+    color
+}: {
+    icon: LucideIcon,
+    text: string,
+    color: "red" | "green" | "orange" | "violet" | "gray" | "blue"
+}) => {
+    // Map of color variants
+    const colorVariants = {
+        red: {
+            background: "bg-red-50 dark:bg-red-950",
+            border: "from-red-200 via-red-500 to-red-200 dark:from-red-400 dark:via-red-500 dark:to-red-700",
+            text: "text-red-500",
+            icon: "text-red-500"
+        },
+        green: {
+            background: "bg-green-50 dark:bg-green-950",
+            border: "from-green-200 via-green-500 to-green-200 dark:from-green-400 dark:via-green-500 dark:to-green-700",
+            text: "text-green-500",
+            icon: "text-green-500"
+        },
+        orange: {
+            background: "bg-orange-50 dark:bg-orange-950",
+            border: "from-orange-200 via-orange-500 to-orange-200 dark:from-orange-400 dark:via-orange-500 dark:to-orange-700",
+            text: "text-orange-500",
+            icon: "text-orange-500"
+        },
+        violet: {
+            background: "bg-violet-50 dark:bg-violet-950",
+            border: "from-violet-200 via-violet-500 to-violet-200 dark:from-violet-400 dark:via-violet-500 dark:to-violet-700",
+            text: "text-violet-500",
+            icon: "text-violet-500"
+        },
+        gray: {
+            background: "bg-neutral-50 dark:bg-neutral-950",
+            border: "from-neutral-200 via-neutral-500 to-neutral-200 dark:from-neutral-400 dark:via-neutral-500 dark:to-neutral-700",
+            text: "text-neutral-500",
+            icon: "text-neutral-500"
+        },
+        blue: {
+            background: "bg-blue-50 dark:bg-blue-950",
+            border: "from-blue-200 via-blue-500 to-blue-200 dark:from-blue-400 dark:via-blue-500 dark:to-blue-700",
+            text: "text-blue-500",
+            icon: "text-blue-500"
+        }
+    };
+
+    const variant = colorVariants[color];
+
+    return (
+        <Card className="relative w-full h-[100px] my-4 overflow-hidden">
+            <BorderTrail
+                className={cn(
+                    'bg-gradient-to-l',
+                    variant.border
+                )}
+                size={80}
+            />
+            <CardContent className="p-6">
+                <div className="relative flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className={cn(
+                            "relative h-10 w-10 rounded-full flex items-center justify-center",
+                            variant.background
+                        )}>
+                            <BorderTrail
+                                className={cn(
+                                    "bg-gradient-to-l",
+                                    variant.border
+                                )}
+                                size={40}
+                            />
+                            <Icon className={cn("h-5 w-5", variant.icon)} />
+                        </div>
+                        <div className="space-y-2">
+                            <TextShimmer
+                                className="text-base font-medium"
+                                duration={2}
+                            >
+                                {text}
+                            </TextShimmer>
+                            <div className="flex gap-2">
+                                {[...Array(3)].map((_, i) => (
+                                    <div
+                                        key={i}
+                                        className="h-1.5 rounded-full bg-neutral-200 dark:bg-neutral-700 animate-pulse"
+                                        style={{
+                                            width: `${Math.random() * 40 + 20}px`,
+                                            animationDelay: `${i * 0.2}s`
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
+// Base YouTube Types
+interface VideoDetails {
+    title?: string;
+    author_name?: string;
+    author_url?: string;
+    thumbnail_url?: string;
+    type?: string;
+    provider_name?: string;
+    provider_url?: string;
+    height?: number;
+    width?: number;
+}
+
+interface VideoResult {
+    videoId: string;
+    url: string;
+    details?: VideoDetails;
+    captions?: string;
+    timestamps?: string[];
+    views?: string;
+    likes?: string;
+    summary?: string;
+}
+
+interface YouTubeSearchResponse {
+    results: VideoResult[];
+}
+
+// UI Component Types
+interface YouTubeCardProps {
+    video: VideoResult;
+    index: number;
+}
+
+
+const YouTubeCard: React.FC<YouTubeCardProps> = ({ video, index }) => {
+    const [timestampsExpanded, setTimestampsExpanded] = useState(false);
+    const [transcriptExpanded, setTranscriptExpanded] = useState(false);
+
+    if (!video) return null;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.1 }}
+            className="w-[300px] flex-shrink-0 relative rounded-xl dark:bg-neutral-800/50 bg-gray-50 overflow-hidden"
+        >
+            {/* Thumbnail */}
+            <Link
+                href={video.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative aspect-video block bg-neutral-200 dark:bg-neutral-700"
+            >
+                {video.details?.thumbnail_url ? (
+                    <img
+                        src={video.details.thumbnail_url}
+                        alt={video.details?.title || 'Video thumbnail'}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                    />
+                ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <YoutubeIcon className="h-8 w-8 text-neutral-400" />
+                    </div>
+                )}
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                    <YoutubeIcon className="h-12 w-12 text-red-500" />
+                </div>
+            </Link>
+
+            <div className="p-4 flex flex-col gap-3">
+                {/* Title and Channel */}
+                <div className="space-y-2">
+                    <Link
+                        href={video.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-base font-medium line-clamp-2 hover:text-red-500 transition-colors dark:text-neutral-100"
+                    >
+                        {video.details?.title || 'YouTube Video'}
+                    </Link>
+
+                    {video.details?.author_name && (
+                        <Link
+                            href={video.details.author_url || video.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 group w-fit"
+                        >
+                            <div className="h-6 w-6 rounded-full bg-red-50 dark:bg-red-950 flex items-center justify-center flex-shrink-0">
+                                <User2 className="h-4 w-4 text-red-500" />
+                            </div>
+                            <span className="text-sm text-neutral-600 dark:text-neutral-400 group-hover:text-red-500 transition-colors truncate">
+                                {video.details.author_name}
+                            </span>
+                        </Link>
+                    )}
+                </div>
+
+                {/* Interactive Sections */}
+                {(video.timestamps && video.timestamps?.length > 0 || video.captions) && (
+                    <div className="space-y-3">
+                        <Separator />
+
+                        {/* Timestamps */}
+                        {video.timestamps && video.timestamps.length > 0 && (
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="text-xs font-medium dark:text-neutral-300">Key Moments</h4>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setTimestampsExpanded(!timestampsExpanded)}
+                                        className="h-6 px-2 text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                                    >
+                                        {timestampsExpanded ? 'Show Less' : `Show All (${video.timestamps.length})`}
+                                    </Button>
+                                </div>
+                                <div className={cn(
+                                    "space-y-1.5 overflow-hidden transition-all duration-300",
+                                    timestampsExpanded ? "max-h-[300px] overflow-y-auto" : "max-h-[72px]"
+                                )}>
+                                    {video.timestamps
+                                        .slice(0, timestampsExpanded ? undefined : 3)
+                                        .map((timestamp, i) => (
+                                            <div
+                                                key={i}
+                                                className="text-xs dark:text-neutral-400 text-neutral-600 line-clamp-1"
+                                            >
+                                                {timestamp}
+                                            </div>
+                                        ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Transcript */}
+                        {video.captions && (
+                            <>
+                                {video.timestamps && video.timestamps!.length > 0 && <Separator />}
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="text-xs font-medium dark:text-neutral-300">Transcript</h4>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setTranscriptExpanded(!transcriptExpanded)}
+                                            className="h-6 px-2 text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                                        >
+                                            {transcriptExpanded ? 'Hide' : 'Show'}
+                                        </Button>
+                                    </div>
+                                    {transcriptExpanded && (
+                                        <div className="text-xs dark:text-neutral-400 text-neutral-600 max-h-[200px] overflow-y-auto rounded-md bg-neutral-100 dark:bg-neutral-900 p-3">
+                                            <p className="whitespace-pre-wrap">
+                                                {video.captions}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
+            </div>
+        </motion.div>
+    );
+};
+
 const HomeContent = () => {
-    const router = useRouter();
     const searchParams = useSearchParams();
-    const initialQuery = searchParams.get('query') || '';
-    const initialModel = searchParams.get('model') || 'azure:gpt4o-mini';
 
     // Memoize initial values to prevent re-calculation
     const initialState = useMemo(() => ({
@@ -140,15 +579,17 @@ const HomeContent = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const initializedRef = useRef(false);
+    const [selectedGroup, setSelectedGroup] = useState<SearchGroupId>('web');
 
     const { theme } = useTheme();
 
     const [openChangelog, setOpenChangelog] = useState(false);
 
-    const { isLoading, input, messages, setInput, handleInputChange, append, handleSubmit, setMessages, reload, stop } = useChat({
+    const { isLoading, input, messages, setInput, append, handleSubmit, setMessages, reload, stop } = useChat({
         maxSteps: 10,
         body: {
             model: selectedModel,
+            group: selectedGroup,
         },
         onFinish: async (message, { finishReason }) => {
             console.log("[finish reason]:", finishReason);
@@ -521,39 +962,486 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
             const args = JSON.parse(JSON.stringify(toolInvocation.args));
             const result = 'result' in toolInvocation ? JSON.parse(JSON.stringify(toolInvocation.result)) : null;
 
+            // Find place results
             if (toolInvocation.toolName === 'find_place') {
                 if (!result) {
-                    return (
-                        <div key={index}>
-                            <MapSkeleton />
-                            <p>Loading place information...</p>
-                        </div>
-                    );
+                    return <SearchLoadingState
+                        icon={MapPin}
+                        text="Finding locations..."
+                        color="blue"
+                    />;
                 }
 
-                const place = result.features[0];
-                if (!place) return null;
+                const { features } = result;
+                if (!features || features.length === 0) return null;
 
                 return (
-                    <div key={index}>
-                        <MapComponent
-                            center={{
-                                lat: place.geometry.coordinates[1],
-                                lng: place.geometry.coordinates[0],
-                            }}
-                            places={[
-                                {
-                                    name: place.name,
+                    <Card className="w-full my-4 overflow-hidden bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800">
+                        {/* Map Container */}
+                        <div className="relative w-full h-[60vh]">
+                            <div className="absolute top-4 left-4 z-10 flex gap-2">
+                                <Badge
+                                    variant="secondary"
+                                    className="bg-white/90 dark:bg-black/90 backdrop-blur-sm"
+                                >
+                                    {features.length} Locations Found
+                                </Badge>
+                            </div>
+
+                            <MapComponent
+                                center={{
+                                    lat: features[0].geometry.coordinates[1],
+                                    lng: features[0].geometry.coordinates[0],
+                                }}
+                                places={features.map((feature: any) => ({
+                                    name: feature.name,
                                     location: {
-                                        lat: place.geometry.coordinates[1],
-                                        lng: place.geometry.coordinates[0],
+                                        lat: feature.geometry.coordinates[1],
+                                        lng: feature.geometry.coordinates[0],
                                     },
-                                    vicinity: place.formatted_address,
-                                },
-                            ]}
-                            zoom={15}
-                        />
+                                    vicinity: feature.formatted_address,
+                                }))}
+                                zoom={features.length > 1 ? 12 : 15}
+                            />
+                        </div>
+
+                        {/* Place Details Footer */}
+                        <div className="max-h-[300px] overflow-y-auto border-t border-neutral-200 dark:border-neutral-800">
+                            {features.map((place: any, index: any) => {
+                                const isGoogleResult = place.source === 'google';
+
+                                return (
+                                    <div
+                                        key={place.id || index}
+                                        className={cn(
+                                            "p-4",
+                                            index !== features.length - 1 && "border-b border-neutral-200 dark:border-neutral-800"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/20 flex items-center justify-center">
+                                                {place.feature_type === 'street_address' || place.feature_type === 'street' ? (
+                                                    <RoadHorizon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                                ) : place.feature_type === 'locality' ? (
+                                                    <Building className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                                ) : (
+                                                    <MapPin className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                                )}
+                                            </div>
+
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 truncate">
+                                                    {place.name}
+                                                </h3>
+                                                {place.formatted_address && (
+                                                    <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
+                                                        {place.formatted_address}
+                                                    </p>
+                                                )}
+                                                <Badge variant="secondary" className="mt-2">
+                                                    {place.feature_type.replace(/_/g, ' ')}
+                                                </Badge>
+                                            </div>
+
+                                            <div className="flex gap-2">
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                size="icon"
+                                                                variant="outline"
+                                                                onClick={() => {
+                                                                    const coords = `${place.geometry.coordinates[1]},${place.geometry.coordinates[0]}`;
+                                                                    navigator.clipboard.writeText(coords);
+                                                                    toast.success("Coordinates copied!");
+                                                                }}
+                                                                className="h-10 w-10"
+                                                            >
+                                                                <Copy className="h-4 w-4" />
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>Copy Coordinates</TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                size="icon"
+                                                                variant="outline"
+                                                                onClick={() => {
+                                                                    const url = isGoogleResult
+                                                                        ? `https://www.google.com/maps/place/?q=place_id:${place.place_id}`
+                                                                        : `https://www.google.com/maps/search/?api=1&query=${place.geometry.coordinates[1]},${place.geometry.coordinates[0]}`;
+                                                                    window.open(url, '_blank');
+                                                                }}
+                                                                className="h-10 w-10"
+                                                            >
+                                                                <ExternalLink className="h-4 w-4" />
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>View in Maps</TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </Card>
+                );
+            }
+
+            // Shopping search results
+            if (toolInvocation.toolName === 'shopping_search') {
+                if (!result) {
+                    return <SearchLoadingState
+                        icon={ShoppingBasket}
+                        text="Finding the best products..."
+                        color="green"
+                    />;
+                }
+
+                return (
+                    <Card className="w-full my-4">
+                        <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="h-8 w-8 rounded-full bg-green-50 dark:bg-green-950 flex items-center justify-center">
+                                    <ShoppingBasket className="h-5 w-5 text-green-500" />
+                                </div>
+                                <div>
+                                    <CardTitle>Shopping Results</CardTitle>
+                                    <p className="text-sm text-neutral-500 dark:text-neutral-400">Scroll to see more products</p>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0 mt-1">
+                            <div className="flex overflow-x-auto pb-4 gap-4 px-4 no-scrollbar snap-x snap-mandatory">
+                                {result.map((product: ShoppingProduct) => (
+                                    <motion.div
+                                        key={product.url}
+                                        className="flex-none w-[280px] snap-center"
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.3 }}
+                                    >
+                                        <Card className="h-full bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 overflow-hidden hover:border-green-200 dark:hover:border-green-800 transition-colors">
+                                            <div className="aspect-square relative bg-neutral-50 dark:bg-neutral-900 mb-2">
+                                                <img
+                                                    src={product.image}
+                                                    alt={product.title}
+                                                    className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal transition-transform hover:scale-105"
+                                                />
+                                                {product.rating && (
+                                                    <div className="absolute top-2 right-2 bg-white dark:bg-neutral-800 rounded-full px-2 py-1 flex items-center gap-1 shadow-sm">
+                                                        <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                                                        <span className="text-xs font-medium">{product.rating}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <CardContent className="p-4">
+                                                <Link
+                                                    href={product.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-base font-medium hover:text-green-500 transition-colors line-clamp-2 mb-2 h-12"
+                                                >
+                                                    {product.title}
+                                                </Link>
+                                                <p className="text-2xl font-bold text-green-500 mb-3">
+                                                    {product.price}
+                                                </p>
+                                                <Button
+                                                    onClick={() => window.open(product.url, '_blank')}
+                                                    className="w-full bg-green-500 hover:bg-green-600 text-white"
+                                                >
+                                                    View on Amazon
+                                                </Button>
+                                            </CardContent>
+                                        </Card>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                );
+            }
+
+            if (toolInvocation.toolName === 'x_search') {
+                if (!result) {
+                    return <SearchLoadingState
+                        icon={XLogo}
+                        text="Searching for latest news..."
+                        color="gray"
+                    />;
+                }
+
+                const PREVIEW_COUNT = 3;
+
+                // Shared content component
+                const FullTweetList = () => (
+                    <div className="grid gap-4 p-4 sm:max-w-[500px]">
+                        {result.map((post: XResult, index: number) => (
+                            <motion.div
+                                key={post.tweetId}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.3, delay: index * 0.1 }}
+                            >
+                                <Tweet id={post.tweetId} />
+                            </motion.div>
+                        ))}
                     </div>
+                );
+
+                return (
+                    <Card className="w-full my-4 overflow-hidden">
+                        <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="h-8 w-8 rounded-full bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center">
+                                    <XLogo className="h-4 w-4" />
+                                </div>
+                                <div>
+                                    <CardTitle>Latest from X</CardTitle>
+                                    <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                                        {result.length} tweets found
+                                    </p>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <div className="relative">
+                            <div className="px-4 pb-2 h-72">
+                                <div className="flex flex-nowrap overflow-x-auto gap-4 no-scrollbar">
+                                    {result.slice(0, PREVIEW_COUNT).map((post: XResult, index: number) => (
+                                        <motion.div
+                                            key={post.tweetId}
+                                            className="w-[min(100vw-2rem,320px)] flex-none"
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ duration: 0.3, delay: index * 0.1 }}
+                                        >
+                                            <Tweet id={post.tweetId} />
+                                        </motion.div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Gradient overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white dark:to-black pointer-events-none" />
+
+                            {/* Show More Buttons - Desktop Sheet */}
+                            <div className="absolute bottom-0 inset-x-0 flex items-center justify-center pb-4 pt-20 bg-gradient-to-t from-white dark:from-black to-transparent">
+                                {/* Desktop Sheet */}
+                                <div className="hidden sm:block">
+                                    <Sheet>
+                                        <SheetTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                className="gap-2 bg-white dark:bg-black"
+                                            >
+                                                <XLogo className="h-4 w-4" />
+                                                Show all {result.length} tweets
+                                            </Button>
+                                        </SheetTrigger>
+                                        <SheetContent side="right" className="w-[400px] sm:w-[600px] overflow-y-auto !p-0 !z-[70]">
+                                            <SheetHeader className='!mt-5 !font-sans'>
+                                                <SheetTitle className='text-center'>All Tweets</SheetTitle>
+                                            </SheetHeader>
+                                            <FullTweetList />
+                                        </SheetContent>
+                                    </Sheet>
+                                </div>
+
+                                {/* Mobile Drawer */}
+                                <div className="block sm:hidden">
+                                    <Drawer>
+                                        <DrawerTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                className="gap-2 bg-white dark:bg-black"
+                                            >
+                                                <XLogo className="h-4 w-4" />
+                                                Show all {result.length} tweets
+                                            </Button>
+                                        </DrawerTrigger>
+                                        <DrawerContent className="max-h-[85vh] font-sans">
+                                            <DrawerHeader>
+                                                <DrawerTitle>All Tweets</DrawerTitle>
+                                            </DrawerHeader>
+                                            <div className="overflow-y-auto">
+                                                <FullTweetList />
+                                            </div>
+                                        </DrawerContent>
+                                    </Drawer>
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+                );
+            }
+
+            if (toolInvocation.toolName === 'youtube_search') {
+                if (!result) {
+                    return <SearchLoadingState
+                        icon={YoutubeIcon}
+                        text="Searching YouTube videos..."
+                        color="red"
+                    />;
+                }
+
+                const youtubeResult = result as YouTubeSearchResponse;
+
+                return (
+                    <Accordion type="single" defaultValue="videos" collapsible className="w-full">
+                        <AccordionItem value="videos" className="border-0">
+                            <AccordionTrigger
+                                className={cn(
+                                    "w-full dark:bg-neutral-900 bg-white rounded-xl dark:border-neutral-800 border-gray-200 border px-6 py-4 hover:no-underline transition-all",
+                                    "[&[data-state=open]]:rounded-b-none",
+                                    "[&[data-state=open]]:border-b-0"
+                                )}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg dark:bg-neutral-800 bg-gray-100">
+                                        <YoutubeIcon className="h-4 w-4 text-red-500" />
+                                    </div>
+                                    <div>
+                                        <h2 className="dark:text-neutral-100 text-gray-900 font-medium text-left">
+                                            YouTube Results
+                                        </h2>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <Badge variant="secondary" className="dark:bg-neutral-800 bg-gray-100 dark:text-neutral-300 text-gray-600">
+                                                {youtubeResult.results.length} videos
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                </div>
+                            </AccordionTrigger>
+
+                            <AccordionContent className="dark:bg-neutral-900 bg-white dark:border-neutral-800 border-gray-200 border border-t-0 rounded-b-xl">
+                                <div className="flex overflow-x-auto gap-3 p-3 no-scrollbar">
+                                    {youtubeResult.results.map((video, index) => (
+                                        <YouTubeCard
+                                            key={video.videoId}
+                                            video={video}
+                                            index={index}
+                                        />
+                                    ))}
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
+                );
+            }
+
+            // Academic search results continued...
+            if (toolInvocation.toolName === 'academic_search') {
+                if (!result) {
+                    return <SearchLoadingState
+                        icon={Book}
+                        text="Searching academic papers..."
+                        color="violet"
+                    />;
+                }
+
+                return (
+                    <Card className="w-full my-4 overflow-hidden">
+                        <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-violet-500/20 to-violet-600/20 flex items-center justify-center backdrop-blur-sm">
+                                    <Book className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                                </div>
+                                <div>
+                                    <CardTitle>Academic Papers</CardTitle>
+                                    <p className="text-sm text-muted-foreground">Found {result.results.length} papers</p>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <div className="px-4 pb-2">
+                            <div className="flex overflow-x-auto gap-4 no-scrollbar">
+                                {result.results.map((paper: AcademicResult, index: number) => (
+                                    <motion.div
+                                        key={paper.url || index}
+                                        className="w-[400px] flex-none"
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                                    >
+                                        <div className="h-[300px] relative group">
+                                            {/* Background with gradient border */}
+                                            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-violet-500/20 via-violet-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                                            {/* Main content container */}
+                                            <div className="h-full relative backdrop-blur-sm bg-background/95 dark:bg-neutral-900/95 border border-neutral-200/50 dark:border-neutral-800/50 rounded-xl p-4 flex flex-col transition-all duration-500 group-hover:border-violet-500/20">
+                                                {/* Title */}
+                                                <h3 className="font-semibold text-xl tracking-tight mb-3 line-clamp-2 group-hover:text-violet-500 dark:group-hover:text-violet-400 transition-colors duration-300">
+                                                    {paper.title}
+                                                </h3>
+
+                                                {/* Authors with better overflow handling */}
+                                                {paper.author && (
+                                                    <div className="mb-3">
+                                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-muted-foreground bg-neutral-100 dark:bg-neutral-800 rounded-md">
+                                                            <User2 className="h-3.5 w-3.5 text-violet-500" />
+                                                            <span className="line-clamp-1">
+                                                                {paper.author.split(';')
+                                                                    .slice(0, 2) // Take first two authors
+                                                                    .join(', ') +
+                                                                    (paper.author.split(';').length > 2 ? ' et al.' : '')
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Date if available */}
+                                                {paper.publishedDate && (
+                                                    <div className="mb-4">
+                                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-muted-foreground bg-neutral-100 dark:bg-neutral-800 rounded-md">
+                                                            <Calendar className="h-3.5 w-3.5 text-violet-500" />
+                                                            {new Date(paper.publishedDate).toLocaleDateString()}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Summary with gradient border */}
+                                                <div className="flex-1 relative mb-4 pl-3">
+                                                    <div className="absolute -left-0 top-1 bottom-1 w-[2px] rounded-full bg-gradient-to-b from-violet-500 via-violet-400 to-transparent opacity-50" />
+                                                    <p className="text-sm text-muted-foreground line-clamp-4">
+                                                        {paper.summary}
+                                                    </p>
+                                                </div>
+
+                                                {/* Actions */}
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        variant="ghost"
+                                                        onClick={() => window.open(paper.url, '_blank')}
+                                                        className="flex-1 bg-neutral-100 dark:bg-neutral-800 hover:bg-violet-100 dark:hover:bg-violet-900/20 hover:text-violet-600 dark:hover:text-violet-400 group/btn"
+                                                    >
+                                                        <FileText className="h-4 w-4 mr-2 group-hover/btn:scale-110 transition-transform duration-300" />
+                                                        View Paper
+                                                    </Button>
+
+                                                    {paper.url.includes('arxiv.org') && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            onClick={() => window.open(paper.url.replace('abs', 'pdf'), '_blank')}
+                                                            className="bg-neutral-100 dark:bg-neutral-800 hover:bg-violet-100 dark:hover:bg-violet-900/20 hover:text-violet-600 dark:hover:text-violet-400 group/btn"
+                                                        >
+                                                            <Download className="h-4 w-4 group-hover/btn:scale-110 transition-transform duration-300" />
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </div>
+                    </Card>
                 );
             }
 
@@ -824,13 +1712,15 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
                                         {result?.chart && (
                                             <TabsContent value="visualization" className="p-4 m-0 bg-white dark:bg-neutral-800">
                                                 <InteractiveChart
-                                                    type={result.chart.type as 'bar' | 'line'}
-                                                    title={result.chart.title}
-                                                    xLabel={result.chart.x_label}
-                                                    yLabel={result.chart.y_label}
-                                                    xUnit={result.chart.x_unit}
-                                                    yUnit={result.chart.y_unit}
-                                                    elements={result.chart.elements}
+                                                    chart={{
+                                                        type: result.chart.type,
+                                                        title: result.chart.title,
+                                                        x_label: result.chart.x_label,
+                                                        y_label: result.chart.y_label,
+                                                        x_unit: result.chart.x_unit,
+                                                        y_unit: result.chart.y_unit,
+                                                        elements: result.chart.elements
+                                                    }}
                                                 />
                                             </TabsContent>
                                         )}
@@ -1337,6 +2227,8 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
                                 setSelectedModel={handleModelChange}
                                 resetSuggestedQuestions={resetSuggestedQuestions}
                                 lastSubmittedQueryRef={lastSubmittedQueryRef}
+                                selectedGroup={selectedGroup}
+                                setSelectedGroup={setSelectedGroup}
                             />
                             <SuggestionCards selectedModel={selectedModel} />
                         </motion.div>
@@ -1418,7 +2310,7 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
                                     )}
                                 </motion.div>
                             )}
-                            {message.role === 'assistant' && message.content && (
+                            {message.role === 'assistant' && message.content !== null && !message.toolInvocations && (
                                 <div>
                                     <div className='flex items-center justify-between mb-2'>
                                         <div className='flex items-center gap-2'>
@@ -1499,6 +2391,8 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
                             setSelectedModel={handleModelChange}
                             resetSuggestedQuestions={resetSuggestedQuestions}
                             lastSubmittedQueryRef={lastSubmittedQueryRef}
+                            selectedGroup={selectedGroup}
+                            setSelectedGroup={setSelectedGroup}
                         />
                     </motion.div>
                 )}

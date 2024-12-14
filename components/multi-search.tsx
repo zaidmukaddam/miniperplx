@@ -3,10 +3,16 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, Calendar, ChevronLeft, ChevronRight, Clock, Globe, ImageIcon, Newspaper, Search, X } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 type SearchImage = {
     url: string;
@@ -34,7 +40,7 @@ type MultiSearchResponse = {
 type MultiSearchArgs = {
     queries: string[];
     maxResults: number[];
-    topic: ("general" | "news")[];
+    topics: ("general" | "news")[];
     searchDepth: ("basic" | "advanced")[];
 };
 
@@ -147,36 +153,46 @@ const ImageGrid: React.FC<{ images: SearchImage[]; onImageClick: (index: number)
 
 const SearchResults: React.FC<SearchResultsProps> = ({ searchData, topicType, onImageClick }) => (
     <div className="space-y-6">
-        <div className="dark:bg-neutral-900 bg-white rounded-xl dark:border-neutral-800 border-gray-200 border">
-            <div className="p-3 border-b dark:border-neutral-800 border-gray-200">
-                <div className="flex items-center justify-between">
+        <Accordion type="single" defaultValue="web-results" collapsible>
+            <AccordionItem value="web-results" className="border-0">
+                <AccordionTrigger 
+                    className={cn(
+                        "w-full dark:bg-neutral-900 bg-white rounded-xl dark:border-neutral-800 border-gray-200 border px-6 py-4 hover:no-underline transition-all",
+                        "[&[data-state=open]]:rounded-b-none",
+                        "[&[data-state=open]]:border-b-0"
+                    )}
+                >
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg dark:bg-neutral-800 bg-gray-100">
-                            <Newspaper className="h-4 w-4 dark:text-neutral-400 text-gray-500" />
+                            <Globe className="h-4 w-4 dark:text-neutral-400 text-gray-500" />
                         </div>
                         <div>
-                            <h2 className="dark:text-neutral-100 text-gray-900 font-medium">Results for &ldquo;{searchData.query}&ldquo;</h2>
+                            <h2 className="dark:text-neutral-100 text-gray-900 font-medium text-left">
+                                Results for {searchData.query}
+                            </h2>
                             <div className="flex items-center gap-2 mt-1">
                                 <Badge variant="secondary" className="dark:bg-neutral-800 bg-gray-100 dark:text-neutral-300 text-gray-600">
                                     {topicType}
                                 </Badge>
-                                <span className="text-xs dark:text-neutral-500 text-gray-500">{searchData.results.length} results</span>
+                                <span className="text-xs dark:text-neutral-500 text-gray-500">
+                                    {searchData.results.length} results
+                                </span>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
+                </AccordionTrigger>
 
-            <ScrollArea>
-                <div className="flex gap-3 p-3 overflow-y-scroll">
-                    {searchData.results.map((result, index) => (
-                        <ResultCard key={index} result={result} index={index} />
-                    ))}
-                </div>
-            </ScrollArea>
-        </div>
+                <AccordionContent className="dark:bg-neutral-900 bg-white dark:border-neutral-800 border-gray-200 border border-t-0 rounded-b-xl">
+                    <div className="flex overflow-x-auto gap-3 p-3 no-scrollbar">
+                        {searchData.results.map((result, index) => (
+                            <ResultCard key={index} result={result} index={index} />
+                        ))}
+                    </div>
+                </AccordionContent>
+            </AccordionItem>
+        </Accordion>
 
-
+        {/* Original Image Results Section */}
         {searchData.images.length > 0 && (
             <div className="dark:bg-neutral-900 bg-white rounded-xl dark:border-neutral-800 border-gray-200 border">
                 <div className="p-4 border-b dark:border-neutral-800 border-gray-200">
@@ -190,66 +206,6 @@ const SearchResults: React.FC<SearchResultsProps> = ({ searchData, topicType, on
         )}
     </div>
 );
-
-interface ContentDialogProps {
-    isOpen: boolean;
-    onClose: () => void;
-    result: SearchResult;
-}
-
-const ContentDialog: React.FC<ContentDialogProps> = ({ isOpen, onClose, result }) => (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-3xl h-fit p-0 dark:bg-neutral-900 bg-white dark:border-neutral-800 border-gray-200">
-            <div className="p-6 space-y-4">
-                <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-lg dark:bg-neutral-800 bg-gray-100 flex items-center justify-center flex-shrink-0">
-                        <img
-                            src={`https://www.google.com/s2/favicons?sz=128&domain=${new URL(result.url).hostname}`}
-                            alt=""
-                            className="w-6 h-6"
-                        />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <h2 className="text-xl font-semibold dark:text-neutral-100 text-gray-900">
-                            {result.title}
-                        </h2>
-                        <a
-                            href={result.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-2 text-sm dark:text-neutral-400 text-gray-500 hover:text-gray-700 dark:hover:text-neutral-300 flex items-center gap-1 w-fit"
-                        >
-                            {new URL(result.url).hostname}
-                            <ArrowUpRight className="h-4 w-4" />
-                        </a>
-                    </div>
-                </div>
-                <ScrollArea className="h-[60vh] w-full pr-4">
-                    <div className="space-y-4">
-                        <div className="prose prose-invert max-w-none">
-                            <p className="dark:text-neutral-200 text-gray-700 leading-relaxed whitespace-pre-wrap">
-                                {result.content}
-                            </p>
-                        </div>
-                        {result.published_date && (
-                            <div className="flex items-center gap-2 text-sm dark:text-neutral-500 text-gray-500 pt-4 border-t dark:border-neutral-800 border-gray-200">
-                                <Calendar className="h-4 w-4" />
-                                <time>
-                                    Published on {new Date(result.published_date).toLocaleDateString('en-US', {
-                                        year: 'numeric',
-                                        month: 'long',
-                                        day: 'numeric'
-                                    })}
-                                </time>
-                            </div>
-                        )}
-                    </div>
-                </ScrollArea>
-            </div>
-        </DialogContent>
-    </Dialog>
-);
-
 
 const MultiSearch: React.FC<{ result: MultiSearchResponse | null; args: MultiSearchArgs }> = ({ result, args }) => {
     const [activeTab, setActiveTab] = useState("0");
@@ -325,7 +281,7 @@ const MultiSearch: React.FC<{ result: MultiSearchResponse | null; args: MultiSea
                         <TabsContent key={index} value={index.toString()}>
                             <SearchResults
                                 searchData={search}
-                                topicType={args.topic[index] || args.topic[0]}
+                                topicType={args.topics[index] || args.topics[0]}
                                 onImageClick={(imageIndex) => {
                                     setSelectedSearch(index);
                                     setSelectedImage(imageIndex);

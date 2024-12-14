@@ -14,7 +14,17 @@ export const metadata: Metadata = {
   openGraph: {
     url: "https://mplx.run",
     siteName: "MiniPerplx",
-  }
+  },
+  keywords: [
+    "MiniPerplx",
+    "mplx",
+    "mplx.run",
+    "search engine",
+    "AI",
+    "ai search engine",
+    "perplexity",
+    "minimalistic search engine",
+  ]
 };
 
 export const viewport: Viewport = {

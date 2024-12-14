@@ -56,6 +56,13 @@ const nextConfig = {
                 port: '',
                 pathname: '**'
             },
+            // www.uneed.best
+            {
+                protocol: 'https',
+                hostname: 'www.uneed.best',
+                port: '',
+                pathname: '**'
+            },
         ]
     },
 };

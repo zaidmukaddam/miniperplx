@@ -1,219 +1,141 @@
-// components/interactive-charts.tsx
 import React from 'react';
-import ReactECharts from 'echarts-for-react';
-import * as echarts from 'echarts';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import ReactECharts, { EChartsOption } from 'echarts-for-react';
+import { Card, CardContent } from "@/components/ui/card";
 import { useTheme } from 'next-themes';
 
-interface BaseChartProps {
+interface BaseChart {
+  type: string;
   title: string;
-  xLabel?: string;
-  yLabel?: string;
-  xUnit?: string | null;
-  yUnit?: string | null;
+  x_label?: string;
+  y_label?: string;
+  x_unit?: string;
+  y_unit?: string;
   x_ticks?: (number | string)[];
   x_tick_labels?: string[];
   x_scale?: string;
   y_ticks?: (number | string)[];
   y_tick_labels?: string[];
   y_scale?: string;
+  elements: any[];
 }
 
-type BarChartElement = {
-  label: string;
-  group: string;
-  value: number;
-};
-
-type PointData = {
-  label: string;
-  points: [number | string, number | string][];
-};
-
-interface ChartProps extends BaseChartProps {
-  type: 'bar' | 'line';
-  elements: BarChartElement[] | PointData[];
-}
-
-const InteractiveChart: React.FC<ChartProps> = ({
-  type,
-  title,
-  xLabel = '',
-  yLabel = '',
-  xUnit = '',
-  yUnit = '',
-  elements,
-  x_ticks,
-  x_tick_labels,
-  x_scale = 'value',
-  y_ticks,
-  y_tick_labels,
-  y_scale = 'value',
-}) => {
+export function InteractiveChart({ chart }: { chart: BaseChart }) {
   const { theme } = useTheme();
+  const textColor = theme === 'dark' ? '#e5e5e5' : '#171717';
+  const gridColor = theme === 'dark' ? '#404040' : '#e5e5e5';
 
-  const getChartOptions = () => {
-    if (!elements || elements.length === 0) {
-      return {};
-    }
-
-    const textColor = theme === 'dark' ? '#e5e5e5' : '#171717';
-    const axisLineColor = theme === 'dark' ? '#404040' : '#e5e5e5';
-
-    if (type === 'line') {
-      const lineElements = elements as PointData[];
-
-      const xAxisType = x_scale === 'datetime' ? 'time' : x_scale;
-
-      const series = lineElements.map(el => ({
-        name: el.label,
-        type: 'line',
-        data: el.points.map(point => {
-          const xValue =
-            xAxisType === 'time'
-              ? new Date(point[0] as string).getTime()
-              : point[0];
-          return [xValue, point[1]];
-        }),
-        smooth: true,
-      }));
-
-      return {
-        title: {
-          text: title || '',
-          textStyle: { color: textColor },
-        },
-        tooltip: {
-          trigger: 'axis',
-          axisPointer: {
-            type: 'cross',
-          },
-        },
-        legend: {
-          data: lineElements.map(el => el.label),
-          textStyle: { color: textColor },
-        },
-        xAxis: {
-          type: xAxisType,
-          name: xLabel,
-          nameTextStyle: { color: textColor },
-          axisLabel: {
-            color: textColor,
-            formatter: (value: number) => {
-              if (xAxisType === 'time') {
-                return echarts.format.formatTime('yyyy-MM', value);
-              }
-              return xUnit ? `${value} ${xUnit}` : `${value}`;
-            },
-          },
-          axisLine: { lineStyle: { color: axisLineColor } },
-        },
-        yAxis: {
-          type: y_scale,
-          name: yLabel,
-          nameTextStyle: { color: textColor },
-          axisLabel: {
-            color: textColor,
-            formatter: (value: number) =>
-              yUnit ? `${value} ${yUnit}` : `${value}`,
-          },
-          axisLine: { lineStyle: { color: axisLineColor } },
-          ...(y_ticks && {
-            min: Math.min(...(y_ticks as number[])),
-            max: Math.max(...(y_ticks as number[])),
-          }),
-        },
-        series,
-      };
-    } else if (type === 'bar') {
-      const barElements = elements as BarChartElement[];
-
-      const groups = Array.from(new Set(barElements.map(el => el.group))).filter(Boolean);
-      const labels = Array.from(new Set(barElements.map(el => el.label))).filter(Boolean);
-
-      const series = groups.map(group => ({
-        name: group,
-        type: 'bar',
-        data: labels.map(label => {
-          const el = barElements.find(e => e.group === group && e.label === label);
-          return el ? el.value : 0;
-        }),
-      }));
-
-      return {
-        title: {
-          text: title || '',
-          textStyle: { color: textColor },
-        },
-        tooltip: { trigger: 'axis' },
-        legend: {
-          data: groups,
-          textStyle: { color: textColor },
-        },
-        xAxis: {
-          type: 'category',
-          data: labels,
-          name: xLabel,
-          nameTextStyle: { color: textColor },
-          axisLabel: { color: textColor },
-          axisLine: { lineStyle: { color: axisLineColor } },
-        },
-        yAxis: {
-          type: 'value',
-          name: yLabel,
-          nameTextStyle: { color: textColor },
-          axisLabel: {
-            color: textColor,
-            formatter: (value: number) =>
-              yUnit ? `${value} ${yUnit}` : value.toString(),
-          },
-          axisLine: { lineStyle: { color: axisLineColor } },
-          ...(y_ticks && {
-            min: Math.min(...(y_ticks as number[])),
-            max: Math.max(...(y_ticks as number[])),
-          }),
-        },
-        series,
-      };
-    }
-
-    return {};
+  const sharedOptions: EChartsOption = {
+    grid: { top: 30, right: 8, bottom: 28, left: 28 },
+    legend: {}
   };
 
-  const options = getChartOptions();
+  if (chart.type === 'line') {
+    const series = chart.elements.map((e) => {
+      return {
+        name: e.label,
+        type: 'line',
+        data: e.points.map((p: [number, number]) => [p[0], p[1]])
+      };
+    });
 
-  if (!options || Object.keys(options).length === 0) {
+    const options: EChartsOption = {
+      ...sharedOptions,
+      xAxis: {
+        type: chart.x_scale === 'datetime' ? 'time' : 'category',
+        name: chart.x_label,
+        nameLocation: 'middle',
+        axisLabel: {
+          color: textColor,
+          formatter: (value: number) => {
+            if (chart.x_scale === 'datetime') {
+              return new Date(value).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric'
+              });
+            }
+            return chart.x_unit ? `${value}${chart.x_unit}` : `${value}`;
+          }
+        },
+        axisLine: { lineStyle: { color: gridColor } }
+      },
+      yAxis: {
+        name: chart.y_label,
+        nameLocation: 'middle',
+        axisLabel: {
+          color: textColor,
+          formatter: (value: number) => 
+            chart.y_unit ? `${chart.y_unit}${value}` : value.toString()
+        },
+        axisLine: { lineStyle: { color: gridColor } }
+      },
+      series,
+      tooltip: {
+        trigger: 'axis'
+      }
+    };
+
     return (
-      <Card className="w-full bg-white dark:bg-neutral-800">
-        <CardHeader>
-          <CardTitle className="text-neutral-800 dark:text-neutral-200">
-            {title || 'Chart'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-neutral-600 dark:text-neutral-400">
-            No data available to display the chart.
-          </div>
+      <Card className="w-full bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800">
+        <CardContent className="p-6">
+          <ReactECharts 
+            option={options} 
+            style={{ height: '400px' }}
+            theme={theme === 'dark' ? 'dark' : undefined}
+          />
         </CardContent>
       </Card>
     );
   }
 
-  return (
-    <Card className="w-full bg-white dark:bg-neutral-800">
-      <CardHeader>
-        <CardTitle className="text-neutral-800 dark:text-neutral-200">
-          {title || 'Chart'}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ReactECharts
-          option={options}
-          style={{ height: '460px', width: '105%', gap: '20px' }}
-        />
-      </CardContent>
-    </Card>
-  );
-};
+  if (chart.type === 'bar') {
+    const data = Object.groupBy(chart.elements, ({ group }) => group);
+
+    const series = Object.entries(data).map(([group, elements]) => ({
+      name: group,
+      type: 'bar',
+      stack: 'total',
+      data: elements?.map((e) => [e.label, e.value])
+    }));
+
+    const options: EChartsOption = {
+      ...sharedOptions,
+      xAxis: {
+        type: 'category',
+        name: chart.x_label,
+        nameLocation: 'middle',
+        axisLabel: { color: textColor },
+        axisLine: { lineStyle: { color: gridColor } }
+      },
+      yAxis: {
+        name: chart.y_label,
+        nameLocation: 'middle',
+        axisLabel: { 
+          color: textColor,
+          formatter: (value: number) => 
+            chart.y_unit ? `${chart.y_unit}${value}` : value.toString()
+        },
+        axisLine: { lineStyle: { color: gridColor } }
+      },
+      series,
+      tooltip: {
+        trigger: 'axis'
+      }
+    };
+
+    return (
+      <Card className="w-full bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800">
+        <CardContent className="p-6">
+          <ReactECharts 
+            option={options} 
+            style={{ height: '400px' }}
+            theme={theme === 'dark' ? 'dark' : undefined}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return null;
+}
 
 export default InteractiveChart;

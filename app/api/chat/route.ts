@@ -2,19 +2,99 @@
 import { z } from "zod";
 import { createAzure } from '@ai-sdk/azure';
 import { anthropic } from '@ai-sdk/anthropic'
+import { xai } from '@ai-sdk/xai'
+import { google } from '@ai-sdk/google'
+import Exa from 'exa-js'
 import {
   convertToCoreMessages,
   streamText,
   tool,
   experimental_createProviderRegistry,
+  smoothStream
 } from "ai";
 import { BlobRequestAbortedError, put } from '@vercel/blob';
 import CodeInterpreter from "@e2b/code-interpreter";
 import FirecrawlApp from '@mendable/firecrawl-js';
 import { tavily } from '@tavily/core'
+import { getGroupConfig } from "@/app/actions";
 
 // Allow streaming responses up to 60 seconds
 export const maxDuration = 120;
+
+interface XResult {
+  id: string;
+  url: string;
+  title: string;
+  author?: string;
+  publishedDate?: string;
+  text: string;
+  highlights?: string[];
+  tweetId: string;
+}
+
+interface MapboxFeature {
+  id: string;
+  name: string;
+  formatted_address: string;
+  geometry: {
+    type: string;
+    coordinates: number[];
+  };
+  feature_type: string;
+  context: string;
+  coordinates: number[];
+  bbox: number[];
+  source: string;
+}
+
+
+interface GoogleResult {
+  place_id: string;
+  formatted_address: string;
+  geometry: {
+    location: {
+      lat: number;
+      lng: number;
+    };
+    viewport: {
+      northeast: {
+        lat: number;
+        lng: number;
+      };
+      southwest: {
+        lat: number;
+        lng: number;
+      };
+    };
+  };
+  types: string[];
+  address_components: Array<{
+    long_name: string;
+    short_name: string;
+    types: string[];
+  }>;
+}
+
+interface VideoDetails {
+  title?: string;
+  author_name?: string;
+  author_url?: string;
+  thumbnail_url?: string;
+  type?: string;
+  provider_name?: string;
+  provider_url?: string;
+}
+
+interface VideoResult {
+  videoId: string;
+  url: string;
+  details?: VideoDetails;
+  captions?: string;
+  timestamps?: string[];
+  views?: string;
+  likes?: string;
+  summary?: string;
+}
 
 // Azure setup
 const azure = createAzure({
@@ -26,26 +106,15 @@ const azure = createAzure({
 const registry = experimental_createProviderRegistry({
   anthropic,
   azure,
+  google,
+  xai,
 });
 
 function sanitizeUrl(url: string): string {
   return url.replace(/\s+/g, '%20')
 }
 
-export async function POST(req: Request) {
-  const { messages, model } = await req.json();
-
-  const provider = model.split(":")[0];
-
-  const result = await streamText({
-    model: registry.languageModel(model),
-    messages: convertToCoreMessages(messages),
-    temperature: provider === "azure" ? 0.72 : 0.2,
-    topP: 0.5,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    experimental_activeTools: ["get_weather_data", "find_place", "programming", "web_search", "text_translate", "nearby_search"],
-    system: `
+const defaultsystemPrompt = `
 You are an expert AI web search engine called MiniPerplx, that helps users find information on the internet with no bullshit talks.
 Always start with running the tool(s) and then and then only write your response AT ALL COSTS!!
 Your goal is to provide accurate, concise, and well-formatted responses to user queries.
@@ -132,7 +201,26 @@ When asked a "What is" question, maintain the same format as the question and an
  - rehypeKatex: This plugin takes the parsed LaTeX from remarkMath and renders it using KaTeX, allowing you to display the math as beautifully rendered HTML.
 
 - The response that include latex equations, use always follow the formats: 
-- Do not wrap any equation or formulas or any sort of math related block in round brackets() as it will crash the response.`,
+- Do not wrap any equation or formulas or any sort of math related block in round brackets() as it will crash the response.`;
+
+export async function POST(req: Request) {
+  const { messages, model, group } = await req.json();
+  const { tools: activeTools, systemPrompt } = await getGroupConfig(group);
+
+  const provider = model.split(":")[0];
+
+  const result = streamText({
+    model: registry.languageModel(model),
+    messages: convertToCoreMessages(messages),
+    temperature: provider === "azure" ? 0.72 : 0.2,
+    topP: 0.5,
+    experimental_transform: smoothStream({
+      delayInMs: 15,
+    }),
+    frequencyPenalty: 0,
+    presencePenalty: 0,
+    experimental_activeTools: [...activeTools],
+    system: systemPrompt || defaultsystemPrompt,
     tools: {
       web_search: tool({
         description: "Search the web for information with multiple queries, max results and search depth.",
@@ -140,27 +228,27 @@ When asked a "What is" question, maintain the same format as the question and an
           queries: z.array(z.string().describe("Array of search queries to look up on the web.")),
           maxResults: z.array(z
             .number()
-            .describe("Array of maximum number of results to return per query. Default is 10.")),
-          topic: z.array(z
+            .describe("Array of maximum number of results to return per query.").default(10)),
+          topics: z.array(z
             .enum(["general", "news"])
-            .describe("Array of topic types to search for. Default is general.")),
+            .describe("Array of topic types to search for.").default("general")),
           searchDepth: z.array(z
             .enum(["basic", "advanced"])
-            .describe("Array of search depths to use. Default is basic.")),
+            .describe("Array of search depths to use.").default("basic")),
           exclude_domains: z
             .array(z.string())
-            .describe("A list of domains to exclude from all search results. Default is None."),
+            .describe("A list of domains to exclude from all search results.").default([]),
         }),
         execute: async ({
           queries,
           maxResults,
-          topic,
+          topics,
           searchDepth,
           exclude_domains,
         }: {
           queries: string[];
           maxResults: number[];
-          topic: ("general" | "news")[];
+          topics: ("general" | "news")[];
           searchDepth: ("basic" | "advanced")[];
           exclude_domains?: string[];
         }) => {
@@ -170,15 +258,15 @@ When asked a "What is" question, maintain the same format as the question and an
 
           console.log("Queries:", queries);
           console.log("Max Results:", maxResults);
-          console.log("Topics:", topic);
+          console.log("Topics:", topics);
           console.log("Search Depths:", searchDepth);
           console.log("Exclude Domains:", exclude_domains);
 
           // Execute searches in parallel
           const searchPromises = queries.map(async (query, index) => {
             const data = await tvly.search(query, {
-              topic: topic[index] || topic[0] || "general",
-              days: topic[index] === "news" ? 7 : undefined,
+              topic: topics[index] || topics[0] || "general",
+              days: topics[index] === "news" ? 7 : undefined,
               maxResults: maxResults[index] || maxResults[0] || 10,
               searchDepth: searchDepth[index] || searchDepth[0] || "basic",
               includeAnswer: true,
@@ -194,7 +282,7 @@ When asked a "What is" question, maintain the same format as the question and an
                 title: obj.title,
                 content: obj.content,
                 raw_content: obj.raw_content,
-                published_date: topic[index] === "news" ? obj.published_date : undefined,
+                published_date: topics[index] === "news" ? obj.published_date : undefined,
               })),
               images: includeImageDescriptions
                 ? data.images
@@ -217,6 +305,307 @@ When asked a "What is" question, maintain the same format as the question and an
           return {
             searches: searchResults,
           };
+        },
+      }),
+      x_search: tool({
+        description: "Search X (formerly Twitter) posts.",
+        parameters: z.object({
+          query: z.string().describe("The search query"),
+        }),
+        execute: async ({ query }: { query: string }) => {
+          try {
+            const exa = new Exa(process.env.EXA_API_KEY as string);
+
+            const result = await exa.searchAndContents(
+              query,
+              {
+                type: "keyword",
+                numResults: 10,
+                includeDomains: ["x.com", "twitter.com"],
+                text: true,
+                highlights: true
+              }
+            );
+
+            // Extract tweet ID from URL
+            const extractTweetId = (url: string): string | null => {
+              const match = url.match(/(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)/);
+              return match ? match[1] : null;
+            };
+
+            // Process and filter results
+            const processedResults = result.results.reduce<Array<XResult>>((acc, post) => {
+              const tweetId = extractTweetId(post.url);
+              if (tweetId) {
+                acc.push({
+                  ...post,
+                  tweetId,
+                  title: post.title || ""
+                });
+              }
+              return acc;
+            }, []);
+
+            return processedResults;
+
+          } catch (error) {
+            console.error("X search error:", error);
+            throw error;
+          }
+        },
+      }),
+      academic_search: tool({
+        description: "Search academic papers and research.",
+        parameters: z.object({
+          query: z.string().describe("The search query"),
+        }),
+        execute: async ({ query }: { query: string }) => {
+          try {
+            const exa = new Exa(process.env.EXA_API_KEY as string);
+
+            // Search academic papers with content summary
+            const result = await exa.searchAndContents(
+              query,
+              {
+                type: "auto",
+                numResults: 20,
+                category: "research paper",
+                summary: {
+                  query: "Abstract of the Paper"
+                }
+              }
+            );
+
+            // Process and clean results
+            const processedResults = result.results.reduce<typeof result.results>((acc, paper) => {
+              // Skip if URL already exists or if no summary available
+              if (acc.some(p => p.url === paper.url) || !paper.summary) return acc;
+
+              // Clean up summary (remove "Summary:" prefix if exists)
+              const cleanSummary = paper.summary.replace(/^Summary:\s*/i, '');
+
+              // Clean up title (remove [...] suffixes)
+              const cleanTitle = paper.title?.replace(/\s\[.*?\]$/, '');
+
+              acc.push({
+                ...paper,
+                title: cleanTitle || "",
+                summary: cleanSummary,
+              });
+
+              return acc;
+            }, []);
+
+            // Take only the first 10 unique, valid results
+            const limitedResults = processedResults.slice(0, 10);
+
+            return {
+              results: limitedResults
+            };
+
+          } catch (error) {
+            console.error("Academic search error:", error);
+            throw error;
+          }
+        },
+      }),
+      youtube_search: tool({
+        description: "Search YouTube videos using Exa AI and get detailed video information.",
+        parameters: z.object({
+          query: z.string().describe("The search query for YouTube videos"),
+          no_of_results: z.number().default(5).describe("The number of results to return"),
+        }),
+        execute: async ({ query, no_of_results }: { query: string, no_of_results: number }) => {
+          try {
+            const exa = new Exa(process.env.EXA_API_KEY as string);
+
+            // Simple search to get YouTube URLs only
+            const searchResult = await exa.search(
+              query,
+              {
+                type: "keyword",
+                numResults: no_of_results,
+                includeDomains: ["youtube.com"]
+              }
+            );
+
+            // Process results
+            const processedResults = await Promise.all(
+              searchResult.results.map(async (result): Promise<VideoResult | null> => {
+                const videoIdMatch = result.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/]+)/);
+                const videoId = videoIdMatch?.[1];
+
+                if (!videoId) return null;
+
+                // Base result
+                const baseResult: VideoResult = {
+                  videoId,
+                  url: result.url
+                };
+
+                try {
+                  // Fetch detailed info from our endpoints
+                  const [detailsResponse, captionsResponse, timestampsResponse] = await Promise.all([
+                    fetch(`${process.env.YT_ENDPOINT}/video-data`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ url: result.url })
+                    }).then(res => res.ok ? res.json() : null),
+                    fetch(`${process.env.YT_ENDPOINT}/video-captions`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ url: result.url })
+                    }).then(res => res.ok ? res.text() : null),
+                    fetch(`${process.env.YT_ENDPOINT}/video-timestamps`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ url: result.url })
+                    }).then(res => res.ok ? res.json() : null)
+                  ]);
+
+                  // Return combined data
+                  return {
+                    ...baseResult,
+                    details: detailsResponse || undefined,
+                    captions: captionsResponse || undefined,
+                    timestamps: timestampsResponse || undefined,
+                  };
+                } catch (error) {
+                  console.error(`Error fetching details for video ${videoId}:`, error);
+                  return baseResult;
+                }
+              })
+            );
+
+            // Filter out null results
+            const validResults = processedResults.filter((result): result is VideoResult => result !== null);
+
+            return {
+              results: validResults
+            };
+
+          } catch (error) {
+            console.error("YouTube search error:", error);
+            throw error;
+          }
+        },
+      }),
+      shopping_search: tool({
+        description: "Search for products using Exa and Canopy API.",
+        parameters: z.object({
+          query: z.string().describe("The search query for products"),
+          // keyword: z.string().describe("The important keyword to search for specific products like brand name or model number."),
+        }),
+        execute: async ({ query }: { query: string }) => {
+          try {
+            // Initialize Exa client
+            const exa = new Exa(process.env.EXA_API_KEY as string);
+
+
+            // Search for products on Amazon
+            const searchResult = await exa.search(
+              query,
+              {
+                type: "auto",
+                numResults: 20,
+                includeDomains: ["amazon.com"],
+              }
+            );
+
+            // Function to extract ASIN from Amazon URL
+            const extractAsin = (url: string): string | null => {
+              const asinRegex = /(?:dp|gp\/product)\/([A-Z0-9]{10})/;
+              const match = url.match(asinRegex);
+              return match ? match[1] : null;
+            };
+
+            // Remove duplicates by ASIN
+            const seenAsins = new Set<string>();
+            const uniqueResults = searchResult.results.reduce<Array<typeof searchResult.results[0]>>((acc, result) => {
+              const asin = extractAsin(result.url);
+              if (asin && !seenAsins.has(asin)) {
+                seenAsins.add(asin);
+                acc.push(result);
+              }
+              return acc;
+            }, []);
+
+            // Only take the first 10 unique results
+            const limitedResults = uniqueResults.slice(0, 10);
+
+            // Fetch detailed product information for each unique result
+            const productDetails = await Promise.all(
+              limitedResults.map(async (result) => {
+                const asin = extractAsin(result.url);
+                if (!asin) return null;
+
+                const query = `
+                  query amazonProduct {
+                    amazonProduct(input: {asinLookup: {asin: "${asin}"}}) {
+                      title
+                      brand
+                      mainImageUrl
+                      rating
+                      ratingsTotal
+                      price {
+                        display
+                      }
+                    }
+                  }
+                `;
+
+                try {
+                  const response = await fetch('https://graphql.canopyapi.co/', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'API-KEY': process.env.CANOPY_API_KEY as string,
+                    },
+                    body: JSON.stringify({ query }),
+                    next: { revalidate: 3600 } // Cache for 1 hour
+                  });
+
+                  if (!response.ok) {
+                    console.error(`Failed to fetch details for ASIN ${asin}:`, await response.text());
+                    return null;
+                  }
+
+                  const canopyData = await response.json();
+                  const amazonProduct = canopyData.data?.amazonProduct;
+
+                  if (!amazonProduct) return null;
+
+                  return {
+                    title: amazonProduct.title,
+                    url: result.url,
+                    image: amazonProduct.mainImageUrl,
+                    price: amazonProduct.price.display,
+                    rating: amazonProduct.rating,
+                    reviewCount: amazonProduct.ratingsTotal,
+                  };
+                } catch (error) {
+                  console.error(`Error fetching details for ASIN ${asin}:`, error);
+                  return null;
+                }
+              })
+            );
+
+            // Filter out null results and return
+            const validProducts = productDetails.filter((product): product is NonNullable<typeof product> =>
+              product !== null
+            );
+
+            // Log results for debugging
+            console.log(`Found ${searchResult.results.length} total results`);
+            console.log(`Filtered to ${uniqueResults.length} unique ASINs`);
+            console.log(`Returning ${validProducts.length} valid products`);
+
+            return validProducts;
+
+          } catch (error) {
+            console.error("Shopping search error:", error);
+            throw error;
+          }
         },
       }),
       retrieve: tool({
@@ -351,29 +740,76 @@ When asked a "What is" question, maintain the same format as the question and an
         },
       }),
       find_place: tool({
-        description: "Find a place using Mapbox v6 reverse geocoding API.",
+        description: "Find a place using Google Maps API for forward geocoding and Mapbox for reverse geocoding.",
         parameters: z.object({
-          latitude: z.number().describe("The latitude of the location."),
-          longitude: z.number().describe("The longitude of the location."),
+          query: z.string().describe("The search query for forward geocoding"),
+          coordinates: z.array(z.number()).describe("Array of [latitude, longitude] for reverse geocoding"),
         }),
-        execute: async ({ latitude, longitude }: { latitude: number; longitude: number }) => {
-          const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
-          const response = await fetch(
-            `https://api.mapbox.com/search/geocode/v6/reverse?longitude=${longitude}&latitude=${latitude}&access_token=${mapboxToken}`
-          );
-          const data = await response.json();
+        execute: async ({ query, coordinates }: { query: string; coordinates: number[] }) => {
+          try {
+            // Forward geocoding with Google Maps API
+            const googleApiKey = process.env.GOOGLE_MAPS_API_KEY;
+            const googleResponse = await fetch(
+              `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${googleApiKey}`
+            );
+            const googleData = await googleResponse.json();
 
-          if (!data.features || data.features.length === 0) {
-            return { features: [] };
+            // Reverse geocoding with Mapbox
+            const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
+            const [lat, lng] = coordinates;
+            const mapboxResponse = await fetch(
+              `https://api.mapbox.com/search/geocode/v6/reverse?longitude=${lng}&latitude=${lat}&access_token=${mapboxToken}`
+            );
+            const mapboxData = await mapboxResponse.json();
+
+            // Process and combine results
+            const features = [];
+
+            // Process Google results
+            if (googleData.status === 'OK' && googleData.results.length > 0) {
+
+
+              features.push(...googleData.results.map((result: GoogleResult) => ({
+                id: result.place_id,
+                name: result.formatted_address.split(',')[0],
+                formatted_address: result.formatted_address,
+                geometry: {
+                  type: 'Point',
+                  coordinates: [result.geometry.location.lng, result.geometry.location.lat]
+                },
+                feature_type: result.types[0],
+                address_components: result.address_components,
+                viewport: result.geometry.viewport,
+                place_id: result.place_id,
+                source: 'google'
+              })));
+            }
+
+            // Process Mapbox results
+            if (mapboxData.features && mapboxData.features.length > 0) {
+
+              features.push(...mapboxData.features.map((feature: any): MapboxFeature => ({
+                id: feature.id,
+                name: feature.properties.name_preferred || feature.properties.name,
+                formatted_address: feature.properties.full_address,
+                geometry: feature.geometry,
+                feature_type: feature.properties.feature_type,
+                context: feature.properties.context,
+                coordinates: feature.properties.coordinates,
+                bbox: feature.properties.bbox,
+                source: 'mapbox'
+              })));
+            }
+
+            return {
+              features,
+              google_attribution: "Powered by Google Maps Platform",
+              mapbox_attribution: "Powered by Mapbox"
+            };
+          } catch (error) {
+            console.error("Geocoding error:", error);
+            throw error;
           }
-
-          return {
-            features: data.features.map((feature: any) => ({
-              name: feature.properties.name_preferred || feature.properties.name,
-              formatted_address: feature.properties.full_address,
-              geometry: feature.geometry,
-            })),
-          };
         },
       }),
       text_search: tool({
@@ -712,6 +1148,16 @@ When asked a "What is" question, maintain the same format as the question and an
       if (event.chunk.type === "tool-call") {
         console.log("Called Tool: ", event.chunk.toolName);
       }
+    },
+    onStepFinish(event) {
+      if (event.warnings) {
+        console.log("Warnings: ", event.warnings);
+      }
+    },
+    onFinish(event) {
+      console.log("Fin reason: ", event.finishReason);
+      console.log("Steps ", event.steps);
+      console.log("Messages: ", event.response.messages[event.response.messages.length - 1].content);
     },
   });
 

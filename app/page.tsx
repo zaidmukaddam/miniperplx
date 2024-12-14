@@ -37,7 +37,8 @@ import {
   Menu,
   X,
   BarChart,
-  CircleDot
+  CircleDot,
+  ShoppingBasket
 } from "lucide-react"
 import NextLink from "next/link"
 import {
@@ -53,6 +54,7 @@ import { cn } from '@/lib/utils';
 import { Tweet } from 'react-tweet'
 import Image from 'next/image';
 import { TweetGrid } from '@/components/ui/tweet-grid';
+import { Newspaper, XLogo, YoutubeLogo } from '@phosphor-icons/react';
 
 function BentoCard({
   title,
@@ -110,7 +112,7 @@ const TestimonialSection: React.FC = () => {
         >
           <TweetGrid tweets={tweetIds} />
         </div>
-        
+
       </div>
     </section>
   );
@@ -513,7 +515,7 @@ const FloatingIcon: React.FC<{ Icon: LucideIcon }> = ({ Icon }) => (
 )
 
 const FloatingIcons: React.FC = () => {
-  const icons = [Search, Zap, Code, Cloud, Link, MapPin, Globe, Mic];
+  const icons = [Search, Zap, Code, Cloud, Link, MapPin, Globe, Mic, Github, XLogo, Newspaper, YoutubeLogo]
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -601,9 +603,12 @@ const LandingPage: React.FC = () => {
     { icon: Globe, title: "Web Search", description: "Powered by Tavily AI for comprehensive web results." },
     { icon: Code, title: "Code Interpreter", description: "Utilize e2b.dev for advanced code interpretation and execution." },
     { icon: Cloud, title: "Weather Forecast", description: "Get accurate weather information via OpenWeatherMap." },
-    { icon: Link, title: "URL Summary", description: "Summarize web content quickly with FireCrawl's Scrape API." },
-    { icon: MapPin, title: "Location Search", description: "Find places and nearby locations using Google Maps API." },
-    { icon: Mic, title: "Translation & TTS", description: "Translate text and convert to speech with OpenAI TTS." },
+    { icon: YoutubeLogo, title: "Youtube Search", description: "Summarize web content quickly with FireCrawl's Scrape API." },
+    { icon: XLogo, title: "Search X Posts", description: "Search for posts on X.com" },
+    { icon: Newspaper, title: "Research Paper Search", description: "Search for research papers on arXiv and more" },
+    { icon: MapPin, title: "Location Search", description: "Find places and nearby locations using Google Maps API, Mapbox and TripAdvisior API." },
+    { icon: Mic, title: "Translation & TTS", description: "Translate text and convert to speech with Elevenlabs TTS and Microsoft's Translation API." },
+    { icon: ShoppingBasket, title: "Product Search", description: "Search for products on Amazon." },
   ]
 
   const containerVariants = {
@@ -760,6 +765,15 @@ const LandingPage: React.FC = () => {
                     <Image
                       src="https://media.theresanaiforthat.com/featured-on-taaft.png?width=600"
                       alt="There's an AI for that"
+                      width={300}
+                      height={150}
+                      className="h-12 w-auto"
+                    />
+                  </NextLink>
+                  <NextLink href="https://www.uneed.best/tool/miniperplx" passHref>
+                    <Image
+                      src="https://www.uneed.best/EMBED3B.png"
+                      alt="Uneed Embed Badge"
                       width={300}
                       height={150}
                       className="h-12 w-auto"

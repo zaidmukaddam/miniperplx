@@ -7,15 +7,18 @@ import { track } from '@vercel/analytics';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 import useWindowSize from '@/hooks/use-window-size';
-import { Sparkles, X, Zap, Cpu } from 'lucide-react';
+import { Sparkles, X, Zap, Cpu, Search, ChevronDown, Check, Atom } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { cn } from '@/lib/utils';
+import { cn, SearchGroup, SearchGroupId, searchGroups } from '@/lib/utils';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { XLogo } from '@phosphor-icons/react';
 
 interface ModelSwitcherProps {
     selectedModel: string;
@@ -26,6 +29,7 @@ interface ModelSwitcherProps {
 const models = [
     { value: "azure:gpt4o-mini", label: "GPT-4o Mini", icon: Zap, description: "God speed, good quality", color: "emerald", vision: true },
     { value: "anthropic:claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku", icon: Sparkles, description: "Good quality, high speed", color: "orange", vision: false },
+    { value: "xai:grok-2-vision-1212", label: "Grok 2.0 Vision", icon: XLogo, description: "Good quality, normal speed", color: "glossyblack", vision: true },
     { value: "anthropic:claude-3-5-sonnet-latest", label: "Claude 3.5 Sonnet (New)", icon: Sparkles, description: "High quality, good speed", color: "indigo", vision: true },
     { value: "azure:gpt-4o", label: "GPT-4o", icon: Cpu, description: "Higher quality, normal speed", color: "blue", vision: true },
 ];
@@ -52,6 +56,10 @@ const getColorClasses = (color: string, isSelected: boolean = false) => {
             return isSelected
                 ? `${baseClasses} ${selectedClasses} !bg-orange-500 dark:!bg-orange-600 !text-white hover:!bg-orange-600 dark:hover:!bg-orange-700`
                 : `${baseClasses} !text-orange-700 dark:!text-orange-300 hover:!bg-orange-200 dark:hover:!bg-orange-800/70`;
+        case 'glossyblack':
+            return isSelected
+            ? `${baseClasses} ${selectedClasses} bg-gradient-to-br from-black to-neutral-800 !text-white shadow-inner`
+            : `${baseClasses} !text-black dark:!text-white hover:!bg-black/10 dark:hover:!bg-black/40`;
         default:
             return isSelected
                 ? `${baseClasses} ${selectedClasses} !bg-neutral-500 dark:!bg-neutral-600 !text-white hover:!bg-neutral-600 dark:hover:!bg-neutral-700`
@@ -175,34 +183,6 @@ const hasVisionSupport = (modelValue: string): boolean => {
     return selectedModel?.vision === true
 };
 
-interface FormComponentProps {
-    input: string;
-    setInput: (input: string) => void;
-    attachments: Array<Attachment>;
-    setAttachments: React.Dispatch<React.SetStateAction<Array<Attachment>>>;
-    hasSubmitted: boolean;
-    setHasSubmitted: (value: boolean) => void;
-    isLoading: boolean;
-    handleSubmit: (
-        event?: {
-            preventDefault?: () => void;
-        },
-        chatRequestOptions?: ChatRequestOptions,
-    ) => void;
-    fileInputRef: React.RefObject<HTMLInputElement>;
-    inputRef: React.RefObject<HTMLTextAreaElement>;
-    stop: () => void;
-    messages: Array<Message>;
-    append: (
-        message: Message | CreateMessage,
-        chatRequestOptions?: ChatRequestOptions,
-    ) => Promise<string | null | undefined>;
-    selectedModel: string;
-    setSelectedModel: (value: string) => void;
-    resetSuggestedQuestions: () => void;
-    lastSubmittedQueryRef: React.MutableRefObject<string>;
-}
-
 const AttachmentPreview: React.FC<{ attachment: Attachment | UploadingAttachment, onRemove: () => void, isUploading: boolean }> = ({ attachment, onRemove, isUploading }) => {
     const formatFileSize = (bytes: number): string => {
         if (bytes < 1024) return bytes + ' bytes';
@@ -295,6 +275,339 @@ interface UploadingAttachment {
     progress: number;
 }
 
+interface FormComponentProps {
+    input: string;
+    setInput: (input: string) => void;
+    attachments: Array<Attachment>;
+    setAttachments: React.Dispatch<React.SetStateAction<Array<Attachment>>>;
+    hasSubmitted: boolean;
+    setHasSubmitted: (value: boolean) => void;
+    isLoading: boolean;
+    handleSubmit: (
+        event?: {
+            preventDefault?: () => void;
+        },
+        chatRequestOptions?: ChatRequestOptions,
+    ) => void;
+    fileInputRef: React.RefObject<HTMLInputElement>;
+    inputRef: React.RefObject<HTMLTextAreaElement>;
+    stop: () => void;
+    messages: Array<Message>;
+    append: (
+        message: Message | CreateMessage,
+        chatRequestOptions?: ChatRequestOptions,
+    ) => Promise<string | null | undefined>;
+    selectedModel: string;
+    setSelectedModel: (value: string) => void;
+    resetSuggestedQuestions: () => void;
+    lastSubmittedQueryRef: React.MutableRefObject<string>;
+    selectedGroup: SearchGroupId;
+    setSelectedGroup: React.Dispatch<React.SetStateAction<SearchGroupId>>;
+}
+
+// Add this component either in a new file or in your form component
+interface GroupSelectorProps {
+    selectedGroup: SearchGroupId;
+    onGroupSelect: (group: SearchGroup) => void;
+}
+
+const themeColors: Record<SearchGroupId, {
+    bg: string,
+    bgHover: string,
+    bgSelected: string,
+    text: string,
+    description: string
+    focus?: string
+}> = {
+    web: {
+        bg: '!bg-white hover:!bg-cyan-50 dark:!bg-neutral-900/40 dark:hover:!bg-cyan-950/40',
+        bgHover: 'hover:!border-cyan-200 dark:hover:!border-cyan-500/30',
+        bgSelected: '!bg-cyan-50 dark:!bg-cyan-950/40 !border-cyan-500 dark:!border-cyan-400',
+        text: '!text-cyan-600 dark:!text-cyan-400',
+        description: '!text-neutral-600 dark:!text-neutral-500',
+        focus: 'focus:!ring-cyan-500 dark:focus:!ring-cyan-400'
+    },
+    academic: {
+        bg: '!bg-white hover:!bg-violet-50 dark:!bg-neutral-900/40 dark:hover:!bg-violet-950/40',
+        bgHover: 'hover:!border-violet-200 dark:hover:!border-violet-500/30',
+        bgSelected: '!bg-violet-50 dark:!bg-violet-950/40 !border-violet-500 dark:!border-violet-400',
+        text: '!text-violet-600 dark:!text-violet-400',
+        description: '!text-neutral-600 dark:!text-neutral-500',
+        focus: 'focus:!ring-violet-500 dark:focus:!ring-violet-400'
+    },
+    youtube: {
+        bg: '!bg-white hover:!bg-red-50 dark:!bg-neutral-900/40 dark:hover:!bg-red-950/40',
+        bgHover: 'hover:!border-red-200 dark:hover:!border-red-500/30',
+        bgSelected: '!bg-red-50 dark:!bg-red-950/40 !border-red-500 dark:!border-red-400',
+        text: '!text-red-600 dark:!text-red-400',
+        description: '!text-neutral-600 dark:!text-neutral-500',
+        focus: 'focus:!ring-red-500 dark:focus:!ring-red-400'
+    },
+    x: {
+        bg: '!bg-white hover:!bg-neutral-50 dark:!bg-neutral-900/40 dark:hover:!bg-neutral-800/40',
+        bgHover: 'hover:!border-neutral-300 dark:hover:!border-neutral-600/30',
+        bgSelected: '!bg-neutral-50 dark:!bg-neutral-800/40 !border-neutral-500 dark:!border-neutral-400',
+        text: '!text-neutral-900 dark:!text-neutral-100',
+        description: '!text-neutral-600 dark:!text-neutral-500',
+        focus: 'focus:!ring-neutral-500 dark:focus:!ring-neutral-400'
+    },
+    shopping: {
+        bg: '!bg-white hover:!bg-green-50 dark:!bg-neutral-900/40 dark:hover:!bg-green-950/40',
+        bgHover: 'hover:!border-green-200 dark:hover:!border-green-500/30',
+        bgSelected: '!bg-green-50 dark:!bg-green-950/40 !border-green-500 dark:!border-green-400',
+        text: '!text-green-600 dark:!text-green-400',
+        description: '!text-neutral-600 dark:!text-neutral-500',
+        focus: 'focus:!ring-green-500 dark:focus:!ring-green-400'
+    },
+    writing: {
+        bg: '!bg-white hover:!bg-blue-50 dark:!bg-neutral-900/40 dark:hover:!bg-blue-950/40',
+        bgHover: 'hover:!border-blue-200 dark:hover:!border-blue-500/30',
+        bgSelected: '!bg-blue-50 dark:!bg-blue-950/40 !border-blue-500 dark:!border-blue-400',
+        text: '!text-blue-600 dark:!text-blue-400',
+        description: '!text-neutral-600 dark:!text-neutral-500',
+        focus: 'focus:!ring-blue-500 dark:focus:!ring-blue-400'
+    }
+};
+
+const DrawerSelectionContent = ({
+    selectedGroup,
+    onGroupSelect
+}: {
+    selectedGroup: SearchGroupId,
+    onGroupSelect: (group: SearchGroup) => void
+}) => (
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-1.5 p-0.5">
+        {searchGroups.map((group) => {
+            const Icon = group.icon;
+            const isSelected = selectedGroup === group.id;
+            const groupColors = themeColors[group.id];
+
+            return (
+                <div key={group.id}>
+                    <button
+                        onClick={() => onGroupSelect(group)}
+                        className={cn(
+                            "w-full flex flex-col gap-2 p-4 rounded-lg cursor-pointer font-sans group/item",
+                            "transition-all duration-200 relative overflow-hidden",
+                            "border dark:border-neutral-800 border-neutral-200",
+                            groupColors.bg,
+                            groupColors.bgHover,
+                            isSelected && cn(
+                                "ring-1 dark:ring-white/20 ring-black/10",
+                                "shadow-lg",
+                                groupColors.bgSelected,
+                                groupColors.focus
+                            ),
+                            groupColors.focus
+                        )}
+                    >
+                        <div className="flex items-center gap-2">
+                            <Icon className={cn(
+                                "h-5 w-5 transition-transform duration-200",
+                                groupColors.text,
+                                "group-hover/item:scale-110"
+                            )} />
+                            <span className="text-base font-medium transition-colors duration-200 text-neutral-900 dark:text-white">
+                                {group.name}
+                            </span>
+                        </div>
+                        <p className={cn(
+                            "text-sm leading-snug text-left",
+                            groupColors.description
+                        )}>
+                            {group.description}
+                        </p>
+                        <div className={cn(
+                            "absolute inset-0 opacity-0 group-hover/item:opacity-100",
+                            "transition-opacity duration-200 pointer-events-none",
+                            "bg-gradient-to-br from-transparent via-black/[0.02] dark:via-white/[0.02] to-transparent"
+                        )} />
+                    </button>
+                </div>
+            );
+        })}
+    </div>
+);
+
+const DropdownSelectionContent = ({
+    selectedGroup,
+    onGroupSelect
+}: {
+    selectedGroup: SearchGroupId,
+    onGroupSelect: (group: SearchGroup) => void
+}) => (
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-1.5 p-0.5">
+        {searchGroups.map((group) => {
+            const Icon = group.icon;
+            const isSelected = selectedGroup === group.id;
+            const groupColors = themeColors[group.id];
+
+            return (
+                <DropdownMenuItem
+                    key={group.id}
+                    onSelect={() => onGroupSelect(group)}
+                    className={cn(
+                        "flex flex-col gap-2 p-4 rounded-lg cursor-pointer font-sans group/item",
+                        "transition-all duration-200 relative overflow-hidden",
+                        !isSelected && "border dark:border-neutral-800 border-neutral-200",
+                        groupColors.bg,
+                        groupColors.bgHover,
+                        isSelected && cn(
+                            "ring-1 dark:ring-white/20 ring-black/10",
+                            "shadow-lg",
+                            groupColors.bgSelected
+                        )
+                    )}
+                >
+                    <div className="flex items-center gap-2">
+                        <Icon className={cn(
+                            "h-5 w-5 transition-transform duration-200",
+                            groupColors.text,
+                            "group-hover/item:scale-110"
+                        )} />
+                        <span className="text-base font-medium transition-colors duration-200 text-neutral-900 dark:text-white">
+                            {group.name}
+                        </span>
+                    </div>
+                    <p className={cn(
+                        "text-sm leading-snug text-left",
+                        groupColors.description
+                    )}>
+                        {group.description}
+                    </p>
+                    <div className={cn(
+                        "absolute inset-0 opacity-0 group-hover/item:opacity-100",
+                        "transition-opacity duration-200 pointer-events-none",
+                        "bg-gradient-to-br from-transparent via-black/[0.02] dark:via-white/[0.02] to-transparent"
+                    )} />
+                </DropdownMenuItem>
+            );
+        })}
+    </div>
+);
+
+const TriggerContent = ({
+    selectedGroup,
+    isOpen
+}: {
+    selectedGroup: SearchGroupId,
+    isOpen: boolean
+}) => {
+    const selectedGroupDetails = searchGroups.find(g => g.id === selectedGroup);
+    const Icon = selectedGroupDetails?.icon;
+    const colors = themeColors[selectedGroup];
+
+    return (
+        <div className="flex items-center gap-2 relative z-10">
+            {Icon && (
+                <Icon className={cn(
+                    "h-4 w-4 transition-transform duration-200",
+                    colors.text,
+                    "group-hover:scale-110"
+                )} />
+            )}
+            <span className="!text-sm !font-sans !font-medium relative">
+                {selectedGroupDetails?.name}
+                <span className={cn(
+                    "absolute inset-x-0 -bottom-px h-px transition-all duration-200",
+                    isOpen ? "scale-x-100" : "scale-x-0",
+                    "bg-neutral-400 dark:bg-white/30",
+                    "group-hover:scale-x-100"
+                )} />
+            </span>
+            <ChevronDown className={cn(
+                "h-3 w-3 opacity-50 transition-transform duration-200",
+                isOpen && "transform rotate-180",
+                "group-hover:opacity-100"
+            )} />
+        </div>
+    );
+};
+
+const GroupSelector = ({ selectedGroup, onGroupSelect }: GroupSelectorProps) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const isDesktop = useMediaQuery("(min-width: 768px)");
+
+    const handleGroupSelection = (group: SearchGroup) => {
+        onGroupSelect(group);
+        setIsOpen(false);
+    };
+
+    if (!isDesktop) {
+        return (
+            <Drawer
+                open={isOpen}
+                onOpenChange={setIsOpen}
+            >
+                <DrawerTrigger asChild>
+                    <Button
+                        variant="ghost"
+                        className={cn(
+                            "h-8 px-3 gap-2 group",
+                            "transition-all duration-200 font-sans relative",
+                            "bg-white hover:bg-neutral-50 dark:bg-neutral-900/40 dark:hover:bg-neutral-800/60",
+                            "border border-neutral-200 dark:border-neutral-800",
+                            "text-neutral-800 dark:text-white",
+                            "z-[60]"
+                        )}
+                    >
+                        <TriggerContent selectedGroup={selectedGroup} isOpen={isOpen} />
+                    </Button>
+                </DrawerTrigger>
+                <DrawerContent className="z-[60]">
+                    <DrawerHeader>
+                        <DrawerTitle className="text-center font-sans">
+                            Select Search Type
+                        </DrawerTitle>
+                    </DrawerHeader>
+                    <div className="p-4">
+                        <DrawerSelectionContent
+                            selectedGroup={selectedGroup}
+                            onGroupSelect={handleGroupSelection}
+                        />
+                    </div>
+                </DrawerContent>
+            </Drawer>
+        );
+    }
+
+    return (
+        <DropdownMenu onOpenChange={setIsOpen}>
+            <DropdownMenuTrigger asChild>
+                <Button
+                    variant="ghost"
+                    className={cn(
+                        "h-8 px-3 gap-2 group",
+                        "transition-all duration-200 font-sans relative",
+                        "bg-white hover:bg-neutral-50 dark:bg-neutral-900/40 dark:hover:bg-neutral-800/60",
+                        "border border-neutral-200 dark:border-neutral-800",
+                        "text-neutral-800 dark:text-white",
+                        "z-[60]"
+                    )}
+                >
+                    <TriggerContent selectedGroup={selectedGroup} isOpen={isOpen} />
+                </Button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent
+                align="start"
+                sideOffset={8}
+                className={cn(
+                    "w-[600px] font-sans z-[60] -ml-2 mt-1",
+                    "border border-neutral-200 dark:border-neutral-800",
+                    "bg-white dark:bg-neutral-900",
+                    "shadow-lg rounded-lg"
+                )}
+            >
+                <DropdownSelectionContent
+                    selectedGroup={selectedGroup}
+                    onGroupSelect={handleGroupSelection}
+                />
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+};
+
 const FormComponent: React.FC<FormComponentProps> = ({
     input,
     setInput,
@@ -313,6 +626,8 @@ const FormComponent: React.FC<FormComponentProps> = ({
     setSelectedModel,
     resetSuggestedQuestions,
     lastSubmittedQueryRef,
+    selectedGroup,
+    setSelectedGroup,
 }) => {
     const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
     const { width } = useWindowSize();
@@ -331,6 +646,14 @@ const FormComponent: React.FC<FormComponentProps> = ({
         setIsFocused(false);
     };
 
+    const handleGroupSelect = useCallback((group: SearchGroup) => {
+        setSelectedGroup(group.id);
+        setInput('');
+        resetSuggestedQuestions();
+        inputRef.current?.focus();
+    }, [setSelectedGroup, setInput, resetSuggestedQuestions, inputRef]);
+
+    // Keep existing file upload and form submission logic...
     const uploadFile = async (file: File): Promise<Attachment> => {
         const formData = new FormData();
         formData.append('file', file);
@@ -392,7 +715,7 @@ const FormComponent: React.FC<FormComponentProps> = ({
         if (input.trim() || attachments.length > 0) {
             setHasSubmitted(true);
             lastSubmittedQueryRef.current = input.trim();
-            track("search input", { query: input.trim() })
+            track("search input", { query: input.trim() });
 
             handleSubmit(event, {
                 experimental_attachments: attachments,
@@ -429,19 +752,20 @@ const FormComponent: React.FC<FormComponentProps> = ({
         }
     }, [attachments.length, hasSubmitted, fileInputRef]);
 
-
     return (
+
         <div className={cn(
             "relative w-full flex flex-col gap-2 rounded-lg transition-all duration-300 z-[51]",
             attachments.length > 0 || uploadQueue.length > 0
                 ? "bg-gray-100/70 dark:bg-neutral-800 p-1"
                 : "bg-transparent"
         )}>
-            <input type="file" className="hidden" ref={fileInputRef} multiple onChange={handleFileChange} tabIndex={-1} />
-            <input type="file" className="hidden" ref={postSubmitFileInputRef} multiple onChange={handleFileChange} tabIndex={-1} />
+            <input type="file" className="hidden" ref={fileInputRef} multiple onChange={handleFileChange} accept="image/*" tabIndex={-1} />
+            <input type="file" className="hidden" ref={postSubmitFileInputRef} multiple onChange={handleFileChange} accept="image/*" tabIndex={-1} />
 
             {(attachments.length > 0 || uploadQueue.length > 0) && (
                 <div className="flex flex-row gap-2 overflow-x-auto py-2 max-h-32 z-10">
+                    {/* Existing attachment previews */}
                     {attachments.map((attachment, index) => (
                         <AttachmentPreview
                             key={attachment.url}
@@ -480,18 +804,18 @@ const FormComponent: React.FC<FormComponentProps> = ({
                         "overflow-y-auto overflow-x-hidden",
                         "text-base leading-relaxed",
                         "bg-neutral-100 dark:bg-neutral-900",
-                        "boder border-neutral-200 dark:border-neutral-700",
+                        "border border-neutral-200 dark:border-neutral-700",
                         "focus:border-neutral-300 dark:focus:border-neutral-600",
                         "text-neutral-900 dark:text-neutral-100",
-                        "focus:ring-2 focus:ring-neutral-300 dark:focus:ring-neutral-600",
-                        "px-4 pt-3 pb-5" // Increased bottom padding to prevent overlap
+                        "focus:!ring-1 focus:!ring-neutral-300 dark:focus:!ring-neutral-600",
+                        "px-4 pt-3 pb-5"
                     )}
                     rows={3}
                     onKeyDown={(event) => {
                         if (event.key === "Enter" && !event.shiftKey) {
                             event.preventDefault();
                             if (isLoading) {
-                                toast.error("Please wait for the model to finish its response!");
+                                toast.error("Please wait for the response to complete!");
                             } else {
                                 submitForm();
                             }
@@ -499,15 +823,26 @@ const FormComponent: React.FC<FormComponentProps> = ({
                     }}
                 />
 
-                <div className={cn("absolute bottom-0 inset-x-0 flex justify-between items-center rounded-b-lg p-2 bg-neutral-100 dark:bg-neutral-900",
-                    "border border-t-0 border-neutral-200 dark:border-neutral-700",
-                    isFocused ? "border-neutral-300 dark:border-neutral-600" : "",
-                    isLoading ? "!opacity-40 !cursor-not-allowed" : ""
+                <div className={cn(
+                    "absolute bottom-0 inset-x-0 flex justify-between items-center rounded-b-lg p-2",
+                    "bg-neutral-100 dark:bg-neutral-900",
+                    "!border !border-t-0 !border-neutral-200 dark:!border-neutral-700",
+                    isFocused ? "!border-neutral-300 dark:!border-neutral-600" : "",
+                    isLoading ? "!opacity-20 !cursor-not-allowed" : ""
                 )}>
-                    <ModelSwitcher
-                        selectedModel={selectedModel}
-                        setSelectedModel={setSelectedModel}
-                    />
+                    <div className="flex items-center gap-2">
+                        {!hasSubmitted ?
+                            <GroupSelector
+                                selectedGroup={selectedGroup}
+                                onGroupSelect={handleGroupSelect}
+                            />
+                            : null
+                        }
+                        <ModelSwitcher
+                            selectedModel={selectedModel}
+                            setSelectedModel={setSelectedModel}
+                        />
+                    </div>
 
                     <div className="flex items-center gap-2">
                         {hasVisionSupport(selectedModel) && (
