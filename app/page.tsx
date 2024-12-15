@@ -772,7 +772,7 @@ const LandingPage: React.FC = () => {
                   </NextLink>
                   <NextLink href="https://www.uneed.best/tool/miniperplx" passHref>
                     <Image
-                      src="https://www.uneed.best/EMBED3B.png"
+                      src="https://www.uneed.best/EMBED2B.png"
                       alt="Uneed Embed Badge"
                       width={300}
                       height={150}
