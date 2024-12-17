@@ -2031,9 +2031,15 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
     }, [messages]);
 
     useEffect(() => {
-        if (bottomRef.current) {
-            bottomRef.current.scrollIntoView({ behavior: "smooth" });
-        }
+        const handleScroll = () => {
+            const userScrolled = window.innerHeight + window.scrollY < document.body.offsetHeight;
+            if (!userScrolled && bottomRef.current) {
+                bottomRef.current.scrollIntoView({ behavior: "smooth" });
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
     }, [messages, suggestedQuestions]);
 
     const handleExampleClick = async (card: typeof suggestionCards[number]) => {
