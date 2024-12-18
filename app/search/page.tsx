@@ -2033,7 +2033,7 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
     useEffect(() => {
         const handleScroll = () => {
             const userScrolled = window.innerHeight + window.scrollY < document.body.offsetHeight;
-            if (!userScrolled && bottomRef.current) {
+            if (!userScrolled && bottomRef.current && (messages.length > 0 || suggestedQuestions.length > 0)) {
                 bottomRef.current.scrollIntoView({ behavior: "smooth" });
             }
         };
