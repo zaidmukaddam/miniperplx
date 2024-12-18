@@ -68,7 +68,10 @@ import {
     Book,
     Eye,
     ExternalLink,
-    Building
+    Building,
+    Users,
+    Brain,
+    TrendingUp
 } from 'lucide-react';
 import {
     HoverCard,
@@ -124,6 +127,7 @@ import NearbySearchMapView from '@/components/nearby-search-map-view';
 import { Place } from '../../components/map-components';
 import { Separator } from '@/components/ui/separator';
 import { ChartTypes } from '@e2b/code-interpreter';
+import { TrendingQuery } from '../api/trending/route';
 
 export const maxDuration = 60;
 
@@ -585,6 +589,8 @@ const HomeContent = () => {
 
     const [openChangelog, setOpenChangelog] = useState(false);
 
+    const [trendingQueries, setTrendingQueries] = useState<TrendingQuery[]>([]);
+
     const { isLoading, input, messages, setInput, append, handleSubmit, setMessages, reload, stop } = useChat({
         maxSteps: 10,
         body: {
@@ -623,6 +629,21 @@ const HomeContent = () => {
         }
     }, [initialState.query, append, setInput, messages.length]);
 
+    useEffect(() => {
+        const fetchTrending = async () => {
+            try {
+                const res = await fetch('/api/trending');
+                if (!res.ok) throw new Error('Failed to fetch trending queries');
+                const data = await res.json();
+                setTrendingQueries(data);
+            } catch (error) {
+                console.error('Error fetching trending queries:', error);
+                setTrendingQueries([]);
+            }
+        };
+
+        fetchTrending();
+    }, []);
 
     const ThemeToggle: React.FC = () => {
         const { theme, setTheme } = useTheme();
@@ -1118,7 +1139,7 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
                             </div>
                         </CardHeader>
                         <CardContent className="p-0 mt-1">
-                            <div className="flex overflow-x-auto pb-4 gap-4 px-4 no-scrollbar snap-x snap-mandatory">
+                            <div className="flex overflow-x-auto pb-3 gap-2 px-4 no-scrollbar snap-x snap-mandatory">
                                 {result.map((product: ShoppingProduct) => (
                                     <motion.div
                                         key={product.url}
@@ -1755,12 +1776,7 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
                                         className="w-2 h-2 bg-neutral-400 dark:bg-neutral-600 rounded-full"
                                         initial={{ opacity: 0.3 }}
                                         animate={{ opacity: 1 }}
-                                        transition={{
-                                            repeat: Infinity,
-                                            duration: 0.8,
-                                            delay: index * 0.2,
-                                            repeatType: "reverse",
-                                        }}
+                                        transition={{ duration: 0.8, delay: index * 0.2, repeatType: "reverse" }}
                                     />
                                 ))}
                             </div>
@@ -2042,15 +2058,12 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
         return () => window.removeEventListener('scroll', handleScroll);
     }, [messages, suggestedQuestions]);
 
-    const handleExampleClick = async (card: typeof suggestionCards[number]) => {
+    const handleExampleClick = async (card: TrendingQuery) => {
         const exampleText = card.text;
         track("search example", { query: exampleText });
         lastSubmittedQueryRef.current = exampleText;
         setHasSubmitted(true);
         setSuggestedQuestions([]);
-        console.log('exampleText', exampleText);
-        console.log('lastSubmittedQuery', lastSubmittedQueryRef.current);
-
         await append({
             content: exampleText.trim(),
             role: 'user',
@@ -2086,21 +2099,6 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
             toast.error("Please enter a valid message.");
         }
     }, [input, messages, editingMessageIndex, setMessages, handleSubmit]);
-
-    const suggestionCards = [
-        {
-            icon: <User2 className="w-5 h-5 text-neutral-400 dark:text-neutral-500" />,
-            text: "Shah Rukh Khan",
-        },
-        {
-            icon: <Sun className="w-5 h-5 text-neutral-400 dark:text-neutral-500" />,
-            text: "Weather in Doha",
-        },
-        {
-            icon: <Terminal className="w-5 h-5 text-neutral-400 dark:text-neutral-500" />,
-            text: "Count the no. of r's in strawberry?",
-        },
-    ];
 
     interface NavbarProps { }
 
@@ -2152,20 +2150,92 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
         );
     };
 
-    const SuggestionCards: React.FC<{ selectedModel: string }> = ({ selectedModel }) => {
-        return (
-            <div className="flex gap-3 mt-4">
-                <div className="flex flex-grow sm:flex-row sm:mx-auto w-full gap-2 sm:gap-[21px]">
-                    {suggestionCards.map((card, index) => (
-                        <button
+    const SuggestionCards: React.FC<{ 
+        selectedModel: string; 
+        trendingQueries: TrendingQuery[]; 
+    }> = ({ selectedModel, trendingQueries }) => {
+        const [isLoading, setIsLoading] = useState(true);
+        const scrollRef = useRef<HTMLDivElement>(null);
+        const [isPaused, setIsPaused] = useState(false);
+        const scrollIntervalRef = useRef<NodeJS.Timeout>();
+
+        useEffect(() => {
+            setIsLoading(false);
+        }, [trendingQueries]);
+
+        useEffect(() => {
+            const startScrolling = () => {
+                if (!scrollRef.current || isPaused) return;
+                scrollRef.current.scrollLeft += 2;
+            };
+
+            scrollIntervalRef.current = setInterval(startScrolling, 20);
+
+            return () => {
+                if (scrollIntervalRef.current) {
+                    clearInterval(scrollIntervalRef.current);
+                }
+            };
+        }, [isPaused]);
+
+        const getCardWidth = (text: string) => {
+            const charWidth = 8;
+            const padding = 32;
+            const iconWidth = 28;
+            return Math.min(
+                padding + iconWidth + (text.length * charWidth),
+                400 
+            );
+        };
+
+        if (isLoading || trendingQueries.length === 0) {
+            return (
+                <div className="flex gap-2 mt-4">
+                    {[1, 2, 3].map((_, index) => (
+                        <div
                             key={index}
-                            onClick={() => handleExampleClick(card)}
-                            className="bg-neutral-100 dark:bg-neutral-800 rounded-xl p-2 sm:p-4 text-left  hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-200"
+                            className="flex-shrink-0 w-[200px] bg-neutral-100 dark:bg-neutral-800 rounded-xl p-4 animate-pulse"
                         >
-                            <div className="flex items-center space-x-2 text-neutral-700 dark:text-neutral-300">
-                                <span>{card.icon}</span>
-                                <span className="text-xs sm:text-sm font-medium">
-                                    {card.text}
+                            <div className="flex items-center space-x-2">
+                                <div className="w-5 h-5 bg-neutral-200 dark:bg-neutral-700 rounded-full" />
+                                <div className="h-4 w-32 bg-neutral-200 dark:bg-neutral-700 rounded" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+
+        const getIconForCategory = (category: string) => {
+            const iconMap = {
+                trending: <TrendingUp className="w-5 h-5" />,
+                community: <Users className="w-5 h-5" />,
+                science: <Brain className="w-5 h-5" />,
+                tech: <Code className="w-5 h-5" />,
+                travel: <Globe className="w-5 h-5" />,
+            };
+            return iconMap[category as keyof typeof iconMap] || <Sparkles className="w-5 h-5" />;
+        };
+
+        return (
+            <div className="relative">
+                <div 
+                    ref={scrollRef}
+                    className="flex gap-2 mt-4 overflow-x-auto pb-3 relative scroll-smooth no-scrollbar"
+                    onMouseEnter={() => setIsPaused(true)}
+                    onMouseLeave={() => setIsPaused(false)}
+                >
+                    {Array(20).fill(trendingQueries).flat().map((query, index) => (
+                        <button
+                            key={`${index}-${query.text}`}
+                            onClick={() => handleExampleClick(query)}
+                            className="flex-shrink-0 bg-neutral-100 dark:bg-neutral-800 rounded-xl p-3 text-left hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-200"
+                            style={{ width: `${getCardWidth(query.text)}px` }}
+                        >
+                            <div className="flex items-center gap-2 text-neutral-700 dark:text-neutral-300">
+                                <span className="flex-shrink-0">{getIconForCategory(query.category)}</span>
+                                <span className="text-sm font-medium whitespace-nowrap pr-1">
+                                    {query.text}
                                 </span>
                             </div>
                         </button>
@@ -2187,6 +2257,13 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
 
 
     // const memoizedMessages = useMemo(() => messages, [messages]);
+
+    const memoizedSuggestionCards = useMemo(() => (
+        <SuggestionCards 
+            selectedModel={selectedModel} 
+            trendingQueries={trendingQueries}
+        />
+    ), [selectedModel, trendingQueries]);
 
     return (
         <div className="flex flex-col font-sans items-center justify-center p-2 sm:p-4 bg-background text-foreground transition-all duration-500">
@@ -2236,7 +2313,7 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
                                 selectedGroup={selectedGroup}
                                 setSelectedGroup={setSelectedGroup}
                             />
-                            <SuggestionCards selectedModel={selectedModel} />
+                            {memoizedSuggestionCards}
                         </motion.div>
                     )}
                 </AnimatePresence>
