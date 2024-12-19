@@ -396,6 +396,23 @@ Remember to always run the appropriate tool(s) first and compose your response b
           return data;
         },
       }),
+      track_flight: tool({
+        description: "Track flight information and status",
+        parameters: z.object({
+          flight_number: z.string().describe("The flight number to track"),
+        }),
+        execute: async ({ flight_number }: { flight_number: string }) => {
+          try {
+            const response = await fetch(
+              `https://api.aviationstack.com/v1/flights?access_key=${process.env.AVIATION_STACK_API_KEY}&flight_iata=${flight_number}`
+            );
+            return await response.json();
+          } catch (error) {
+            console.error('Flight tracking error:', error);
+            throw error;
+          }
+        },
+      }),
     },
     toolChoice: "auto",
   });

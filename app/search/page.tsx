@@ -71,7 +71,8 @@ import {
     Building,
     Users,
     Brain,
-    TrendingUp
+    TrendingUp,
+    Plane
 } from 'lucide-react';
 import {
     HoverCard,
@@ -128,6 +129,7 @@ import { Place } from '../../components/map-components';
 import { Separator } from '@/components/ui/separator';
 import { ChartTypes } from '@e2b/code-interpreter';
 import { TrendingQuery } from '../api/trending/route';
+import { FlightTracker } from '@/components/flight-tracker';
 
 export const maxDuration = 60;
 
@@ -1833,6 +1835,49 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
                 }
 
                 return <ResultsOverview result={result} />;
+            }
+
+            if (toolInvocation.toolName === 'track_flight') {
+                if (!result) {
+                    return (
+                        <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-2">
+                                <Plane className="h-5 w-5 text-neutral-700 dark:text-neutral-300 animate-pulse" />
+                                <span className="text-neutral-700 dark:text-neutral-300 text-lg">Tracking flight...</span>
+                            </div>
+                            <div className="flex space-x-1">
+                                {[0, 1, 2].map((index) => (
+                                    <motion.div
+                                        key={index}
+                                        className="w-2 h-2 bg-neutral-400 dark:bg-neutral-600 rounded-full"
+                                        initial={{ opacity: 0.3 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{
+                                            repeat: Infinity,
+                                            duration: 0.8,
+                                            delay: index * 0.2,
+                                            repeatType: "reverse",
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    );
+                }
+
+                if (result.error) {
+                    return (
+                        <div className="text-red-500 dark:text-red-400">
+                            Error tracking flight: {result.error}
+                        </div>
+                    );
+                }
+
+                return (
+                    <div className="my-4">
+                        <FlightTracker data={result} />
+                    </div>
+                );
             }
 
             return null;

@@ -129,7 +129,7 @@ Always put citations at the end of each paragraph and in the end of sentences wh
 
 Here are the tools available to you:
 <available_tools>
-web_search, retrieve, get_weather_data, programming, text_translate, find_place
+web_search, retrieve, get_weather_data, programming, text_translate, find_place, track_flight
 </available_tools>
 
 ## Basic Guidelines:
@@ -1141,7 +1141,24 @@ export async function POST(req: Request) {
             throw error;
           }
         },
-      })
+      }),
+      track_flight: tool({
+        description: "Track flight information and status",
+        parameters: z.object({
+          flight_number: z.string().describe("The flight number to track"),
+        }),
+        execute: async ({ flight_number }: { flight_number: string }) => {
+          try {
+            const response = await fetch(
+              `https://api.aviationstack.com/v1/flights?access_key=${process.env.AVIATION_STACK_API_KEY}&flight_iata=${flight_number}`
+            );
+            return await response.json();
+          } catch (error) {
+            console.error('Flight tracking error:', error);
+            throw error;
+          }
+        },
+      }),
     },
     toolChoice: "auto",
     onChunk(event) {
