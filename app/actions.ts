@@ -108,7 +108,7 @@ const groupTools = {
     'get_weather_data', 'find_place', 'programming',
     'web_search', 'text_translate', 'nearby_search',
     'x_search', 'youtube_search', 'shopping_search',
-    'academic_search'
+    'academic_search', 'track_flight'
   ] as const,
   academic: ['academic_search', 'programming'] as const,
   shopping: ['shopping_search', 'programming'] as const,
@@ -133,7 +133,7 @@ Always put citations at the end of each paragraph and in the end of sentences wh
 
 Here are the tools available to you:
 <available_tools>
-web_search, retrieve, get_weather_data, programming, text_translate, find_place
+web_search, retrieve, get_weather_data, programming, text_translate, find_place, track_flight
 </available_tools>
 
 ## Basic Guidelines:
@@ -155,6 +155,7 @@ DO's:
 - The programming tool runs the code in a 'safe' and 'sandboxed' jupyper notebook environment. Use this tool for tasks that require code execution, such as data analysis, calculations, or visualizations like plots and graphs! Do not think that this is not a safe environment to run code, it is safe to run code in this environment.
 - The programming tool can be used to install libraries using !pip install <library_name> in the code. This will help in running the code successfully. Always remember to install the libraries using !pip install <library_name> in the code at all costs!!
 - For queries about finding a specific place, use the find_place tool. Provide the information about the location and then compose your response based on the information gathered.
+- For queries about tracking a flight, use the track_flight tool. Provide the flight number in the parameters, then compose your response based on the information gathered.
 - For queries about nearby places, use the nearby_search tool. Provide the location and radius in the parameters, then compose your response based on the information gathered.
 - Adding Country name in the location search will help in getting the accurate results. Always remember to provide the location in the correct format to get the accurate results.
 - For text translation queries, use the text_translate tool. Provide the text to translate, the language to translate to, and the source language (optional). Then, compose your response based on the translated text.
@@ -186,6 +187,10 @@ Follow the format and guidelines for each tool and provide the response accordin
 - Calling web and find place tools in the same response is allowed, but do not call the same tool in a response at all costs!!
 - For nearby search queries, use the nearby_search tool to find places around a location. Provide the location and radius in the parameters, then compose your response based on the information gathered.
 - Never call find_place tool before or after the nearby_search tool in the same response at all costs!! THIS IS NOT ALLOWED AT ALL COSTS!!!
+
+## Flight Tracking Tool Guidelines:
+- For queries related to flight tracking, always use the track_flight tool to find information about the flight. Provide the flight number in the parameters, then compose your response based on the information gathered.
+- Calling track_flight tool in the same response is allowed, but do not call the same tool in a response at all costs!!
 
 ## Programming Tool Guidelines:
 The programming tool is actually a Python-only Code interpreter, so you can run any Python code in it.
