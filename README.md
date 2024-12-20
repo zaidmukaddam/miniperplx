@@ -20,6 +20,7 @@ Upvote MiniPerplx on ProductHunt to show your support!
 - **Maps**: Get the location of any place using Google Maps API.
 - **Results Overview**: Get a quick overview of the results from different providers.
 - **Translation**: Translate text to different languages using Microsoft's Translator API.
+- **Flight Tracker**: Track flights using AviationStack's API.
 
 ## Built with
 - [Next.js](https://nextjs.org/)
@@ -30,12 +31,13 @@ Upvote MiniPerplx on ProductHunt to show your support!
 - [OpenWeather](https://openweathermap.org/)
 - [E2B](https://e2b.dev/)
 - [Google Maps](https://developers.google.com/maps)
+- [AviationStack](https://aviationstack.com/)
 
 ## LLM used
 - [OpenAI's GPT 4o mini](https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/)
 - [Anthropic's Claude 3.5 Sonnet](https://www.anthropic.com/news/claude-3-5-sonnet/)
 - [OpenAI's o1-mini](https://openai.com/index/openai-o1-mini-advancing-cost-efficient-reasoning/) powered by [OpenRouter](https://openrouter.ai/models/openai/o1-mini)
-
+- [xAI's Grok](https://x.ai/grok)
 ### Deploy your own
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fzaidmukaddam%2Fminiperplx&env=OPENAI_API_KEY,ANTHROPIC_API_KEY,GROQ_API_KEY,TAVILY_API_KEY,OPENWEATHER_API_KEY,E2B_API_KEY&envDescription=API%20keys%20needed%20for%20application)
