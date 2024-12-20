@@ -6,8 +6,6 @@ A minimalistic AI-powered search engine that helps you find information on the i
 
 ## Set MiniPerplx as your default search engine
 
-To correct the instructions for adding a new search engine in Chrome, follow these steps:
-
 1. **Open the Chrome browser settings**:
    - Click on the three vertical dots in the upper right corner of the browser.
    - Select "Settings" from the dropdown menu.
@@ -23,7 +21,7 @@ To correct the instructions for adding a new search engine in Chrome, follow the
    - Enter `MiniPerplx` in the "Search engine" field.
 
 5. **Set the search engine URL**:
-   - Enter `https://mplx.run/search?query=%s&model=xai:grok-2-vision-1212` in the "URL with %s in place of query" field.
+   - Enter `https://mplx.run/search?query=%s&model=azure:gpt4o-mini` in the "URL with %s in place of query" field.
 
 6. **Set the search engine shortcut**:
    - Enter `mp` in the "Shortcut" field.
