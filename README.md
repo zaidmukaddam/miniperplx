@@ -4,6 +4,36 @@
 
 A minimalistic AI-powered search engine that helps you find information on the internet.
 
+## Set MiniPerplx as your default search engine
+
+To correct the instructions for adding a new search engine in Chrome, follow these steps:
+
+1. **Open the Chrome browser settings**:
+   - Click on the three vertical dots in the upper right corner of the browser.
+   - Select "Settings" from the dropdown menu.
+
+2. **Go to the search engine settings**:
+   - In the left sidebar, click on "Search engine."
+   - Then select "Manage search engines and site search."
+
+3. **Add a new search engine**:
+   - Click on "Add" next to "Site search."
+
+4. **Set the search engine name**:
+   - Enter `MiniPerplx` in the "Search engine" field.
+
+5. **Set the search engine URL**:
+   - Enter `https://mplx.run/search?query=%s&model=xai:grok-2-vision-1212` in the "URL with %s in place of query" field.
+
+6. **Set the search engine shortcut**:
+   - Enter `mp` in the "Shortcut" field.
+
+7. **Set Default**:
+   - Click on the three dots next to the search engine you just added.
+   - Select "Make default" from the dropdown menu.
+
+After completing these steps, you should be able to use MiniPerplx as your default search engine in Chrome.
+
 ## ProductHunt Launch
 
 Upvote MiniPerplx on ProductHunt to show your support!
@@ -17,9 +47,12 @@ Upvote MiniPerplx on ProductHunt to show your support!
 - **URL Specific search**: Get information from a specific URL.
 - **Weather**: Get the current weather for any location using OpenWeather's API.
 - **Programming**: Run code snippets in multiple languages using E2B's API.
-- **Maps**: Get the location of any place using Google Maps API.
-- **Results Overview**: Get a quick overview of the results from different providers.
+- **Maps**: Get the location of any place using Google Maps API, Mapbox API, and TripAdvisor API.
 - **Translation**: Translate text to different languages using Microsoft's Translator API.
+- **YouTube Search**: Search for videos on YouTube and get timestamps and transcripts.
+- **Academic Search**: Search for academic papers.
+- **Product Search**: Search for products on Amazon.
+- **X Posts Search**: Search for posts on X.com.
 - **Flight Tracker**: Track flights using AviationStack's API.
 
 ## Built with
@@ -31,13 +64,19 @@ Upvote MiniPerplx on ProductHunt to show your support!
 - [OpenWeather](https://openweathermap.org/)
 - [E2B](https://e2b.dev/)
 - [Google Maps](https://developers.google.com/maps)
+- [Mapbox](https://www.mapbox.com/)
+- [TripAdvisor](https://www.tripadvisor.com/)
+- [Microsoft Translator](https://www.microsoft.com/en-us/translator)
+- [Exa.AI](https://exa.ai/)
 - [AviationStack](https://aviationstack.com/)
 
 ## LLM used
 - [OpenAI's GPT 4o mini](https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/)
+- [OpenAI's GPT 4o](https://openai.com/index/hello-gpt-4o/)
 - [Anthropic's Claude 3.5 Sonnet](https://www.anthropic.com/news/claude-3-5-sonnet/)
-- [OpenAI's o1-mini](https://openai.com/index/openai-o1-mini-advancing-cost-efficient-reasoning/) powered by [OpenRouter](https://openrouter.ai/models/openai/o1-mini)
+- [Anthropic's Claude 3.5 Haiku](https://www.anthropic.com/claude/haiku)
 - [xAI's Grok](https://x.ai/grok)
+
 ### Deploy your own
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fzaidmukaddam%2Fminiperplx&env=OPENAI_API_KEY,ANTHROPIC_API_KEY,GROQ_API_KEY,TAVILY_API_KEY,OPENWEATHER_API_KEY,E2B_API_KEY&envDescription=API%20keys%20needed%20for%20application)
