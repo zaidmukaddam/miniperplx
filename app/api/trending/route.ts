@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+import { generateObject } from 'ai';
+import { groq } from '@ai-sdk/groq'
+import { z } from 'zod';
 
 export interface TrendingQuery {
   icon: string;
@@ -28,11 +31,30 @@ async function fetchGoogleTrends(): Promise<TrendingQuery[]> {
       const xmlText = await response.text();
       const items = xmlText.match(/<title>(?!Daily Search Trends)(.*?)<\/title>/g) || [];
 
-      return items.map(item => ({
-        icon: 'trending',
-        text: item.replace(/<\/?title>/g, ''),
-        category: 'trending' // TODO: add category based on the query results
+      const categories = ['trending', 'community', 'science', 'tech', 'travel', 'politics', 'health', 'sports', 'finance', 'football'] as const;
+
+      const schema = z.object({
+        category: z.enum(categories),
+      });
+
+      const itemsWithCategoryAndIcon = await Promise.all(items.map(async item => {
+        const { object } = await generateObject({
+          model: groq("llama-3.2-3b-preview"),
+          prompt: `Give the category for the topic from the existing values only in lowercase only: ${item.replace(/<\/?title>/g, '')}
+          
+          - if the topic category isn't present in the list, please select 'trending' only!`,
+          schema,
+          temperature: 0,
+        });
+
+        return {
+          icon: object.category,
+          text: item.replace(/<\/?title>/g, ''),
+          category: object.category
+        };
       }));
+
+      return itemsWithCategoryAndIcon;
     } catch (error) {
       console.error(`Failed to fetch Google Trends for geo: ${geo}`, error);
       return [];
@@ -55,7 +77,7 @@ async function fetchRedditQuestions(): Promise<TrendingQuery[]> {
         }
       }
     );
-    
+
     const data = await response.json();
     const maxLength = 50;
 
@@ -74,16 +96,16 @@ async function fetchRedditQuestions(): Promise<TrendingQuery[]> {
 }
 
 async function fetchFromMultipleSources() {
-  const [googleTrends, 
+  const [googleTrends,
     // redditQuestions
-] = await Promise.all([
+  ] = await Promise.all([
     fetchGoogleTrends(),
     // fetchRedditQuestions(),
   ]);
 
-  const allQueries = [...googleTrends, 
-    // ...redditQuestions
-];
+  const allQueries = [...googleTrends,
+  // ...redditQuestions
+  ];
   return allQueries
     .sort(() => Math.random() - 0.5);
 }
@@ -91,7 +113,7 @@ async function fetchFromMultipleSources() {
 export async function GET() {
   try {
     const trends = await fetchFromMultipleSources();
-    
+
     if (trends.length === 0) {
       // Fallback queries if both sources fail
       return NextResponse.json([
@@ -112,7 +134,7 @@ export async function GET() {
         }
       ]);
     }
-    
+
     return NextResponse.json(trends);
   } catch (error) {
     console.error('Failed to fetch trends:', error);

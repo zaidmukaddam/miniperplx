@@ -89,10 +89,14 @@ export async function fetchMetadata(url: string) {
   try {
     const response = await fetch(url, { next: { revalidate: 3600 } }); // Cache for 1 hour
     const html = await response.text();
-    const $ = load(html);
 
-    const title = $('head title').text() || $('meta[property="og:title"]').attr('content') || '';
-    const description = $('meta[name="description"]').attr('content') || $('meta[property="og:description"]').attr('content') || '';
+    const titleMatch = html.match(/<title>(.*?)<\/title>/i);
+    const descMatch = html.match(
+      /<meta\s+name=["']description["']\s+content=["'](.*?)["']/i
+    );
+
+    const title = titleMatch ? titleMatch[1] : '';
+    const description = descMatch ? descMatch[1] : '';
 
     return { title, description };
   } catch (error) {
@@ -100,6 +104,7 @@ export async function fetchMetadata(url: string) {
     return null;
   }
 }
+
 
 type SearchGroupId = 'web' | 'academic' | 'shopping' | 'youtube' | 'x' | 'writing';
 
@@ -216,6 +221,10 @@ When asked a "What is" question, maintain the same format as the question and an
     Focus on peer-reviewed papers, citations, and academic sources.
     Do not talk in bullet points or lists at all costs as it unpresentable.
     Provide summaries, key points, and references.
+    Latex should be wrapped with $ symbol for inline and $$ for block equations as they are supported in the response.
+    No matter what happens, always provide the citations at the end of each paragraph and in the end of sentences where you use it in which they are referred to with the given format to the information provided. 
+    Citation format: [Author et al. (Year) Title](URL)
+    Always run the tools first and then write the response.
     `,
   shopping: `You are a shopping assistant that helps users find and compare products.
     The current date is ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit", weekday: "short" })}. 
@@ -230,13 +239,19 @@ When asked a "What is" question, maintain the same format as the question and an
     Do not talk in bullet points or lists at all costs.
     Provide important details and summaries of the videos in paragraphs.
     Give citations with timestamps and video links to insightful content. Don't just put timestamp at 0:00.
+    Citation format: [Title](URL ending with parameter t=<no_of_seconds>)
     Do not provide the video thumbnail in the response at all costs.`,
   x: `You are a X/Twitter content curator that helps find relevant posts.
     The current date is ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit", weekday: "short" })}. 
     Once you get the content from the tools only write in paragraphs.
     No need to say that you are calling the tool, just call the tools first and run the search;
-    then talk in long details in 2-6 paragraphs.`,
-  writing: `You are a writing assistant that helps users with writing, conversation, coding, poems, haikus, long essays or intellectual topics.`,
+    then talk in long details in 2-6 paragraphs.
+    Always provide the citations at the end of each paragraph and in the end of sentences where you use it in which they are referred to with the given format to the information provided.
+    Citation format: [Post Title](URL)
+    `,
+  writing: `You are a writing assistant that helps users with writing, conversation, coding, poems, haikus, long essays or intellectual topics.
+  Latex should be wrapped with $ symbol for inline and $$ for block equations as they are supported in the response.
+  Do not use the \( and \) for inline equations, use the $ symbol instead at all costs!!`,
 } as const;
 
 

@@ -15,6 +15,7 @@ React,
 import ReactMarkdown from 'react-markdown';
 import { useTheme } from 'next-themes';
 import Marked, { ReactRenderer } from 'marked-react';
+import Latex from 'react-latex-next';
 import { track } from '@vercel/analytics';
 import { useSearchParams } from 'next/navigation';
 import { useChat } from 'ai/react';
@@ -101,7 +102,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetPortal, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { GitHubLogoIcon } from '@radix-ui/react-icons';
 import Link from 'next/link';
@@ -120,7 +121,7 @@ import WeatherChart from '@/components/weather-chart';
 import InteractiveChart from '@/components/interactive-charts';
 import { MapComponent, MapContainer, MapSkeleton } from '@/components/map-components';
 import MultiSearch from '@/components/multi-search';
-import { RedditLogo, RoadHorizon, XLogo } from '@phosphor-icons/react';
+import { CurrencyDollar, Flag, RedditLogo, RoadHorizon, SoccerBall, TennisBall, XLogo } from '@phosphor-icons/react';
 import { BorderTrail } from '@/components/core/border-trail';
 import { TextShimmer } from '@/components/core/text-shimmer';
 import { Tweet } from 'react-tweet';
@@ -587,6 +588,32 @@ const HomeContent = () => {
     const initializedRef = useRef(false);
     const [selectedGroup, setSelectedGroup] = useState<SearchGroupId>('web');
 
+    const CACHE_KEY = 'trendingQueriesCache';
+    const CACHE_DURATION = 5 * 60 * 60 * 1000; // 5 hours in milliseconds
+
+    // Add this type definition
+    interface TrendingQueriesCache {
+        data: TrendingQuery[];
+        timestamp: number;
+    }
+
+    const getTrendingQueriesFromCache = (): TrendingQueriesCache | null => {
+        if (typeof window === 'undefined') return null;
+
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (!cached) return null;
+
+        const parsedCache = JSON.parse(cached) as TrendingQueriesCache;
+        const now = Date.now();
+
+        if (now - parsedCache.timestamp > CACHE_DURATION) {
+            localStorage.removeItem(CACHE_KEY);
+            return null;
+        }
+
+        return parsedCache;
+    };
+
     const { theme } = useTheme();
 
     const [openChangelog, setOpenChangelog] = useState(false);
@@ -633,10 +660,25 @@ const HomeContent = () => {
 
     useEffect(() => {
         const fetchTrending = async () => {
+            // Check cache first
+            const cached = getTrendingQueriesFromCache();
+            if (cached) {
+                setTrendingQueries(cached.data);
+                return;
+            }
+
             try {
                 const res = await fetch('/api/trending');
                 if (!res.ok) throw new Error('Failed to fetch trending queries');
                 const data = await res.json();
+
+                // Store in cache
+                const cacheData: TrendingQueriesCache = {
+                    data,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+
                 setTrendingQueries(data);
             } catch (error) {
                 console.error('Error fetching trending queries:', error);
@@ -1918,6 +1960,48 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
             }));
         }, [content]);
 
+        const inlineMathRegex = /\$([^\$]+)\$/g;
+        const blockMathRegex = /\$\$([^\$]+)\$\$/g;
+
+        const isValidLatex = (text: string): boolean => {
+            // Basic validation - checks for balanced delimiters
+            return !(text.includes('\\') && !text.match(/\\[a-zA-Z{}\[\]]+/));
+        }
+
+        const renderLatexString = (text: string) => {
+            let parts = [];
+            let lastIndex = 0;
+            let match;
+
+            // Try to match inline math first ($...$)
+            while ((match = /\$([^\$]+)\$/g.exec(text.slice(lastIndex))) !== null) {
+                const mathText = match[1];
+                const fullMatch = match[0];
+                const matchIndex = lastIndex + match.index;
+
+                // Add text before math
+                if (matchIndex > lastIndex) {
+                    parts.push(text.slice(lastIndex, matchIndex));
+                }
+
+                // Only render as LaTeX if valid
+                if (isValidLatex(mathText)) {
+                    parts.push(<Latex key={matchIndex}>{fullMatch}</Latex>);
+                } else {
+                    parts.push(fullMatch);
+                }
+
+                lastIndex = matchIndex + fullMatch.length;
+            }
+
+            // Add remaining text
+            if (lastIndex < text.length) {
+                parts.push(text.slice(lastIndex));
+            }
+
+            return parts.length > 0 ? parts : text;
+        };
+
         const fetchMetadataWithCache = useCallback(async (url: string) => {
             if (metadataCache[url]) {
                 return metadataCache[url];
@@ -2039,8 +2123,36 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
         };
 
         const renderer: Partial<ReactRenderer> = {
+            text(text: string) {
+                if (!text.includes('$')) return text;
+
+                return (
+                    <Latex
+                        delimiters={[
+                            { left: '$$', right: '$$', display: true },
+                            { left: '$', right: '$', display: false }
+                        ]}
+                    >
+                        {text}
+                    </Latex>
+                );
+            },
             paragraph(children) {
-                return <p className="my-4 text-neutral-800 dark:text-neutral-200">{children}</p>;
+                if (typeof children === 'string' && children.includes('$')) {
+                    return (
+                        <p className="my-4">
+                            <Latex
+                                delimiters={[
+                                    { left: '$$', right: '$$', display: true },
+                                    { left: '$', right: '$', display: false }
+                                ]}
+                            >
+                                {children}
+                            </Latex>
+                        </p>
+                    );
+                }
+                return <p className="my-4">{children}</p>;
             },
             code(children, language) {
                 return <CodeBlock language={language}>{String(children)}</CodeBlock>;
@@ -2195,58 +2307,71 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
         );
     };
 
-    const SuggestionCards: React.FC<{ 
-        selectedModel: string; 
-        trendingQueries: TrendingQuery[]; 
+    const SuggestionCards: React.FC<{
+        selectedModel: string;
+        trendingQueries: TrendingQuery[];
     }> = ({ selectedModel, trendingQueries }) => {
         const [isLoading, setIsLoading] = useState(true);
         const scrollRef = useRef<HTMLDivElement>(null);
         const [isPaused, setIsPaused] = useState(false);
         const scrollIntervalRef = useRef<NodeJS.Timeout>();
+        const [isTouchDevice, setIsTouchDevice] = useState(false);
 
         useEffect(() => {
             setIsLoading(false);
+            setIsTouchDevice('ontouchstart' in window);
         }, [trendingQueries]);
 
         useEffect(() => {
+            if (isTouchDevice) return; // Disable auto-scroll on touch devices
+
             const startScrolling = () => {
                 if (!scrollRef.current || isPaused) return;
-                scrollRef.current.scrollLeft += 2;
+                scrollRef.current.scrollLeft += 1; // Reduced speed
+
+                // Reset scroll when reaching end
+                if (scrollRef.current.scrollLeft >=
+                    (scrollRef.current.scrollWidth - scrollRef.current.clientWidth)) {
+                    scrollRef.current.scrollLeft = 0;
+                }
             };
 
-            scrollIntervalRef.current = setInterval(startScrolling, 20);
+            scrollIntervalRef.current = setInterval(startScrolling, 30);
 
             return () => {
                 if (scrollIntervalRef.current) {
                     clearInterval(scrollIntervalRef.current);
                 }
             };
-        }, [isPaused]);
-
-        const getCardWidth = (text: string) => {
-            const charWidth = 8;
-            const padding = 32;
-            const iconWidth = 28;
-            return Math.min(
-                padding + iconWidth + (text.length * charWidth),
-                400 
-            );
-        };
+        }, [isPaused, isTouchDevice]);
 
         if (isLoading || trendingQueries.length === 0) {
             return (
-                <div className="flex gap-2 mt-4">
-                    {[1, 2, 3].map((_, index) => (
-                        <div
-                            key={index}
-                            className="flex-shrink-0 w-[200px] bg-neutral-100 dark:bg-neutral-800 rounded-xl p-4 animate-pulse"
-                        >
-                            <div className="flex items-center space-x-2">
-                                <div className="w-5 h-5 bg-neutral-200 dark:bg-neutral-700 rounded-full" />
-                                <div className="h-4 w-32 bg-neutral-200 dark:bg-neutral-700 rounded" />
+                <div className="relative mt-4 px-0">
+                    {/* Overlay with Loading Text */}
+                    <div className="absolute inset-0 z-10 flex items-center justify-center">
+                        <div className="backdrop-blur-sm bg-white/30 dark:bg-black/30 rounded-2xl px-6 py-3 shadow-lg">
+                            <div className="flex items-center gap-2 text-sm font-medium text-neutral-600 dark:text-neutral-300">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>Loading trending queries</span>
                             </div>
                         </div>
-                    ))}
+                    </div>
+
+                    {/* Background Cards */}
+                    <div className="flex gap-2">
+                        {[1, 2, 3].map((_, index) => (
+                            <div
+                                key={index}
+                                className="flex-shrink-0 w-[140px] md:w-[220px] bg-neutral-100 dark:bg-neutral-800 rounded-xl p-4 animate-pulse"
+                            >
+                                <div className="flex items-center space-x-2">
+                                    <div className="w-5 h-5 bg-neutral-200 dark:bg-neutral-700 rounded-full" />
+                                    <div className="h-4 w-32 bg-neutral-200 dark:bg-neutral-700 rounded" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             );
         }
@@ -2258,28 +2383,53 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
                 science: <Brain className="w-5 h-5" />,
                 tech: <Code className="w-5 h-5" />,
                 travel: <Globe className="w-5 h-5" />,
+                politics: <Flag className="w-5 h-5" />,
+                health: <Heart className="w-5 h-5" />,
+                sports: <TennisBall className="w-5 h-5" />,
+                finance: <CurrencyDollar className="w-5 h-5" />,
+                football: <SoccerBall className="w-5 h-5" />,
             };
             return iconMap[category as keyof typeof iconMap] || <Sparkles className="w-5 h-5" />;
         };
 
         return (
             <div className="relative">
-                <div 
+                {/* Gradient Fades */}
+                <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-background to-transparent z-10" />
+                <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-background to-transparent z-10" />
+
+                <div
                     ref={scrollRef}
-                    className="flex gap-2 mt-4 overflow-x-auto pb-3 relative scroll-smooth no-scrollbar"
-                    onMouseEnter={() => setIsPaused(true)}
-                    onMouseLeave={() => setIsPaused(false)}
+                    className="flex gap-4 mt-4 overflow-x-auto pb-4 px-4 md:px-0 relative scroll-smooth no-scrollbar"
+                    onMouseEnter={() => !isTouchDevice && setIsPaused(true)}
+                    onMouseLeave={() => !isTouchDevice && setIsPaused(false)}
+                    onTouchStart={() => setIsPaused(true)}
+                    onTouchEnd={() => setIsPaused(false)}
                 >
                     {Array(20).fill(trendingQueries).flat().map((query, index) => (
                         <button
                             key={`${index}-${query.text}`}
                             onClick={() => handleExampleClick(query)}
-                            className="flex-shrink-0 bg-neutral-100 dark:bg-neutral-800 rounded-xl p-3 text-left hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-200"
-                            style={{ width: `${getCardWidth(query.text)}px` }}
+                            className="group flex-shrink-0 bg-neutral-50/50 dark:bg-neutral-800/50 
+                                   backdrop-blur-sm rounded-xl p-3.5 text-left 
+                                   hover:bg-neutral-100 dark:hover:bg-neutral-700/70
+                                   transition-all duration-200 ease-out
+                                   hover:scale-102 origin-center
+                                   h-[52px] min-w-fit
+                                   hover:shadow-lg
+                                   border border-neutral-200/50 dark:border-neutral-700/50
+                                   hover:border-neutral-300 dark:hover:border-neutral-600"
                         >
-                            <div className="flex items-center gap-2 text-neutral-700 dark:text-neutral-300">
-                                <span className="flex-shrink-0">{getIconForCategory(query.category)}</span>
-                                <span className="text-sm font-medium whitespace-nowrap pr-1">
+
+                            <div className="flex items-center gap-3 text-neutral-700 dark:text-neutral-300">
+                                <span
+                                    className="flex-shrink-0 transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3"
+                                >
+                                    {getIconForCategory(query.category)}
+                                </span>
+                                <span
+                                    className="text-sm font-medium truncate max-w-[180px] group-hover:text-neutral-900 dark:group-hover:text-neutral-100"
+                                >
                                     {query.text}
                                 </span>
                             </div>
@@ -2301,11 +2451,11 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
     }, []);
 
 
-    // const memoizedMessages = useMemo(() => messages, [messages]);
+    const memoizedMessages = useMemo(() => messages, [messages]);
 
     const memoizedSuggestionCards = useMemo(() => (
-        <SuggestionCards 
-            selectedModel={selectedModel} 
+        <SuggestionCards
+            selectedModel={selectedModel}
             trendingQueries={trendingQueries}
         />
     ), [selectedModel, trendingQueries]);
@@ -2349,7 +2499,7 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
                                 fileInputRef={fileInputRef}
                                 inputRef={inputRef}
                                 stop={stop}
-                                messages={messages}
+                                messages={memoizedMessages}
                                 append={append}
                                 selectedModel={selectedModel}
                                 setSelectedModel={handleModelChange}
@@ -2365,7 +2515,7 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
 
 
                 <div className="space-y-4 sm:space-y-6 mb-32">
-                    {messages.map((message, index) => (
+                    {memoizedMessages.map((message, index) => (
                         <div key={index}>
                             {message.role === 'user' && (
                                 <motion.div
