@@ -64,7 +64,7 @@ export function InstallPrompt() {
     switch (platform) {
       case 'ios':
         return (
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+          <p className="text-lg text-neutral-600 dark:text-neutral-400">
             Tap <Share className="inline h-4 w-4 mx-1" /> and then{" "}
             <span className="whitespace-nowrap">
               &ldquo;Add to Home Screen&rdquo; <Plus className="inline h-4 w-4 ml-1" />
@@ -73,13 +73,13 @@ export function InstallPrompt() {
         );
       case 'android':
         return (
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+          <p className="text-lg text-neutral-600 dark:text-neutral-400">
             Tap the menu <span className="font-bold">⋮</span> and select &ldquo;Install app&rdquo;
           </p>
         );
       default:
         return (
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+          <p className="text-lg text-neutral-600 dark:text-neutral-400">
             Install our app for a better experience <Download className="inline h-4 w-4 ml-1" />
           </p>
         );
@@ -93,12 +93,12 @@ export function InstallPrompt() {
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 50 }}
-          className="fixed bottom-4 left-4 right-4 z-[100] md:left-auto md:right-4 md:w-96"
+          className="fixed top-4 left-4 right-4 z-[100] md:left-auto md:right-4 md:w-96"
         >
           <Card className="p-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-lg">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
-                <h3 className="font-medium text-lg text-neutral-900 dark:text-neutral-100">
+                <h3 className="font-medium text-2xl text-neutral-900 dark:text-neutral-100">
                   Install MiniPerplx
                 </h3>
                 {getInstructions()}
