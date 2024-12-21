@@ -131,6 +131,7 @@ import { Separator } from '@/components/ui/separator';
 import { ChartTypes } from '@e2b/code-interpreter';
 import { TrendingQuery } from '../api/trending/route';
 import { FlightTracker } from '@/components/flight-tracker';
+import { InstallPrompt } from '@/components/InstallPrompt';
 
 export const maxDuration = 60;
 
@@ -2698,6 +2699,7 @@ const Home = () => {
     return (
         <Suspense fallback={<LoadingFallback />}>
             <HomeContent />
+            <InstallPrompt />
         </Suspense>
     );
 };
