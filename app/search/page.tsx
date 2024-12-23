@@ -2050,49 +2050,18 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
             }, [children]);
 
             return (
-                <div className="relative group my-3">
-                    <div className="absolute top-3 left-3 px-2 py-0.5 text-xs font-medium bg-neutral-100/80 dark:bg-neutral-800/80 backdrop-blur-sm text-neutral-500 dark:text-neutral-400 rounded-lg border border-neutral-200 dark:border-neutral-700">
-                        {language || 'text'}
-                    </div>
-
-                    <div className="overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800">
-                        <div className="relative">
-                            <SyntaxHighlighter
-                                language={language || 'text'}
-                                style={theme === 'dark' ? atomDark : vs}
-                                showLineNumbers
-                                wrapLines
-                                customStyle={{
-                                    margin: 0,
-                                    padding: '2.5rem 1.5rem 1.5rem',
-                                    fontSize: '0.875rem',
-                                    background: theme === 'dark' ? '#171717' : '#ffffff',
-                                    lineHeight: 1.6,
-                                    borderRadius: '0.75rem',
-                                }}
-                                lineNumberStyle={{
-                                    minWidth: '2.5em',
-                                    paddingRight: '1em',
-                                    color: theme === 'dark' ? '#404040' : '#94a3b8',
-                                    userSelect: 'none',
-                                }}
-                                codeTagProps={{
-                                    style: {
-                                        color: theme === 'dark' ? '#e5e5e5' : '#1e293b',
-                                        fontFamily: 'var(--font-mono)',
-                                    }
-                                }}
-                            >
-                                {children}
-                            </SyntaxHighlighter>
-
+                <div className="group my-3">
+                    <div className="grid grid-rows-[auto,1fr] rounded-lg border border-neutral-200 dark:border-neutral-800">
+                        <div className="flex items-center justify-between px-3 py-2 border-b border-neutral-200 dark:border-neutral-800">
+                            <div className="px-2 py-0.5 text-xs font-medium bg-neutral-100/80 dark:bg-neutral-800/80 text-neutral-500 dark:text-neutral-400 rounded-md border border-neutral-200 dark:border-neutral-700">
+                                {language || 'text'}
+                            </div>
                             <button
                                 onClick={handleCopy}
                                 className={`
-                                    absolute top-3 right-3 
                                     px-2 py-1.5 
-                                    rounded-lg text-xs
-                                    transition-all duration-200
+                                    rounded-md text-xs
+                                    transition-colors duration-200
                                     ${isCopied ? 'bg-green-500/10 text-green-500' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'} 
                                     opacity-0 group-hover:opacity-100
                                     hover:bg-neutral-200 dark:hover:bg-neutral-700
@@ -2112,6 +2081,38 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
                                     </>
                                 )}
                             </button>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <SyntaxHighlighter
+                                language={language || 'text'}
+                                style={theme === 'dark' ? atomDark : vs}
+                                showLineNumbers
+                                wrapLines
+                                customStyle={{
+                                    margin: 0,
+                                    padding: '1.5rem',
+                                    fontSize: '0.875rem',
+                                    background: theme === 'dark' ? '#171717' : '#ffffff',
+                                    lineHeight: 1.6,
+                                    borderBottomLeftRadius: '0.5rem',
+                                    borderBottomRightRadius: '0.5rem',
+                                }}
+                                lineNumberStyle={{
+                                    minWidth: '2.5em',
+                                    paddingRight: '1em',
+                                    color: theme === 'dark' ? '#404040' : '#94a3b8',
+                                    userSelect: 'none',
+                                }}
+                                codeTagProps={{
+                                    style: {
+                                        color: theme === 'dark' ? '#e5e5e5' : '#1e293b',
+                                        fontFamily: 'var(--font-mono)',
+                                    }
+                                }}
+                            >
+                                {children}
+                            </SyntaxHighlighter>
                         </div>
                     </div>
                 </div>
