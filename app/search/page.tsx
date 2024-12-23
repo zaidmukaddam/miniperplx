@@ -2051,7 +2051,7 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
 
             return (
                 <div className="relative group my-3">
-                    <div className="absolute top-3 left-3 px-2 py-0.5 text-xs font-medium bg-neutral-100/80 dark:bg-neutral-800/80 backdrop-blur-sm text-neutral-500 dark:text-neutral-400 rounded-lg border border-neutral-200 dark:border-neutral-700 z-10">
+                    <div className="absolute top-3 left-3 px-2 py-0.5 text-xs font-medium bg-neutral-100/80 dark:bg-neutral-800/80 backdrop-blur-sm text-neutral-500 dark:text-neutral-400 rounded-lg border border-neutral-200 dark:border-neutral-700">
                         {language || 'text'}
                     </div>
 
