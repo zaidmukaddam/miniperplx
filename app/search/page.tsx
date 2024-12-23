@@ -2051,11 +2051,11 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
 
             return (
                 <div className="relative group my-3">
-                    <div className="absolute top-3 left-3 px-2 py-0.5 text-xs font-medium bg-neutral-100/80 dark:bg-neutral-800/80 backdrop-blur-sm text-neutral-500 dark:text-neutral-400 rounded-md border border-neutral-200 dark:border-neutral-700 z-10">
+                    <div className="absolute top-3 left-3 px-2 py-0.5 text-xs font-medium bg-neutral-100/80 dark:bg-neutral-800/80 backdrop-blur-sm text-neutral-500 dark:text-neutral-400 rounded-lg border border-neutral-200 dark:border-neutral-700 z-10">
                         {language || 'text'}
                     </div>
 
-                    <div className="overflow-hidden rounded-lg border border-neutral-200 dark:border-neutral-800">
+                    <div className="overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800">
                         <div className="relative">
                             <SyntaxHighlighter
                                 language={language || 'text'}
@@ -2068,6 +2068,7 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
                                     fontSize: '0.875rem',
                                     background: theme === 'dark' ? '#171717' : '#ffffff',
                                     lineHeight: 1.6,
+                                    borderRadius: '0.75rem',
                                 }}
                                 lineNumberStyle={{
                                     minWidth: '2.5em',
@@ -2090,7 +2091,7 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
                                 className={`
                                     absolute top-3 right-3 
                                     px-2 py-1.5 
-                                    rounded-md text-xs
+                                    rounded-lg text-xs
                                     transition-all duration-200
                                     ${isCopied ? 'bg-green-500/10 text-green-500' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'} 
                                     opacity-0 group-hover:opacity-100
