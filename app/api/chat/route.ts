@@ -114,6 +114,24 @@ function sanitizeUrl(url: string): string {
   return url.replace(/\s+/g, '%20')
 }
 
+async function isValidImageUrl(url: string): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch(url, {
+      method: 'HEAD',
+      signal: controller.signal
+    });
+
+    clearTimeout(timeout);
+
+    return response.ok && (response.headers.get('content-type')?.startsWith('image/') ?? false);
+  } catch {
+    return false;
+  }
+}
+
 const defaultsystemPrompt = `
 You are an expert AI web search engine called MiniPerplx, that helps users find information on the internet with no bullshit talks.
 Always start with running the tool(s) and then and then only write your response AT ALL COSTS!!
@@ -285,18 +303,32 @@ export async function POST(req: Request) {
                 published_date: topics[index] === "news" ? obj.published_date : undefined,
               })),
               images: includeImageDescriptions
-                ? data.images
-                  .map(({ url, description }: { url: string; description?: string }) => ({
-                    url: sanitizeUrl(url),
-                    description: description ?? ''
-                  }))
-                  .filter(
-                    (image: { url: string; description: string }): image is { url: string; description: string } =>
-                      typeof image === 'object' &&
-                      image.description !== undefined &&
-                      image.description !== ''
+                ? await Promise.all(
+                  data.images
+                    .map(async ({ url, description }: { url: string; description?: string }) => {
+                      const sanitizedUrl = sanitizeUrl(url);
+                      const isValid = await isValidImageUrl(sanitizedUrl);
+
+                      return isValid ? {
+                        url: sanitizedUrl,
+                        description: description ?? ''
+                      } : null;
+                    })
+                ).then(results =>
+                  results.filter((image): image is { url: string; description: string } =>
+                    image !== null &&
+                    typeof image === 'object' &&
+                    typeof image.description === 'string' &&
+                    image.description !== ''
                   )
-                : data.images.map(({ url }: { url: string }) => sanitizeUrl(url))
+                )
+                : await Promise.all(
+                  data.images
+                    .map(async ({ url }: { url: string }) => {
+                      const sanitizedUrl = sanitizeUrl(url);
+                      return await isValidImageUrl(sanitizedUrl) ? sanitizedUrl : null;
+                    })
+                ).then(results => results.filter((url): url is string => url !== null))
             };
           });
 
