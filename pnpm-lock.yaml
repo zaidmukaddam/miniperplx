@@ -36,8 +36,8 @@ dependencies:
     specifier: ^2.0.5
     version: 2.0.5
   '@mendable/firecrawl-js':
-    specifier: ^1.4.3
-    version: 1.5.3(ws@8.18.0)
+    specifier: ^1.9.7
+    version: 1.9.7(ws@8.18.0)
   '@phosphor-icons/react':
     specifier: ^2.1.7
     version: 2.1.7(react-dom@18.3.1)(react@18.3.1)
@@ -747,14 +747,14 @@ packages:
     engines: {node: '>=6.0.0'}
     dev: false
 
-  /@mendable/firecrawl-js@1.5.3(ws@8.18.0):
-    resolution: {integrity: sha512-SMxQAUMixlc01OzYB3/9YvTGe/Po/v2NZx5ccCO3OKBk9Vdbo4a5i1Var591H1NYDEqNnRJ6se0X/Y/IiLVvtQ==}
+  /@mendable/firecrawl-js@1.9.7(ws@8.18.0):
+    resolution: {integrity: sha512-V4ILlwFnpmEQtGet2IMj5NMupfYD8t4crVq/4SmQGIqJIedoMWiZ4ryDjzU2WBts90BP5giN+or5rJLTxpgkNA==}
     dependencies:
       axios: 1.7.7
       isows: 1.0.6(ws@8.18.0)
       typescript-event-target: 1.1.1
       zod: 3.24.1
-      zod-to-json-schema: 3.23.3(zod@3.24.1)
+      zod-to-json-schema: 3.24.1(zod@3.24.1)
     transitivePeerDependencies:
       - debug
       - ws
@@ -6888,14 +6888,6 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
     dev: true
-
-  /zod-to-json-schema@3.23.3(zod@3.24.1):
-    resolution: {integrity: sha512-TYWChTxKQbRJp5ST22o/Irt9KC5nj7CdBKYB/AosCRdj/wxEMvv4NNaj9XVUHDOIp53ZxArGhnw5HMZziPFjog==}
-    peerDependencies:
-      zod: ^3.23.3
-    dependencies:
-      zod: 3.24.1
-    dev: false
 
   /zod-to-json-schema@3.24.1(zod@3.24.1):
     resolution: {integrity: sha512-3h08nf3Vw3Wl3PK+q3ow/lIil81IT2Oa7YpQyUUDsEWbXveMesdfK1xBd2RhCkynwZndAxixji/7SYJJowr62w==}

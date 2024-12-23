@@ -49,7 +49,6 @@ import {
     Download,
     Flame,
     Sun,
-    Terminal,
     Pause,
     Play,
     TrendingUpIcon,
@@ -61,13 +60,10 @@ import {
     Moon,
     ShoppingBasket,
     Star,
-    Truck,
     YoutubeIcon,
     LucideIcon,
-    PlayCircle,
     FileText,
     Book,
-    Eye,
     ExternalLink,
     Building,
     Users,
@@ -102,9 +98,9 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetHeader, SheetPortal, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
-import { GitHubLogoIcon } from '@radix-ui/react-icons';
+import { GitHubLogoIcon, TextIcon } from '@radix-ui/react-icons';
 import Link from 'next/link';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
@@ -119,19 +115,20 @@ import Autoplay from 'embla-carousel-autoplay';
 import FormComponent from '@/components/ui/form-component';
 import WeatherChart from '@/components/weather-chart';
 import InteractiveChart from '@/components/interactive-charts';
-import { MapComponent, MapContainer, MapSkeleton } from '@/components/map-components';
+import { MapComponent, MapContainer } from '@/components/map-components';
 import MultiSearch from '@/components/multi-search';
-import { CurrencyDollar, Flag, RedditLogo, RoadHorizon, SoccerBall, TennisBall, XLogo } from '@phosphor-icons/react';
+import { CurrencyDollar, Flag, RoadHorizon, SoccerBall, TennisBall, XLogo } from '@phosphor-icons/react';
 import { BorderTrail } from '@/components/core/border-trail';
 import { TextShimmer } from '@/components/core/text-shimmer';
 import { Tweet } from 'react-tweet';
 import NearbySearchMapView from '@/components/nearby-search-map-view';
-import { Place } from '../../components/map-components';
 import { Separator } from '@/components/ui/separator';
-import { ChartTypes } from '@e2b/code-interpreter';
 import { TrendingQuery } from '../api/trending/route';
 import { FlightTracker } from '@/components/flight-tracker';
 import { InstallPrompt } from '@/components/InstallPrompt';
+import { atomDark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
+import { vs } from 'react-syntax-highlighter/dist/cjs/styles/prism';
+
 
 export const maxDuration = 60;
 
@@ -1809,58 +1806,80 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
             if (toolInvocation.toolName === 'retrieve') {
                 if (!result) {
                     return (
-                        <div className="flex items-center justify-between w-full">
-                            <div className="flex items-center gap-2">
-                                <Globe className="h-5 w-5 text-neutral-700 dark:text-neutral-300 animate-pulse" />
-                                <span className="text-neutral-700 dark:text-neutral-300 text-lg">Retrieving content...</span>
-                            </div>
-                            <div className="flex space-x-1">
-                                {[0, 1, 2].map((index) => (
-                                    <motion.div
-                                        key={index}
-                                        className="w-2 h-2 bg-neutral-400 dark:bg-neutral-600 rounded-full"
-                                        initial={{ opacity: 0.3 }}
-                                        animate={{ opacity: 1 }}
-                                        transition={{ duration: 0.8, delay: index * 0.2, repeatType: "reverse" }}
-                                    />
-                                ))}
+                        <div className="border border-neutral-200 rounded-xl my-4 p-4 dark:border-neutral-800 bg-gradient-to-b from-white to-neutral-50 dark:from-neutral-900 dark:to-neutral-900/90">
+                            <div className="flex items-center gap-4">
+                                <div className="relative w-10 h-10">
+                                    <div className="absolute inset-0 bg-primary/10 animate-pulse rounded-lg" />
+                                    <Globe className="h-5 w-5 text-primary/70 absolute inset-0 m-auto" />
+                                </div>
+                                <div className="space-y-2 flex-1">
+                                    <div className="h-4 w-36 bg-neutral-200 dark:bg-neutral-800 animate-pulse rounded-md" />
+                                    <div className="space-y-1.5">
+                                        <div className="h-3 w-full bg-neutral-100 dark:bg-neutral-800/50 animate-pulse rounded-md" />
+                                        <div className="h-3 w-2/3 bg-neutral-100 dark:bg-neutral-800/50 animate-pulse rounded-md" />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     );
                 }
 
                 return (
-                    <div className="w-full my-4">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Globe className="h-5 w-5 text-primary" />
-                            <h3 className="font-semibold text-neutral-800 dark:text-neutral-200">Retrieved Content</h3>
-                        </div>
-                        <div className="space-y-2">
-                            <h4 className="font-medium text-sm sm:text-base text-neutral-800 dark:text-neutral-200">{result.results[0].title}</h4>
-                            <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400">{result.results[0].description}</p>
-                            <div className="flex flex-wrap items-center gap-2">
-                                <Badge variant="secondary" className="bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200">{result.results[0].language || 'Unknown language'}</Badge>
-                                <a href={result.results[0].url} target="_blank" rel="noopener noreferrer" className="text-xs sm:text-sm text-primary hover:underline">
-                                    Source
-                                </a>
+                    <div className="border border-neutral-200 rounded-xl my-4 overflow-hidden dark:border-neutral-800 bg-gradient-to-b from-white to-neutral-50 dark:from-neutral-900 dark:to-neutral-900/90">
+                        <div className="p-4">
+                            <div className="flex items-start gap-4">
+                                <div className="relative w-10 h-10 flex-shrink-0">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent rounded-lg" />
+                                    <img
+                                        className="h-5 w-5 absolute inset-0 m-auto"
+                                        src={`https://www.google.com/s2/favicons?sz=64&domain_url=${encodeURIComponent(result.results[0].url)}`}
+                                        alt=""
+                                    />
+                                </div>
+                                <div className="flex-1 min-w-0 space-y-2">
+                                    <h2 className="font-semibold text-lg text-neutral-900 dark:text-neutral-100 tracking-tight truncate">
+                                        {result.results[0].title}
+                                    </h2>
+                                    <p className="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-2">
+                                        {result.results[0].description}
+                                    </p>
+                                    <div className="flex items-center gap-3">
+                                        <span className="px-2.5 py-0.5 text-xs font-medium rounded-full bg-primary/10 text-primary">
+                                            {result.results[0].language || 'Unknown'}
+                                        </span>
+                                        <a
+                                            href={result.results[0].url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1.5 text-xs text-neutral-500 hover:text-primary transition-colors"
+                                        >
+                                            <ExternalLink className="h-3 w-3" />
+                                            View source
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <Accordion type="single" collapsible className="w-full mt-4">
-                            <AccordionItem value="content" className="border-b-0">
-                                <AccordionTrigger className="text-neutral-800 dark:text-neutral-200">View Content</AccordionTrigger>
-                                <AccordionContent>
-                                    <div className="max-h-[50vh] overflow-y-auto bg-neutral-100 dark:bg-neutral-800 p-2 sm:p-4 rounded-lg">
-                                        <ReactMarkdown className="text-xs sm:text-sm text-neutral-800 dark:text-neutral-200">
-                                            {result.results[0].content}
-                                        </ReactMarkdown>
+
+                        <div className="border-t border-neutral-200 dark:border-neutral-800">
+                            <details className="group">
+                                <summary className="w-full px-4 py-2 cursor-pointer text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <TextIcon className="h-4 w-4 text-neutral-400" />
+                                        <span>View content</span>
                                     </div>
-                                </AccordionContent>
-                            </AccordionItem>
-                        </Accordion>
+                                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-open:rotate-180" />
+                                </summary>
+                                <div className="max-h-[50vh] overflow-y-auto p-4 bg-neutral-50/50 dark:bg-neutral-800/30">
+                                    <div className="prose prose-neutral dark:prose-invert prose-sm max-w-none">
+                                        <ReactMarkdown>{result.results[0].content}</ReactMarkdown>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
                     </div>
                 );
             }
-
             if (toolInvocation.toolName === 'text_translate') {
                 return <TranslationTool toolInvocation={toolInvocation} result={result} />;
             }
@@ -2015,41 +2034,93 @@ The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now availab
             return metadata;
         }, [metadataCache]);
 
-        const CodeBlock = ({ language, children }: { language: string | undefined; children: string }) => {
-            const [isCopied, setIsCopied] = useState(false);
+        interface CodeBlockProps {
+            language: string | undefined;
+            children: string;
+        }
 
-            const handleCopy = async () => {
+        const CodeBlock = React.memo(({ language, children }: CodeBlockProps) => {
+            const [isCopied, setIsCopied] = useState(false);
+            const { theme } = useTheme();
+
+            const handleCopy = useCallback(async () => {
                 await navigator.clipboard.writeText(children);
                 setIsCopied(true);
                 setTimeout(() => setIsCopied(false), 2000);
-            };
+            }, [children]);
 
             return (
-                <div className="relative group">
-                    <SyntaxHighlighter
-                        language={language || 'text'}
-                        style={oneDark}
-                        showLineNumbers
-                        wrapLines
-                        customStyle={{
-                            margin: 0,
-                            borderRadius: '0.375rem',
-                            fontSize: '0.875rem',
-                        }}
-                    >
-                        {children}
-                    </SyntaxHighlighter>
-                    <Button
-                        onClick={handleCopy}
-                        className="absolute top-2 right-2 p-2 bg-neutral-700 dark:bg-neutral-600 bg-opacity-80 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                        variant="ghost"
-                        size="sm"
-                    >
-                        {isCopied ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-neutral-200" />}
-                    </Button>
+                <div className="relative group my-3">
+                    <div className="absolute top-3 left-3 px-2 py-0.5 text-xs font-medium bg-neutral-100/80 dark:bg-neutral-800/80 backdrop-blur-sm text-neutral-500 dark:text-neutral-400 rounded-md border border-neutral-200 dark:border-neutral-700 z-10">
+                        {language || 'text'}
+                    </div>
+
+                    <div className="overflow-hidden rounded-lg border border-neutral-200 dark:border-neutral-800">
+                        <div className="relative">
+                            <SyntaxHighlighter
+                                language={language || 'text'}
+                                style={theme === 'dark' ? atomDark : vs}
+                                showLineNumbers
+                                wrapLines
+                                customStyle={{
+                                    margin: 0,
+                                    padding: '2.5rem 1.5rem 1.5rem',
+                                    fontSize: '0.875rem',
+                                    background: theme === 'dark' ? '#171717' : '#ffffff',
+                                    lineHeight: 1.6,
+                                }}
+                                lineNumberStyle={{
+                                    minWidth: '2.5em',
+                                    paddingRight: '1em',
+                                    color: theme === 'dark' ? '#404040' : '#94a3b8',
+                                    userSelect: 'none',
+                                }}
+                                codeTagProps={{
+                                    style: {
+                                        color: theme === 'dark' ? '#e5e5e5' : '#1e293b',
+                                        fontFamily: 'var(--font-mono)',
+                                    }
+                                }}
+                            >
+                                {children}
+                            </SyntaxHighlighter>
+
+                            <button
+                                onClick={handleCopy}
+                                className={`
+                                    absolute top-3 right-3 
+                                    px-2 py-1.5 
+                                    rounded-md text-xs
+                                    transition-all duration-200
+                                    ${isCopied ? 'bg-green-500/10 text-green-500' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'} 
+                                    opacity-0 group-hover:opacity-100
+                                    hover:bg-neutral-200 dark:hover:bg-neutral-700
+                                    flex items-center gap-1.5
+                                `}
+                                aria-label={isCopied ? 'Copied!' : 'Copy code'}
+                            >
+                                {isCopied ? (
+                                    <>
+                                        <Check className="h-3.5 w-3.5" />
+                                        <span>Copied!</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Copy className="h-3.5 w-3.5" />
+                                        <span>Copy</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             );
-        };
+        }, (prevProps, nextProps) =>
+            prevProps.children === nextProps.children &&
+            prevProps.language === nextProps.language
+        );
+
+        CodeBlock.displayName = 'CodeBlock';
 
         const LinkPreview = ({ href }: { href: string }) => {
             const [metadata, setMetadata] = useState<LinkMetadata | null>(null);
