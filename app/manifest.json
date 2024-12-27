@@ -2,11 +2,18 @@
   "name": "MiniPerplx - AI-powered Search Engine",
   "short_name": "MiniPerplx",
   "description": "A minimalistic AI-powered search engine that helps you find information on the internet using advanced AI models like GPT-4, Claude, and Grok",
-  "start_url": "/",
+  "start_url": "/search",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",
   "categories": ["search", "ai", "productivity"],
+  "icons" : [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ],
   "screenshots": [
     {
       "src": "/app/opengraph-image.png",

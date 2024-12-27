@@ -128,6 +128,7 @@ import { FlightTracker } from '@/components/flight-tracker';
 import { InstallPrompt } from '@/components/InstallPrompt';
 import { atomDark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import { vs } from 'react-syntax-highlighter/dist/cjs/styles/prism';
+import { useMediaQuery } from '@/hooks/use-media-query';
 
 
 export const maxDuration = 60;
@@ -742,90 +743,159 @@ const HomeContent = () => {
     const changelogs: Changelog[] = [
         {
             id: "1",
-            title: "New Updates!",
+            title: "December Updates",
             images: [
-                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-new-claude-models.png",
-                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-nearby-search-maps-demo.png",
-                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-multi-search-demo.png"
+                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-search-groups.png",
+                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-grok2.png",
+                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-track-flights.png",
+                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-reterive-back.png",
             ],
-            content:
-                `## **Nearby Map Search Beta**
+            content:`
+## **Search Groups**
 
-The new Nearby Map Search tool is now available in beta! You can use it to find nearby places, restaurants, attractions, and more. Give it a try and let us know what you think!
+You can now switch between different search groups like Default, Youtube, X.com, Academic, and more to get results from different sources.
 
-## **Multi Search is here by default**
+## **Added Grok 2.0 Vision model**
 
-The AI powered Multiple Query Search tool is now available by default. The LLM model will now automatically suggest multiple queries based on your input and run the searches in parallel.
+xAI's Grok 2.0 Vision model is now available on the platform.
 
-## **Claude 3.5 Sonnet(New) and 3.5 Haiku are here!**
+## **Default Search Engine**
 
-The new Anthropic models: Claude 3.5 Sonnet and 3.5 Haiku models are now available on the platform.
+You can now set MiniPerplx as the default search engine for the platform. Follow the instructions in the [Readme](https://github.com/zaidmukaddam/miniperplx/blob/main/README.md) to set it as default.
+
+## **Track Flights**
+
+You can now track flights in real-time with the new Flight Tracker tool.
+
+## **PWA support**
+
+The platform now supports Progressive Web App(PWA) features. You can now install the platform as an app on your device.
+
+## **Reterive tool is back!**
+
+You can now use the Retrieve tool to get information from the a specific URL. 
+
+## **Trending Queries**
+
+You can now view the trending queries on the platform.
 `
         }
     ];
 
-    const ChangeLogs: React.FC<{ open: boolean; setOpen: (open: boolean) => void }> = ({ open, setOpen }) => {
-        return (
-            <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="no-scrollbar max-h-[80vh] overflow-y-auto rounded-xl border-none p-0 gap-0 font-sans bg-white dark:bg-neutral-900 z-[1000]">
-                    <div className="w-full py-3 flex justify-center items-center border-b border-neutral-200 dark:border-neutral-700">
-                        <h2 className="text-lg font-bold flex items-center gap-2 text-neutral-800 dark:text-neutral-100">
-                            <Flame size={20} /> What&apos;s new
-                        </h2>
-                    </div>
-                    <div className="divide-y divide-neutral-200 dark:divide-neutral-700">
-                        {changelogs.map((changelog) => (
-                            <div key={changelog.id}>
-                                <Carousel
-                                    opts={{
-                                        align: "start",
-                                        loop: true,
-                                    }}
-                                    plugins={[
-                                        Autoplay({
-                                            delay: 2000,
-                                        }),
-                                    ]}
-                                    className="w-full bg-neutral-100 dark:bg-neutral-800"
-                                >
-                                    <CarouselContent>
-                                        {changelog.images.map((image, index) => (
-                                            <CarouselItem key={index}>
-                                                <Image
-                                                    src={image}
-                                                    alt={changelog.title}
-                                                    width={0}
-                                                    height={0}
-                                                    className="h-auto w-full object-cover"
-                                                    sizes="100vw"
-                                                />
-                                            </CarouselItem>
-                                        ))}
-                                    </CarouselContent>
-                                </Carousel>
-                                <div className="flex flex-col gap-2 px-4 py-2">
-                                    <h3 className="text-2xl font-medium font-serif text-neutral-800 dark:text-neutral-100">{changelog.title}</h3>
+
+    const ChangeLogs = ({ open, setOpen }: { open: boolean; setOpen: (open: boolean) => void }) => {
+        const isMobile = useMediaQuery("(max-width: 768px)");
+
+        const ChangelogContent = () => (
+            <>
+                {/* Fixed Header */}
+                <div className="w-full py-3 flex justify-center items-center border-b border-neutral-200 dark:border-neutral-700">
+                    <h2 className="text-lg font-bold flex items-center gap-2 text-neutral-800 dark:text-neutral-100">
+                        <Flame size={20} /> What&apos;s new
+                    </h2>
+                </div>
+
+                <div className="divide-y divide-neutral-200 dark:divide-neutral-700">
+                    {changelogs.map((changelog) => (
+                        <div key={changelog.id}>
+                            {/* Carousel */}
+                            <Carousel
+                                opts={{
+                                    align: "start",
+                                    loop: true,
+                                }}
+                                plugins={[
+                                    Autoplay({
+                                        delay: 2000,
+                                    }),
+                                ]}
+                                className="w-full bg-neutral-100 dark:bg-neutral-800"
+                            >
+                                <CarouselContent>
+                                    {changelog.images.map((image, index) => (
+                                        <CarouselItem key={index}>
+                                            <Image
+                                                src={image}
+                                                alt={changelog.title}
+                                                width={0}
+                                                height={0}
+                                                className="h-auto w-full object-cover"
+                                                sizes="100vw"
+                                            />
+                                        </CarouselItem>
+                                    ))}
+                                </CarouselContent>
+                            </Carousel>
+
+                            {/* Content Section */}
+                            <div className="flex flex-col gap-2 px-4 py-2">
+                                <h3 className="text-2xl font-bold text-left text-neutral-800 dark:text-neutral-100">
+                                    {changelog.title}
+                                </h3>
+                                <div className="overflow-y-auto max-h-[50vh]">
                                     <ReactMarkdown
                                         components={{
                                             h2: ({ node, className, ...props }) => (
-                                                <h2 {...props} className={cn("my-2 text-lg font-medium text-neutral-800 dark:text-neutral-100", className)} />
+                                                <h2
+                                                    {...props}
+                                                    className={cn(
+                                                        "my-2 text-lg font-medium text-neutral-800 dark:text-neutral-100",
+                                                        className
+                                                    )}
+                                                />
                                             ),
                                             p: ({ node, className, ...props }) => (
-                                                <p {...props} className={cn("mb-3 text-neutral-700 dark:text-neutral-300 leading-relaxed", className)} />
+                                                <p
+                                                    {...props}
+                                                    className={cn(
+                                                        "mb-3 text-neutral-700 dark:text-neutral-300 leading-relaxed",
+                                                        className
+                                                    )}
+                                                />
+                                            ),
+                                            a: ({ node, className, ...props }) => (
+                                                <a
+                                                    {...props}
+                                                    className={cn(
+                                                        "hover:text-blue-500 underline",
+                                                        className
+                                                    )}
+                                                />
                                             ),
                                         }}
-                                        className="text-sm"
+                                        className="text-sm text-left pr-2"
                                     >
                                         {changelog.content}
                                     </ReactMarkdown>
                                 </div>
                             </div>
-                        ))}
-                    </div>
+                        </div>
+                    ))}
+                </div>
+            </>
+        );
+
+        if (isMobile) {
+            return (
+                <Drawer open={open} onOpenChange={setOpen}>
+                    <DrawerContent className="max-h-[100vh] z-[81] font-sans text-left">
+                        <DrawerHeader className="p-0">
+                            <ChangelogContent />
+                        </DrawerHeader>
+                    </DrawerContent>
+                </Drawer>
+            );
+        }
+
+        return (
+            <Dialog open={open} onOpenChange={setOpen}>
+                <DialogContent className="max-h-[90vh] overflow-scroll rounded-xl border-none p-0 gap-0 font-sans bg-white dark:bg-neutral-900 z-[1000]">
+                    <ChangelogContent />
                 </DialogContent>
             </Dialog>
         );
     };
+
 
 
     const TranslationTool: React.FC<{ toolInvocation: ToolInvocation; result: any }> = ({ toolInvocation, result }) => {
