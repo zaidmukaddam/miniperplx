@@ -1,9 +1,9 @@
+// app/actions.ts
 'use server';
 
 import { generateObject, CoreMessage } from 'ai';
 import { google } from '@ai-sdk/google'
 import { z } from 'zod';
-import { load } from 'cheerio';
 
 export async function suggestQuestions(history: any[]) {
   'use server';
@@ -146,7 +146,8 @@ Always remember to run the appropriate tool first, then compose your response ba
 Run tools step by step and not combined in a single response at all costs!!
 Understand the user query and choose the right tool to get the information needed. Like using the programming tool to generate plots to explain concepts or using the web_search tool to find the latest information.
 All tool should be called only once per response. All tool call parameters are mandatory always!
-Format your response in paragraphs(min 6) with 3-8 sentences each, keeping it long but informative. DO NOT use pointers or make lists of any kind at ALL!
+Format your response: give a structured answer with headings for each section no h1 tho. try to use bullet points instead of just a plain paragraph. put citation after each bullet point instead of at the end of the whole answer. Answers should be very informative and detailed. No short answers at all costs!!
+Do not ever complete the sentence inside the citation at all costs!! Always complete the sentence and then put the citation at the end after the last word of the sentence not as the last word of the sentence.
 Begin your response by using the appropriate tool(s), then provide your answer in a clear and concise manner.
 Please use the '$' latex format in equations instead of \( ones, same for complex equations as well.
 

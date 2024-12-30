@@ -58,8 +58,8 @@ const getColorClasses = (color: string, isSelected: boolean = false) => {
                 : `${baseClasses} !text-orange-700 dark:!text-orange-300 hover:!bg-orange-200 dark:hover:!bg-orange-800/70`;
         case 'glossyblack':
             return isSelected
-            ? `${baseClasses} ${selectedClasses} bg-gradient-to-br from-black to-neutral-800 !text-white shadow-inner`
-            : `${baseClasses} !text-black dark:!text-white hover:!bg-black/10 dark:hover:!bg-black/40`;
+                ? `${baseClasses} ${selectedClasses} bg-gradient-to-br from-black to-neutral-800 !text-white shadow-inner`
+                : `${baseClasses} !text-black dark:!text-white hover:!bg-black/10 dark:hover:!bg-black/40`;
         default:
             return isSelected
                 ? `${baseClasses} ${selectedClasses} !bg-neutral-500 dark:!bg-neutral-600 !text-white hover:!bg-neutral-600 dark:hover:!bg-neutral-700`
@@ -634,15 +634,18 @@ const FormComponent: React.FC<FormComponentProps> = ({
     const postSubmitFileInputRef = useRef<HTMLInputElement>(null);
     const [isFocused, setIsFocused] = useState(false);
 
+    const MIN_HEIGHT = 56;
+    const MAX_HEIGHT = 400;
+
     const autoResizeInput = (target: HTMLTextAreaElement) => {
-        if (target) {
-            target.style.height = 'auto'; // trigger recalculate scrollHeight
-            let additionalLineHeight = 0;
-            if (target.value) {
-                additionalLineHeight = parseFloat(window.getComputedStyle(target).lineHeight);
-            }
-            target.style.height = `${target.scrollHeight + additionalLineHeight}px`;
-        }
+        if (!target) return;
+        requestAnimationFrame(() => {
+            target.style.height = 'auto'; // reset
+            let newHeight = target.scrollHeight;
+            newHeight = Math.min(Math.max(newHeight, MIN_HEIGHT), MAX_HEIGHT);
+            target.style.height = `${newHeight}px`;
+            target.style.overflowY = newHeight >= MAX_HEIGHT ? 'auto' : 'hidden';
+        });
     };
 
     const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -812,8 +815,8 @@ const FormComponent: React.FC<FormComponentProps> = ({
                     onFocus={handleFocus}
                     onBlur={handleBlur}
                     className={cn(
-                        "min-h-[40px] w-full resize-none rounded-lg",
-                        "overflow-y-auto overflow-x-hidden",
+                        "min-h-[40px] max-h-[300px] w-full resize-none rounded-lg",
+                        "overflow-x-hidden",
                         "text-base leading-relaxed",
                         "bg-neutral-100 dark:bg-neutral-900",
                         "border border-neutral-200 dark:border-neutral-700",
