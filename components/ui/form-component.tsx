@@ -634,8 +634,20 @@ const FormComponent: React.FC<FormComponentProps> = ({
     const postSubmitFileInputRef = useRef<HTMLInputElement>(null);
     const [isFocused, setIsFocused] = useState(false);
 
+    const autoResizeInput = (target: HTMLTextAreaElement) => {
+        if (target) {
+            target.style.height = 'auto'; // trigger recalculate scrollHeight
+            let additionalLineHeight = 0;
+            if (target.value) {
+                additionalLineHeight = parseFloat(window.getComputedStyle(target).lineHeight);
+            }
+            target.style.height = `${target.scrollHeight + additionalLineHeight}px`;
+        }
+    };
+
     const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         setInput(event.target.value);
+        autoResizeInput(event.target);
     };
 
     const handleFocus = () => {
@@ -800,7 +812,7 @@ const FormComponent: React.FC<FormComponentProps> = ({
                     onFocus={handleFocus}
                     onBlur={handleBlur}
                     className={cn(
-                        "min-h-[40px] max-h-[200px] w-full resize-none rounded-lg",
+                        "min-h-[40px] w-full resize-none rounded-lg",
                         "overflow-y-auto overflow-x-hidden",
                         "text-base leading-relaxed",
                         "bg-neutral-100 dark:bg-neutral-900",
