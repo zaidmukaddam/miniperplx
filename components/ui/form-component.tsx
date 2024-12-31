@@ -730,7 +730,7 @@ const FormComponent: React.FC<FormComponentProps> = ({
         if (input.trim() || attachments.length > 0) {
             setHasSubmitted(true);
             lastSubmittedQueryRef.current = input.trim();
-            track("search input", { query: input.trim() });
+            // track("search input", { query: input.trim() });
 
             handleSubmit(event, {
                 experimental_attachments: attachments,
