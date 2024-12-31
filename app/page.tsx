@@ -732,10 +732,10 @@ const LandingPage: React.FC = () => {
                   <TryButton />
                 </motion.div>
                 <motion.div
-                  className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6"
+                  className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 py-4"
                   variants={itemVariants}
                 >
-                  <NextLink href="https://www.producthunt.com/posts/miniperplx?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-miniperplx" target="_blank" rel="noopener noreferrer" passHref>
+                  <NextLink className="transform transition-transform hover:scale-105" href="https://www.producthunt.com/posts/miniperplx?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-miniperplx" target="_blank" rel="noopener noreferrer" passHref>
                     <Image
                       src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=481378&theme=light"
                       alt="MiniPerplx - A minimalistic AI-powered search engine. | Product Hunt"
@@ -744,7 +744,7 @@ const LandingPage: React.FC = () => {
                       className="h-12 w-auto"
                     />
                   </NextLink>
-                  <NextLink href="https://peerlist.io/zaidmukaddam/project/miniperplx" target="_blank" rel="noopener noreferrer" passHref>
+                  <NextLink className="transform transition-transform hover:scale-105" href="https://peerlist.io/zaidmukaddam/project/miniperplx" target="_blank" rel="noopener noreferrer" passHref>
                     <Image
                       src="/Launch_SVG_Light.svg"
                       alt="Peerlist"
@@ -761,7 +761,7 @@ const LandingPage: React.FC = () => {
                     />
                   </NextLink>
                   {/* <a href="https://theresanaiforthat.com/ai/miniperplx/?ref=featured&v=2143659" target="_blank" rel="nofollow"><img width="300" src="https://media.theresanaiforthat.com/featured-on-taaft.png?width=600" /></a> */}
-                  <NextLink href="https://theresanaiforthat.com/ai/miniperplx/?ref=featured&v=2143659" target="_blank" rel="nofollow" passHref>
+                  <NextLink className="transform transition-transform hover:scale-105" href="https://theresanaiforthat.com/ai/miniperplx/?ref=featured&v=2143659" target="_blank" rel="nofollow" passHref>
                     <Image
                       src="https://media.theresanaiforthat.com/featured-on-taaft.png?width=600"
                       alt="There's an AI for that"
@@ -770,9 +770,18 @@ const LandingPage: React.FC = () => {
                       className="h-12 w-auto"
                     />
                   </NextLink>
-                  <NextLink href="https://www.uneed.best/tool/miniperplx" passHref>
+                  <NextLink className="transform transition-transform hover:scale-105" href="https://www.uneed.best/tool/miniperplx" passHref>
                     <Image
-                      src="https://www.uneed.best/EMBED2B.png"
+                      src="https://www.uneed.best/POTD1A.png"
+                      alt="Uneed Embed Badge"
+                      width={300}
+                      height={150}
+                      className="h-12 w-auto"
+                    />
+                  </NextLink>
+                  <NextLink className="transform transition-transform hover:scale-105" href="https://www.uneed.best/tool/miniperplx" passHref>
+                    <Image
+                      src="https://www.uneed.best/POTW3A.png"
                       alt="Uneed Embed Badge"
                       width={300}
                       height={150}
