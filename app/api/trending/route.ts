@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { generateObject } from 'ai';
-import { groq } from '@ai-sdk/groq'
 import { z } from 'zod';
+import { geolocation } from '@vercel/functions';
+import { xai } from '@ai-sdk/xai';
 
 export interface TrendingQuery {
   icon: string;
@@ -15,7 +16,7 @@ interface RedditPost {
   };
 }
 
-async function fetchGoogleTrends(): Promise<TrendingQuery[]> {
+async function fetchGoogleTrends(countryCode: string = 'US'): Promise<TrendingQuery[]> {
   const fetchTrends = async (geo: string): Promise<TrendingQuery[]> => {
     try {
       const response = await fetch(`https://trends.google.com/trends/trendingsearches/daily/rss?geo=${geo}`, {
@@ -39,7 +40,7 @@ async function fetchGoogleTrends(): Promise<TrendingQuery[]> {
 
       const itemsWithCategoryAndIcon = await Promise.all(items.map(async item => {
         const { object } = await generateObject({
-          model: groq("llama-3.2-3b-preview"),
+          model: xai("grok-beta"),
           prompt: `Give the category for the topic from the existing values only in lowercase only: ${item.replace(/<\/?title>/g, '')}
           
           - if the topic category isn't present in the list, please select 'trending' only!`,
@@ -61,10 +62,9 @@ async function fetchGoogleTrends(): Promise<TrendingQuery[]> {
     }
   };
 
-  const trendsIN = await fetchTrends('IN');
-  const trendsUS = await fetchTrends('US');
+  const trends = await fetchTrends(countryCode);
 
-  return [...trendsIN, ...trendsUS];
+  return [ ...trends];
 }
 
 async function fetchRedditQuestions(): Promise<TrendingQuery[]> {
@@ -95,11 +95,11 @@ async function fetchRedditQuestions(): Promise<TrendingQuery[]> {
   }
 }
 
-async function fetchFromMultipleSources() {
+async function fetchFromMultipleSources(countryCode: string) {
   const [googleTrends,
     // redditQuestions
   ] = await Promise.all([
-    fetchGoogleTrends(),
+    fetchGoogleTrends(countryCode),
     // fetchRedditQuestions(),
   ]);
 
@@ -110,9 +110,10 @@ async function fetchFromMultipleSources() {
     .sort(() => Math.random() - 0.5);
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const trends = await fetchFromMultipleSources();
+    const countryCode = geolocation(req).countryRegion ?? 'US';
+    const trends = await fetchFromMultipleSources(countryCode);
 
     if (trends.length === 0) {
       // Fallback queries if both sources fail

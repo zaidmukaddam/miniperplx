@@ -4,34 +4,6 @@
 
 A minimalistic AI-powered search engine that helps you find information on the internet.
 
-## Set MiniPerplx as your default search engine
-
-1. **Open the Chrome browser settings**:
-   - Click on the three vertical dots in the upper right corner of the browser.
-   - Select "Settings" from the dropdown menu.
-
-2. **Go to the search engine settings**:
-   - In the left sidebar, click on "Search engine."
-   - Then select "Manage search engines and site search."
-
-3. **Add a new search engine**:
-   - Click on "Add" next to "Site search."
-
-4. **Set the search engine name**:
-   - Enter `MiniPerplx` in the "Search engine" field.
-
-5. **Set the search engine URL**:
-   - Enter `https://mplx.run/search?query=%s&model=azure:gpt4o-mini` in the "URL with %s in place of query" field.
-
-6. **Set the search engine shortcut**:
-   - Enter `mp` in the "Shortcut" field.
-
-7. **Set Default**:
-   - Click on the three dots next to the search engine you just added.
-   - Select "Make default" from the dropdown menu.
-
-After completing these steps, you should be able to use MiniPerplx as your default search engine in Chrome.
-
 ## ProductHunt Launch
 
 Upvote MiniPerplx on ProductHunt to show your support!
@@ -52,6 +24,11 @@ Upvote MiniPerplx on ProductHunt to show your support!
 - **Product Search**: Search for products on Amazon.
 - **X Posts Search**: Search for posts on X.com.
 - **Flight Tracker**: Track flights using AviationStack's API.
+- **Trending Movies and TV Shows**: Get information about trending movies and TV shows.
+- **Movie or TV Show Search**: Get information about any movie or TV show.
+
+## LLM used
+- [xAI's Grok](https://x.ai/grok)
 
 ## Built with
 - [Next.js](https://nextjs.org/)
@@ -68,16 +45,37 @@ Upvote MiniPerplx on ProductHunt to show your support!
 - [Exa.AI](https://exa.ai/)
 - [AviationStack](https://aviationstack.com/)
 
-## LLM used
-- [OpenAI's GPT 4o mini](https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/)
-- [OpenAI's GPT 4o](https://openai.com/index/hello-gpt-4o/)
-- [Anthropic's Claude 3.5 Sonnet](https://www.anthropic.com/news/claude-3-5-sonnet/)
-- [Anthropic's Claude 3.5 Haiku](https://www.anthropic.com/claude/haiku)
-- [xAI's Grok](https://x.ai/grok)
-
 ### Deploy your own
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fzaidmukaddam%2Fminiperplx&env=OPENAI_API_KEY,ANTHROPIC_API_KEY,GROQ_API_KEY,TAVILY_API_KEY,OPENWEATHER_API_KEY,E2B_API_KEY&envDescription=API%20keys%20needed%20for%20application)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fzaidmukaddam%2Fminiperplx&env=XAI_API_KEY,GROQ_API_KEY,TAVILY_API_KEY,OPENWEATHER_API_KEY,E2B_API_KEY&envDescription=API%20keys%20needed%20for%20application)
+
+## Set MiniPerplx as your default search engine
+
+1. **Open the Chrome browser settings**:
+   - Click on the three vertical dots in the upper right corner of the browser.
+   - Select "Settings" from the dropdown menu.
+
+2. **Go to the search engine settings**:
+   - In the left sidebar, click on "Search engine."
+   - Then select "Manage search engines and site search."
+
+3. **Add a new search engine**:
+   - Click on "Add" next to "Site search."
+
+4. **Set the search engine name**:
+   - Enter `MiniPerplx` in the "Search engine" field.
+
+5. **Set the search engine URL**:
+   - Enter `https://mplx.run?q=%s` in the "URL with %s in place of query" field.
+
+6. **Set the search engine shortcut**:
+   - Enter `mp` in the "Shortcut" field.
+
+7. **Set Default**:
+   - Click on the three dots next to the search engine you just added.
+   - Select "Make default" from the dropdown menu.
+
+After completing these steps, you should be able to use MiniPerplx as your default search engine in Chrome.
 
 ### Local development
 

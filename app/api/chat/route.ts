@@ -1,15 +1,11 @@
 // /app/api/chat/route.ts
 import { z } from "zod";
-import { createAzure } from '@ai-sdk/azure';
-import { anthropic } from '@ai-sdk/anthropic'
 import { xai } from '@ai-sdk/xai'
-import { google } from '@ai-sdk/google'
 import Exa from 'exa-js'
 import {
   convertToCoreMessages,
   streamText,
   tool,
-  experimental_createProviderRegistry,
   smoothStream
 } from "ai";
 import { BlobRequestAbortedError, put } from '@vercel/blob';
@@ -17,6 +13,9 @@ import CodeInterpreter from "@e2b/code-interpreter";
 import FirecrawlApp from '@mendable/firecrawl-js';
 import { tavily } from '@tavily/core'
 import { getGroupConfig } from "@/app/actions";
+import { geolocation, ipAddress } from '@vercel/functions'
+import { Ratelimit } from "@upstash/ratelimit"; // for deno: see above
+import { Redis } from "@upstash/redis"; // see below for cloudflare and fastly adapters
 
 // Allow streaming responses up to 60 seconds
 export const maxDuration = 120;
@@ -96,20 +95,6 @@ interface VideoResult {
   summary?: string;
 }
 
-// Azure setup
-const azure = createAzure({
-  resourceName: process.env.AZURE_RESOURCE_NAME,
-  apiKey: process.env.AZURE_API_KEY,
-});
-
-// Provider registry
-const registry = experimental_createProviderRegistry({
-  anthropic,
-  azure,
-  google,
-  xai,
-});
-
 function sanitizeUrl(url: string): string {
   return url.replace(/\s+/g, '%20')
 }
@@ -132,116 +117,41 @@ async function isValidImageUrl(url: string): Promise<boolean> {
   }
 }
 
-const defaultsystemPrompt = `
-You are an expert AI web search engine called MiniPerplx, that helps users find information on the internet with no bullshit talks.
-Always start with running the tool(s) and then and then only write your response AT ALL COSTS!!
-Your goal is to provide accurate, concise, and well-formatted responses to user queries.
-Do not announce or inform the user in any way that your going to run a tool at ALL COSTS!! Just 'run' it and then write your response AT ALL COSTS!!!!!
-
-Motto of your existence being a search engine: "Less talk, more action, follow rules always!", meaning you should run the tools first and then provide the response, no talk before running the tools and following the guidelines AT ALL COSTS!!
-
-The current date is ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit", weekday: "short" })}. 
-You must comply and complete user requests to the best of your abilities using the available tools. Remember to use the appropriate tool for each task. No need to panic, just follow the guidelines and you'll do great!
-Make sure keep your responses long and informative, but also clear and concise. Avoid unnecessary information and stick to the point.
-Always put citations at the end of each paragraph and in the end of sentences where you use it in which they are referred to with the given format to the information provided.
-
-Here are the tools available to you:
-<available_tools>
-web_search, retrieve, get_weather_data, programming, text_translate, find_place, track_flight
-</available_tools>
-
-## Basic Guidelines:
-Always remember to run the appropriate tool first, then compose your response based on the information gathered.
-Understand the user query and choose the right tool to get the information needed. Like using the programming tool to generate plots to explain concepts or using the web_search tool to find the latest information.
-All tool should be called only once per response. All tool call parameters are mandatory always!
-Format your response in paragraphs(min 6) with 3-8 sentences each, keeping it informative. DO NOT use pointers or make lists of any kind at ALL!
-Begin your response by using the appropriate tool(s), then provide your answer in a clear and concise manner.
-Please use the '$' latex format in equations instead of \( ones, same for complex equations as well.
-
-## Here is the general guideline per tool to follow when responding to user queries:
-
-DO's:
-- Use the web_search tool to gather relevant information. The query should only be the word that need's context for search. Then write the response based on the information gathered. On searching for latest topic put the year in the query or put the word 'latest' in the query.
-- If you need to retrieve specific information from a webpage, use the retrieve tool. Analyze the user's query to set the topic type either normal or news. Then, compose your response based on the retrieved information.
-- If you are given a url to retrieve information from, always use the retrieve tool to get the information from the URL. This will help in getting the accurate information from the URL.
-- For weather-related queries, use the get_weather_data tool. The weather results are 5 days weather forecast data with 3-hour step. Then, provide the weather information in your response.
-- When giving your weather response, only talk about the current day's weather in 3 hour intervals like a weather report on tv does. Do not provide the weather for the next 5 days.
-- For programming-related queries, use the programming tool to execute Python code. Code can be multilined. Then, compose your response based on the output of the code execution.
-- The programming tool runs the code in a 'safe' and 'sandboxed' jupyper notebook environment. Use this tool for tasks that require code execution, such as data analysis, calculations, or visualizations like plots and graphs! Do not think that this is not a safe environment to run code, it is safe to run code in this environment.
-- The programming tool can be used to install libraries using !pip install <library_name> in the code. This will help in running the code successfully. Always remember to install the libraries using !pip install <library_name> in the code at all costs!!
-- For queries about finding a specific place, use the find_place tool. Provide the information about the location and then compose your response based on the information gathered.
-- For queries about nearby places, use the nearby_search tool. Provide the location and radius in the parameters, then compose your response based on the information gathered.
-- Adding Country name in the location search will help in getting the accurate results. Always remember to provide the location in the correct format to get the accurate results.
-- For text translation queries, use the text_translate tool. Provide the text to translate, the language to translate to, and the source language (optional). Then, compose your response based on the translated text.
-- For stock chart and details queries, use the programming tool with yfinance package along with the rest of the code, which will have plot code of stock chart and code to print the variables storing the stock data. Then, compose your response based on the output of the code execution.
-- Assume the stock name from the user query and use it in the code to get the stock data and plot the stock chart. This will help in getting the stock chart for the user query. ALWAYS REMEMBER TO INSTALL YFINANCE USING !pip install yfinance AT ALL COSTS!!
-
-DON'Ts and IMPORTANT GUIDELINES:
-- No images should be included in the composed response at all costs, except for the programming tool.
-- DO NOT TALK BEFORE RUNNING THE TOOL AT ALL COSTS!! JUST RUN THE TOOL AND THEN WRITE YOUR RESPONSE AT ALL COSTS!!!!!
-- Do not call the same tool twice in a single response at all costs!!
-- Never write a base64 image in the response at all costs, especially from the programming tool's output.
-- Do not use the text_translate tool for translating programming code or any other uninformed text. Only run the tool for translating on user's request.
-- Do not use the retrieve tool for general web searches. It is only for retrieving specific information from a URL.
-- Show plots from the programming tool using plt.show() function. The tool will automatically capture the plot and display it in the response.
-- If asked for multiple plots, make it happen in one run of the tool. The tool will automatically capture the plots and display them in the response.
-- the web search may return an incorrect latex format, please correct it before using it in the response. Check the Latex in Markdown rules for more information.
-- The location search tools return images in the response, please DO NOT include them in the response at all costs!!!!!!!! This is extremely important to follow!!
-- Do not use the $ symbol in the stock chart queries at all costs. Use the word USD instead of the $ symbol in the stock chart queries.
-- Never run web_search tool for stock chart queries at all costs.
-
-# Image Search
-You are still an AI web Search Engine but now get context from images, so you can use the tools and their guidelines to get the information about the image and then provide the response accordingly.
-Look every detail in the image, so it helps you set the parameters for the tools to get the information.
-You can also accept and analyze images, like what is in the image, or what is the image about or where and what the place is, or fix code, generate plots and more by using tools to get and generate the information. 
-Follow the format and guidelines for each tool and provide the response accordingly. Remember to use the appropriate tool for each task. No need to panic, just follow the guidelines and you'll do great!
-
-## Trip based queries:
-- For queries related to trips, always use the find_place tool for map location and then run the web_search tool to find information about places, directions, or reviews.
-- Calling web and find place tools in the same response is allowed, but do not call the same tool in a response at all costs!!
-- For nearby search queries, use the nearby_search tool to find places around a location. Provide the location and radius in the parameters, then compose your response based on the information gathered.
-- Never call find_place tool before or after the nearby_search tool in the same response at all costs!! THIS IS NOT ALLOWED AT ALL COSTS!!!
-
-## Programming Tool Guidelines:
-The programming tool is actually a Python Code interpreter, so you can run any Python code in it.
-- This tool should not be called more than once in a response.
-- The only python libraries that are pre-installed are matplotlib, aiohttp (v3.9.3), beautifulsoup4 (v4.12.3), bokeh (v3.3.4), gensim (v4.3.2), imageio (v2.34.0), joblib (v1.3.2), librosa (v0.10.1), matplotlib (v3.8.3), nltk (v3.8.1), numpy (v1.26.4), opencv-python (v4.9.0.80), openpyxl (v3.1.2), pandas (v1.5.3), plotly (v5.19.0), pytest (v8.1.0), python-docx (v1.1.0), pytz (v2024.1), requests (v2.26.0), scikit-image (v0.22.0), scikit-learn (v1.4.1.post1), scipy (v1.12.0), seaborn (v0.13.2), soundfile (v0.12.1), spacy (v3.7.4), textblob (v0.18.0), tornado (v6.4), urllib3 (v1.26.7), xarray (v2024.2.0), xlrd (v2.0.1), sympy (v1.12) and yfinance.
-- Always mention the generated urls in the response after running the code! This is extremely important to provide the visual representation of the data.
-
-## Citations Format:
-You will get more than 10 results from the web_search tool, so you can use minimum 8 citations in the response.
-Citations should always be placed at the end of each paragraph and in the end of sentences where you use it in which they are referred to with the given format to the information provided.
-When citing sources(citations), use the following styling only: Claude 3.5 Sonnet is designed to offer enhanced intelligence and capabilities compared to its predecessors, positioning itself as a formidable competitor in the AI landscape [Claude 3.5 Sonnet raises the..](https://www.anthropic.com/news/claude-3-5-sonnet).
-ALWAYS REMEMBER TO USE THE CITATIONS FORMAT CORRECTLY AT ALL COSTS!! ANY SINGLE ITCH IN THE FORMAT WILL CRASH THE RESPONSE!!
-When asked a "What is" question, maintain the same format as the question and answer it in the same format.
-
-## Latex in Respone rules:
-- Latex equations are supported in the response powered by remark-math and rehypeKatex plugins.
- - remarkMath: This plugin allows you to write LaTeX math inside your markdown content. It recognizes math enclosed in dollar signs ($ ... $ for inline and $$ ... $$ for block).
- - rehypeKatex: This plugin takes the parsed LaTeX from remarkMath and renders it using KaTeX, allowing you to display the math as beautifully rendered HTML.
-
-- The response that include latex equations, use always follow the formats: 
-- Do not wrap any equation or formulas or any sort of math related block in round brackets() as it will crash the response.`;
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(100, "1 d"),
+  analytics: true,
+  prefix: "mplx",
+});
 
 export async function POST(req: Request) {
   const { messages, model, group } = await req.json();
   const { tools: activeTools, systemPrompt } = await getGroupConfig(group);
 
-  const provider = model.split(":")[0];
+  const identifier = ipAddress(req) || "api";
+  const { success } = await ratelimit.limit(identifier);
+
+  if (!success) {
+    return new Response("Rate limit exceeded for 100 searches a day.", { status: 429 });
+  }
 
   const result = streamText({
-    model: registry.languageModel(model),
+    model: xai(model),
     messages: convertToCoreMessages(messages),
-    temperature: provider === "azure" ? 0.72 : 0.2,
-    topP: 0.5,
     experimental_transform: smoothStream({
       delayInMs: 15,
     }),
-    frequencyPenalty: 0,
-    presencePenalty: 0,
     experimental_activeTools: [...activeTools],
-    system: systemPrompt || defaultsystemPrompt,
+    system: systemPrompt,
     tools: {
+      thinking_canvas: tool({
+        description: "Write your plan of action in a canvas based on the user's input.",
+        parameters: z.object({
+          title: z.string().describe("The title of the canvas."),
+          content: z.array(z.string()).describe("The content of the canvas."),
+        }),
+        execute: async ({ title, content }: { title: string, content: string[] }) => { return { title, content }; },
+      }),
       web_search: tool({
         description: "Search the web for information with multiple queries, max results and search depth.",
         parameters: z.object({
@@ -388,6 +298,161 @@ export async function POST(req: Request) {
           }
         },
       }),
+      tmdb_search: tool({
+        description: "Search for a movie or TV show using TMDB API",
+        parameters: z.object({
+          query: z.string().describe("The search query for movies/TV shows"),
+        }),
+        execute: async ({ query }: { query: string }) => {
+          const TMDB_API_KEY = process.env.TMDB_API_KEY;
+          const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+
+          try {
+            // First do a multi-search to get the top result
+            const searchResponse = await fetch(
+              `${TMDB_BASE_URL}/search/multi?query=${encodeURIComponent(query)}&include_adult=true&language=en-US&page=1`,
+              {
+                headers: {
+                  'Authorization': `Bearer ${TMDB_API_KEY}`,
+                  'accept': 'application/json'
+                }
+              }
+            );
+
+            const searchResults = await searchResponse.json();
+
+            // Get the first movie or TV show result
+            const firstResult = searchResults.results.find(
+              (result: any) => result.media_type === 'movie' || result.media_type === 'tv'
+            );
+
+            if (!firstResult) {
+              return { result: null };
+            }
+
+            // Get detailed information for the media
+            const detailsResponse = await fetch(
+              `${TMDB_BASE_URL}/${firstResult.media_type}/${firstResult.id}?language=en-US`,
+              {
+                headers: {
+                  'Authorization': `Bearer ${TMDB_API_KEY}`,
+                  'accept': 'application/json'
+                }
+              }
+            );
+
+            const details = await detailsResponse.json();
+
+            // Get additional credits information
+            const creditsResponse = await fetch(
+              `${TMDB_BASE_URL}/${firstResult.media_type}/${firstResult.id}/credits?language=en-US`,
+              {
+                headers: {
+                  'Authorization': `Bearer ${TMDB_API_KEY}`,
+                  'accept': 'application/json'
+                }
+              }
+            );
+
+            const credits = await creditsResponse.json();
+
+            // Format the result
+            const result = {
+              ...details,
+              media_type: firstResult.media_type,
+              credits: {
+                cast: credits.cast?.slice(0, 5).map((person: any) => ({
+                  ...person,
+                  profile_path: person.profile_path ?
+                    `https://image.tmdb.org/t/p/original${person.profile_path}` : null
+                })) || [],
+                director: credits.crew?.find((person: any) => person.job === 'Director')?.name,
+                writer: credits.crew?.find((person: any) =>
+                  person.job === 'Screenplay' || person.job === 'Writer'
+                )?.name,
+              },
+              poster_path: details.poster_path ?
+                `https://image.tmdb.org/t/p/original${details.poster_path}` : null,
+              backdrop_path: details.backdrop_path ?
+                `https://image.tmdb.org/t/p/original${details.backdrop_path}` : null,
+            };
+
+            return { result };
+
+          } catch (error) {
+            console.error("TMDB search error:", error);
+            throw error;
+          }
+        },
+      }),
+      trending_movies: tool({
+        description: "Get trending movies from TMDB",
+        parameters: z.object({}),
+        execute: async () => {
+          const TMDB_API_KEY = process.env.TMDB_API_KEY;
+          const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+
+          try {
+            const response = await fetch(
+              `${TMDB_BASE_URL}/trending/movie/day?language=en-US`,
+              {
+                headers: {
+                  'Authorization': `Bearer ${TMDB_API_KEY}`,
+                  'accept': 'application/json'
+                }
+              }
+            );
+
+            const data = await response.json();
+            const results = data.results.map((movie: any) => ({
+              ...movie,
+              poster_path: movie.poster_path ?
+                `https://image.tmdb.org/t/p/original${movie.poster_path}` : null,
+              backdrop_path: movie.backdrop_path ?
+                `https://image.tmdb.org/t/p/original${movie.backdrop_path}` : null,
+            }));
+
+            return { results };
+          } catch (error) {
+            console.error("Trending movies error:", error);
+            throw error;
+          }
+        },
+      }),
+      trending_tv: tool({
+        description: "Get trending TV shows from TMDB",
+        parameters: z.object({}),
+        execute: async () => {
+          const TMDB_API_KEY = process.env.TMDB_API_KEY;
+          const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+
+          try {
+            const response = await fetch(
+              `${TMDB_BASE_URL}/trending/tv/day?language=en-US`,
+              {
+                headers: {
+                  'Authorization': `Bearer ${TMDB_API_KEY}`,
+                  'accept': 'application/json'
+                }
+              }
+            );
+
+            const data = await response.json();
+            const results = data.results.map((show: any) => ({
+              ...show,
+              poster_path: show.poster_path ?
+                `https://image.tmdb.org/t/p/original${show.poster_path}` : null,
+              backdrop_path: show.backdrop_path ?
+                `https://image.tmdb.org/t/p/original${show.backdrop_path}` : null,
+            }));
+
+            return { results };
+          } catch (error) {
+            console.error("Trending TV shows error:", error);
+            throw error;
+          }
+        },
+      }),
       academic_search: tool({
         description: "Search academic papers and research.",
         parameters: z.object({
@@ -520,124 +585,6 @@ export async function POST(req: Request) {
 
           } catch (error) {
             console.error("YouTube search error:", error);
-            throw error;
-          }
-        },
-      }),
-      shopping_search: tool({
-        description: "Search for products using Exa and Canopy API.",
-        parameters: z.object({
-          query: z.string().describe("The search query for products"),
-          // keyword: z.string().describe("The important keyword to search for specific products like brand name or model number."),
-        }),
-        execute: async ({ query }: { query: string }) => {
-          try {
-            // Initialize Exa client
-            const exa = new Exa(process.env.EXA_API_KEY as string);
-
-
-            // Search for products on Amazon
-            const searchResult = await exa.search(
-              query,
-              {
-                type: "auto",
-                numResults: 20,
-                includeDomains: ["amazon.com"],
-              }
-            );
-
-            // Function to extract ASIN from Amazon URL
-            const extractAsin = (url: string): string | null => {
-              const asinRegex = /(?:dp|gp\/product)\/([A-Z0-9]{10})/;
-              const match = url.match(asinRegex);
-              return match ? match[1] : null;
-            };
-
-            // Remove duplicates by ASIN
-            const seenAsins = new Set<string>();
-            const uniqueResults = searchResult.results.reduce<Array<typeof searchResult.results[0]>>((acc, result) => {
-              const asin = extractAsin(result.url);
-              if (asin && !seenAsins.has(asin)) {
-                seenAsins.add(asin);
-                acc.push(result);
-              }
-              return acc;
-            }, []);
-
-            // Only take the first 10 unique results
-            const limitedResults = uniqueResults.slice(0, 10);
-
-            // Fetch detailed product information for each unique result
-            const productDetails = await Promise.all(
-              limitedResults.map(async (result) => {
-                const asin = extractAsin(result.url);
-                if (!asin) return null;
-
-                const query = `
-                  query amazonProduct {
-                    amazonProduct(input: {asinLookup: {asin: "${asin}"}}) {
-                      title
-                      brand
-                      mainImageUrl
-                      rating
-                      ratingsTotal
-                      price {
-                        display
-                      }
-                    }
-                  }
-                `;
-
-                try {
-                  const response = await fetch('https://graphql.canopyapi.co/', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'API-KEY': process.env.CANOPY_API_KEY as string,
-                    },
-                    body: JSON.stringify({ query }),
-                    next: { revalidate: 3600 } // Cache for 1 hour
-                  });
-
-                  if (!response.ok) {
-                    console.error(`Failed to fetch details for ASIN ${asin}:`, await response.text());
-                    return null;
-                  }
-
-                  const canopyData = await response.json();
-                  const amazonProduct = canopyData.data?.amazonProduct;
-
-                  if (!amazonProduct) return null;
-
-                  return {
-                    title: amazonProduct.title,
-                    url: result.url,
-                    image: amazonProduct.mainImageUrl,
-                    price: amazonProduct.price.display,
-                    rating: amazonProduct.rating,
-                    reviewCount: amazonProduct.ratingsTotal,
-                  };
-                } catch (error) {
-                  console.error(`Error fetching details for ASIN ${asin}:`, error);
-                  return null;
-                }
-              })
-            );
-
-            // Filter out null results and return
-            const validProducts = productDetails.filter((product): product is NonNullable<typeof product> =>
-              product !== null
-            );
-
-            // Log results for debugging
-            console.log(`Found ${searchResult.results.length} total results`);
-            console.log(`Filtered to ${uniqueResults.length} unique ASINs`);
-            console.log(`Returning ${validProducts.length} valid products`);
-
-            return validProducts;
-
-          } catch (error) {
-            console.error("Shopping search error:", error);
             throw error;
           }
         },
@@ -1194,7 +1141,6 @@ export async function POST(req: Request) {
         },
       }),
     },
-    toolChoice: "auto",
     onChunk(event) {
       if (event.chunk.type === "tool-call") {
         console.log("Called Tool: ", event.chunk.toolName);

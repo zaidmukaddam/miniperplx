@@ -1,925 +1,2909 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
+import 'katex/dist/katex.min.css';
 
-import React, { useState, useEffect, useRef } from 'react'
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu"
-import MovingGradient from "@/components/animata/background/moving-gradient";
-import {
-  Search,
-  Zap,
-  Code,
-  Cloud,
-  Link,
-  MapPin,
-  Globe,
-  Mic,
-  ArrowRight,
-  Github,
-  LucideIcon,
-  Server,
-  Palette,
-  Cpu,
-  Menu,
-  X,
-  BarChart,
-  CircleDot,
-  ShoppingBasket
-} from "lucide-react"
-import NextLink from "next/link"
-import {
-  motion,
-  useScroll,
-  useTransform,
-  useSpring,
-  useInView,
-  AnimatePresence,
-  useAnimation
-} from "framer-motion"
-import { cn } from '@/lib/utils';
-import { Tweet } from 'react-tweet'
+import
+React,
+{
+    useRef,
+    useCallback,
+    useState,
+    useEffect,
+    useMemo,
+    Suspense
+} from 'react';
+import ReactMarkdown from 'react-markdown';
+import { useTheme } from 'next-themes';
+import Marked, { ReactRenderer } from 'marked-react';
+import Latex from 'react-latex-next';
+import { useSearchParams } from 'next/navigation';
+import { useChat } from 'ai/react';
+import { ToolInvocation } from 'ai';
+import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { TweetGrid } from '@/components/ui/tweet-grid';
-import { Newspaper, XLogo, YoutubeLogo } from '@phosphor-icons/react';
+import {
+    fetchMetadata,
+    generateSpeech,
+    suggestQuestions
+} from './actions';
+import { Wave } from "@foobar404/wave";
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import {
+    Sparkles,
+    ArrowRight,
+    Globe,
+    AlignLeft,
+    Copy,
+    Cloud,
+    Code,
+    Check,
+    Loader2,
+    User2,
+    Heart,
+    X,
+    MapPin,
+    Plus,
+    Download,
+    Flame,
+    Sun,
+    Pause,
+    Play,
+    TrendingUpIcon,
+    Calendar,
+    Calculator,
+    ChevronDown,
+    Edit2,
+    ChevronUp,
+    Moon,
+    Star,
+    YoutubeIcon,
+    LucideIcon,
+    FileText,
+    Book,
+    ExternalLink,
+    Building,
+    Users,
+    Brain,
+    TrendingUp,
+    Plane,
+    Film,
+    Tv,
+    ListTodo
+} from 'lucide-react';
+import {
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
+import { GitHubLogoIcon, TextIcon } from '@radix-ui/react-icons';
+import Link from 'next/link';
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import { cn, SearchGroupId } from '@/lib/utils';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableRow,
+} from "@/components/ui/table";
+import Autoplay from 'embla-carousel-autoplay';
+import FormComponent from '@/components/ui/form-component';
+import WeatherChart from '@/components/weather-chart';
+import InteractiveChart from '@/components/interactive-charts';
+import { MapComponent, MapContainer } from '@/components/map-components';
+import MultiSearch from '@/components/multi-search';
+import { CurrencyDollar, Flag, RoadHorizon, SoccerBall, TennisBall, XLogo } from '@phosphor-icons/react';
+import { BorderTrail } from '@/components/core/border-trail';
+import { TextShimmer } from '@/components/core/text-shimmer';
+import { Tweet } from 'react-tweet';
+import NearbySearchMapView from '@/components/nearby-search-map-view';
+import { Separator } from '@/components/ui/separator';
+import { TrendingQuery } from './api/trending/route';
+import { FlightTracker } from '@/components/flight-tracker';
+import { InstallPrompt } from '@/components/InstallPrompt';
+import { atomDark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
+import { vs } from 'react-syntax-highlighter/dist/cjs/styles/prism';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import TMDBResult from '@/components/movie-info';
+import TrendingResults from '@/components/trending-tv-movies-results';
 
-function BentoCard({
-  title,
-  icon: Icon,
-  description,
-  children,
-  gradient,
-  className,
+
+export const maxDuration = 60;
+
+interface Attachment {
+    name: string;
+    contentType: string;
+    url: string;
+    size: number;
+}
+
+interface XResult {
+    id: string;
+    url: string;
+    title: string;
+    author?: string;
+    publishedDate?: string;
+    text: string;
+    highlights?: string[];
+    tweetId: string;
+}
+
+interface AcademicResult {
+    title: string;
+    url: string;
+    author?: string | null;
+    publishedDate?: string;
+    summary: string;
+}
+
+// Updated SearchLoadingState with new colors and states
+const SearchLoadingState = ({
+    icon: Icon,
+    text,
+    color
 }: {
-  title: string;
-  icon: React.ElementType;
-  description: string;
-  children?: React.ReactNode;
-  gradient?: string;
-  className?: string;
-}) {
-  return (
-    <MovingGradient
-      animated={false}
-      className={cn("rounded-md", className)}
-      gradientClassName={cn("opacity-10", gradient)}
-    >
-      <section className="flex h-full flex-col gap-2 p-4">
-        <header>
-          <div className="mb-2 flex items-center gap-2">
-            <Icon size={20} className="sm:w-6 sm:h-6" />
-            <p className="text-sm sm:text-md line-clamp-1 font-bold">{title}</p>
-          </div>
-        </header>
-        <div className="flex-1 text-xs sm:text-sm font-medium text-opacity-80">{description}</div>
-        {children}
-      </section>
-    </MovingGradient>
-  );
-}
-
-const TestimonialSection: React.FC = () => {
-  const tweetIds = [
-    "1825543755748782500",
-    "1825876424755941787",
-    "1827580223606669661",
-    "1825574082345136506",
-    "1825973306924872143",
-    "1825821083817103852"
-  ];
-
-  return (
-    <section id="testimonials" className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-background to-muted overflow-hidden">
-      <div className="container flex flex-col items-center justify-center px-4 md:px-6">
-        <h2 className="font-serif text-4xl font-bold sm:text-5xl md:text-6xl lg:text-7xl tracking-tight text-center mb-12">
-          What People Are Saying
-        </h2>
-        <div
-          className='justify-center'
-        >
-          <TweetGrid tweets={tweetIds} />
-        </div>
-
-      </div>
-    </section>
-  );
-};
-
-function GetStarted() {
-  return (
-    <BentoCard
-      title="Get Started"
-      icon={BarChart}
-      description={"Experience the power of minimalistic AI search with MiniPerplx."}
-      className="col-span-full sm:col-span-1 sm:row-span-2 dark:text-neutral-950"
-      gradient="from-blue-700 via-60% via-blue-600 to-cyan-600"
-    >
-      <div className="group relative flex cursor-pointer flex-col justify-end rounded-md bg-zinc-900 p-2 text-xl sm:text-2xl md:text-4xl tracking-tight text-gray-100">
-        <div className="font-light italic">Try</div>
-        <div className="-mt-1 sm:-mt-2 font-bold font-serif">MiniPerplx</div>
-        <NextLink href="/search" className="absolute bottom-2 right-2">
-          <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full border bg-primary transition-all duration-700 group-hover:rotate-[360deg]">
-            <ArrowRight size={14} className="text-background sm:w-4 sm:h-4" />
-          </div>
-        </NextLink>
-        <div className="absolute right-2 top-2 h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-primary opacity-50 transition-all duration-700 group-hover:opacity-25" />
-      </div>
-    </BentoCard>
-  );
-}
-
-function MinimalisticSearch() {
-  return (
-    <BentoCard
-      title="Minimalistic Search"
-      icon={Search}
-      description="We strip away the clutter to focus on what matters most - delivering accurate and relevant results."
-      gradient="from-red-700 via-60% via-red-600 to-rose-600"
-      className="group col-span-full sm:col-span-1 dark:text-neutral-950"
-    >
-      <div className="mt-2 sm:mt-4 space-y-1 sm:space-y-2">
-        <div className="flex items-center">
-          <CircleDot size={12} className="text-red-400 mr-1 sm:mr-2 sm:w-4 sm:h-4" />
-          <span className="text-xs sm:text-sm">Clean interface</span>
-        </div>
-        <div className="flex items-center">
-          <CircleDot size={12} className="text-red-400 mr-1 sm:mr-2 sm:w-4 sm:h-4" />
-          <span className="text-xs sm:text-sm">Focused results</span>
-        </div>
-        <div className="flex items-center">
-          <CircleDot size={12} className="text-red-400 mr-1 sm:mr-2 sm:w-4 sm:h-4" />
-          <span className="text-xs sm:text-sm">Distraction-free</span>
-        </div>
-      </div>
-    </BentoCard>
-  );
-}
-
-function AIPowered() {
-  return (
-    <BentoCard
-      title="AI-Powered"
-      icon={Code}
-      description="Leveraging cutting-edge AI technology to understand and respond to your queries with precision."
-      gradient="from-emerald-700 via-60% via-emerald-600 to-green-600"
-      className="group col-span-full sm:col-span-1 dark:text-neutral-950"
-    >
-      <div className="mt-2 sm:mt-4 space-y-1 sm:space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-xs sm:text-sm">Natural Language</span>
-          <div className="w-1/2 bg-emerald-200 rounded-full h-1.5 sm:h-2">
-            <div className="bg-emerald-500 h-1.5 sm:h-2 rounded-full" style={{ width: '90%' }}></div>
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs sm:text-sm">Context Understanding</span>
-          <div className="w-1/2 bg-emerald-200 rounded-full h-1.5 sm:h-2">
-            <div className="bg-emerald-500 h-1.5 sm:h-2 rounded-full" style={{ width: '85%' }}></div>
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs sm:text-sm">Adaptive Learning</span>
-          <div className="w-1/2 bg-emerald-200 rounded-full h-1.5 sm:h-2">
-            <div className="bg-emerald-500 h-1.5 sm:h-2 rounded-full" style={{ width: '80%' }}></div>
-          </div>
-        </div>
-      </div>
-    </BentoCard>
-  );
-}
-
-function LightningFast() {
-  return (
-    <BentoCard
-      title="Lightning Fast"
-      icon={Zap}
-      description="Designed for speed, MiniPerplx provides instant answers to keep up with your pace of work."
-      gradient="from-purple-700 via-60% via-purple-600 to-fuchsia-600"
-      className="col-span-full sm:col-span-2 dark:text-neutral-950"
-    />
-  );
-}
-
-const AboutUsSection: React.FC = () => {
-  return (
-    <section id="about-us" className="w-full py-8 sm:py-12 md:py-24 lg:py-32 bg-gradient-to-b from-background to-muted">
-      <div className="container px-4 md:px-6">
-        <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-center mb-8 sm:mb-12">
-          About MiniPerplx
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-foreground max-w-5xl mx-auto">
-          <GetStarted />
-          <MinimalisticSearch />
-          <AIPowered />
-          <LightningFast />
-        </div>
-      </div>
-    </section>
-  );
-};
-
-
-const MarqueeTestimonials: React.FC = () => {
-  const testimonials = [
-    "Absolutely love MiniPerplx! 🚀",
-    "Game-changer for my workflow. 💼",
-    "Simplicity at its finest. ✨",
-    "Can't imagine working without it now. 🙌",
-    "MiniPerplx is a must-have tool! 🛠️",
-  ];
-
-  return (
-    <div className="bg-primary py-4 overflow-hidden">
-      <motion.div
-        className="flex whitespace-nowrap"
-        animate={{ x: ["0%", "-50%"] }}
-        transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
-      >
-        {testimonials.concat(testimonials).map((text, index) => (
-          <span key={index} className="text-white dark:text-black text-xl font-bold mx-8">
-            {text}
-          </span>
-        ))}
-      </motion.div>
-    </div>
-  )
-}
-
-interface FeatureCardProps {
-  icon: LucideIcon;
-  title: string;
-  description: string;
-}
-
-const FeatureCard: React.FC<FeatureCardProps> = ({ icon: Icon, title, description }) => (
-  <Card className="h-full transition-all duration-300 shadow-sm hover:shadow-md hover:shadow-primary/20 hover:-translate-y-1">
-    <CardHeader>
-      <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.2, type: "spring", stiffness: 100 }}
-        className="rounded-full p-2 inline-block"
-      >
-        <Icon className="w-8 h-8 text-primary" />
-      </motion.div>
-      <CardTitle className="text-xl sm:text-2xl mt-4">{title}</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <p className="text-sm sm:text-base text-muted-foreground">{description}</p>
-    </CardContent>
-  </Card>
-)
-
-interface Star {
-  x: number;
-  y: number;
-  size: number;
-  name: string;
-  category: string;
-}
-
-const TechConstellation: React.FC = () => {
-  const [stars, setStars] = useState<Star[]>([])
-  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null)
-  const constellationRef = useRef<HTMLDivElement>(null)
-
-  const techStack = [
-    {
-      category: "Core Technologies",
-      icon: Server,
-      items: ["Next.js", "React", "TypeScript", "Vercel AI SDK", "Tailwind CSS"]
-    },
-    {
-      category: "UI & Styling",
-      icon: Palette,
-      items: ["shadcn/ui", "Framer Motion", "Lucide Icons"]
-    },
-    {
-      category: "AI Services & APIs",
-      icon: Cpu,
-      items: ["Azure OpenAI", "Tavily AI", "e2b.dev", "OpenWeatherMap", "Google Maps API", "Firecrawl"]
-    }
-  ];
-
-  useEffect(() => {
-    if (constellationRef.current) {
-      const { width, height } = constellationRef.current.getBoundingClientRect()
-      const newStars: Star[] = []
-      const centerX = width / 2
-      const centerY = height / 2
-      const maxRadius = Math.min(width, height) * 0.4 // 40% of the smaller dimension
-
-      techStack.forEach((category, categoryIndex) => {
-        const categoryAngle = (categoryIndex / techStack.length) * Math.PI * 2
-        const categoryRadius = maxRadius * 0.8 // 80% of maxRadius for category centers
-
-        const categoryCenterX = centerX + Math.cos(categoryAngle) * categoryRadius
-        const categoryCenterY = centerY + Math.sin(categoryAngle) * categoryRadius
-
-        category.items.forEach((item, index) => {
-          const itemAngle = categoryAngle + (index / category.items.length - 0.5) * Math.PI * 0.5
-          const itemRadius = Math.random() * maxRadius * 0.3 + maxRadius * 0.1 // Between 10% and 40% of maxRadius
-
-          const x = categoryCenterX + Math.cos(itemAngle) * itemRadius
-          const y = categoryCenterY + Math.sin(itemAngle) * itemRadius
-
-          newStars.push({
-            x,
-            y,
-            size: Math.random() * 2 + 2,
-            name: item,
-            category: category.category
-          })
-        })
-      })
-
-      setStars(newStars)
-    }
-  }, [])
-
-  const getStarColor = (category: string) => {
-    switch (category) {
-      case "Core Technologies":
-        return "#FFD700"
-      case "UI & Styling":
-        return "#00CED1"
-      case "AI Services & APIs":
-        return "#FF69B4"
-      default:
-        return "#FFFFFF"
-    }
-  }
-
-  return (
-    <TooltipProvider delayDuration={0}>
-      <div className="relative w-full h-[600px] bg-gradient-to-b from-gray-900 to-gray-800 rounded-lg overflow-hidden" ref={constellationRef}>
-        <AnimatePresence>
-          {stars.map((star, index) => (
-            <Tooltip key={index}>
-              <TooltipTrigger asChild>
-                <motion.div
-                  className="absolute rounded-full cursor-pointer"
-                  style={{
-                    left: star.x,
-                    top: star.y,
-                    width: star.size,
-                    height: star.size,
-                    backgroundColor: getStarColor(star.category),
-                  }}
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.05 }}
-                  whileHover={{ scale: 2, boxShadow: `0 0 10px ${getStarColor(star.category)}` }}
-                />
-              </TooltipTrigger>
-              <TooltipContent
-                side="top"
-                className="border-none p-2 rounded-lg shadow-lg"
-                style={{
-                  backgroundColor: getStarColor(star.category),
-                  color: star.category === "Core Technologies" ? "#000" : "#fff"
-                }}
-              >
-                <div className="text-sm font-bold">{star.name}</div>
-                <div className="text-xs opacity-80">{star.category}</div>
-              </TooltipContent>
-            </Tooltip>
-          ))}
-        </AnimatePresence>
-        {hoveredCategory && (
-          <svg className="absolute inset-0 w-full h-full pointer-events-none">
-            {stars
-              .filter((star) => star.category === hoveredCategory)
-              .map((star, index, filteredStars) => {
-                const nextStar = filteredStars[(index + 1) % filteredStars.length]
-                return (
-                  <motion.line
-                    key={index}
-                    x1={star.x}
-                    y1={star.y}
-                    x2={nextStar.x}
-                    y2={nextStar.y}
-                    stroke={getStarColor(star.category)}
-                    strokeWidth="1"
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 0.5 }}
-                    exit={{ pathLength: 0, opacity: 0 }}
-                    transition={{ duration: 1, delay: index * 0.1 }}
-                  />
-                )
-              })}
-          </svg>
-        )}
-        <div className="absolute top-4 right-4 flex flex-col gap-2">
-          {techStack.map((category, index) => (
-            <motion.div
-              key={index}
-              className="flex items-center gap-2 text-white cursor-pointer"
-              whileHover={{ scale: 1.05 }}
-              onMouseEnter={() => setHoveredCategory(category.category)}
-              onMouseLeave={() => setHoveredCategory(null)}
-            >
-              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: getStarColor(category.category) }} />
-              <span>{category.category}</span>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </TooltipProvider>
-  )
-}
-
-interface AnimatedSectionProps {
-  children: React.ReactNode;
-  className?: string;
-  delay?: number;
-}
-
-const AnimatedSection: React.FC<AnimatedSectionProps> = ({ children, className, delay = 0 }) => {
-  const ref = useRef<HTMLDivElement>(null)
-  const isInView = useInView(ref, { once: true, margin: "-100px" })
-
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 50 }}
-      animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, delay }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  )
-}
-
-const TryButton: React.FC = () => {
-  return (
-    <NextLink
-      href="/search"
-      className={cn(
-        "rounded-full bg-zinc-800 hover:bg-zinc-800/90 transition hover:scale-105 hover:rotate-3 px-6 py-3 flex gap-x-2 items-center justify-center text-white font-semibold w-fit h-fit",
-        "homeBtn"
-      )}
-    >
-      Try MiniPerplx
-      <ArrowRight width={20} height={20} />
-    </NextLink>
-  )
-}
-
-const ScrollProgress: React.FC = () => {
-  const { scrollYProgress } = useScroll()
-  const scaleX = useSpring(scrollYProgress, {
-    stiffness: 100,
-    damping: 30,
-    restDelta: 0.001
-  })
-  return (
-    <motion.div
-      className="fixed top-0 left-0 right-0 h-1 bg-primary z-50 origin-left"
-      style={{ scaleX }}
-    />
-  )
-}
-
-const FloatingIcon: React.FC<{ Icon: LucideIcon }> = ({ Icon }) => (
-  <motion.div
-    className="absolute text-primary opacity-10"
-    initial={{ x: `${Math.random() * 100}vw`, y: -50 }}
-    animate={{
-      y: '100vh',
-      rotate: Math.random() * 360,
-    }}
-    transition={{
-      duration: Math.random() * 20 + 10,
-      repeat: Infinity,
-      ease: "linear",
-    }}
-  >
-    <Icon className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 lg:w-10 lg:h-10" />
-  </motion.div>
-)
-
-const FloatingIcons: React.FC = () => {
-  const icons = [Search, Zap, Code, Cloud, Link, MapPin, Globe, Mic, Github, XLogo, Newspaper, YoutubeLogo]
-
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      <div className="hidden sm:block">
-        {icons.map((Icon, index) => (
-          <FloatingIcon key={index} Icon={Icon} />
-        ))}
-      </div>
-      <div className="sm:hidden">
-        {icons.slice(0, 4).map((Icon, index) => (
-          <FloatingIcon key={index} Icon={Icon} />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-
-const NavItem: React.FC<{ href: string; children: React.ReactNode }> = ({ href, children }) => {
-  return (
-    <li>
-      <NavigationMenuLink asChild>
-        <NextLink
-          href={href}
-          className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-        >
-          {children}
-        </NextLink>
-      </NavigationMenuLink>
-    </li>
-  )
-}
-
-
-const MobileNavItem: React.FC<{ href: string; children: React.ReactNode; onClick: () => void }> = ({ href, children, onClick }) => {
-  return (
-    <li>
-      <NextLink
-        href={href}
-        className="block py-2 text-foreground hover:text-primary transition-colors"
-        onClick={onClick}
-      >
-        {children}
-      </NextLink>
-    </li>
-  )
-}
-
-const LandingPage: React.FC = () => {
-  const { scrollYProgress } = useScroll()
-  const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0])
-  const scale = useTransform(scrollYProgress, [0, 0.2], [1, 0.95])
-  const y = useTransform(scrollYProgress, [0, 0.2], [0, -50])
-
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen)
-
-
-  const [mounted, setMounted] = useState<boolean>(false)
-  useEffect(() => setMounted(true), [])
-  React.useEffect(() => {
-    if (isMenuOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-    }
-
-    return () => {
-      document.body.style.overflow = 'unset'
-    }
-  }, [isMenuOpen])
-
-  useEffect(() => {
-    document.documentElement.style.scrollBehavior = 'smooth';
-
-    return () => {
-      document.documentElement.style.scrollBehavior = '';
+    icon: LucideIcon,
+    text: string,
+    color: "red" | "green" | "orange" | "violet" | "gray" | "blue"
+}) => {
+    // Map of color variants
+    const colorVariants = {
+        red: {
+            background: "bg-red-50 dark:bg-red-950",
+            border: "from-red-200 via-red-500 to-red-200 dark:from-red-400 dark:via-red-500 dark:to-red-700",
+            text: "text-red-500",
+            icon: "text-red-500"
+        },
+        green: {
+            background: "bg-green-50 dark:bg-green-950",
+            border: "from-green-200 via-green-500 to-green-200 dark:from-green-400 dark:via-green-500 dark:to-green-700",
+            text: "text-green-500",
+            icon: "text-green-500"
+        },
+        orange: {
+            background: "bg-orange-50 dark:bg-orange-950",
+            border: "from-orange-200 via-orange-500 to-orange-200 dark:from-orange-400 dark:via-orange-500 dark:to-orange-700",
+            text: "text-orange-500",
+            icon: "text-orange-500"
+        },
+        violet: {
+            background: "bg-violet-50 dark:bg-violet-950",
+            border: "from-violet-200 via-violet-500 to-violet-200 dark:from-violet-400 dark:via-violet-500 dark:to-violet-700",
+            text: "text-violet-500",
+            icon: "text-violet-500"
+        },
+        gray: {
+            background: "bg-neutral-50 dark:bg-neutral-950",
+            border: "from-neutral-200 via-neutral-500 to-neutral-200 dark:from-neutral-400 dark:via-neutral-500 dark:to-neutral-700",
+            text: "text-neutral-500",
+            icon: "text-neutral-500"
+        },
+        blue: {
+            background: "bg-blue-50 dark:bg-blue-950",
+            border: "from-blue-200 via-blue-500 to-blue-200 dark:from-blue-400 dark:via-blue-500 dark:to-blue-700",
+            text: "text-blue-500",
+            icon: "text-blue-500"
+        }
     };
-  }, []);
 
-  if (!mounted) return null
+    const variant = colorVariants[color];
 
-  const features = [
-    { icon: Globe, title: "Web Search", description: "Powered by Tavily AI for comprehensive web results." },
-    { icon: Code, title: "Code Interpreter", description: "Utilize e2b.dev for advanced code interpretation and execution." },
-    { icon: Cloud, title: "Weather Forecast", description: "Get accurate weather information via OpenWeatherMap." },
-    { icon: YoutubeLogo, title: "Youtube Search", description: "Summarize web content quickly with FireCrawl's Scrape API." },
-    { icon: XLogo, title: "Search X Posts", description: "Search for posts on X.com" },
-    { icon: Newspaper, title: "Research Paper Search", description: "Search for research papers on arXiv and more" },
-    { icon: MapPin, title: "Location Search", description: "Find places and nearby locations using Google Maps API, Mapbox and TripAdvisior API." },
-    { icon: Mic, title: "Translation & TTS", description: "Translate text and convert to speech with Elevenlabs TTS and Microsoft's Translation API." },
-    { icon: ShoppingBasket, title: "Product Search", description: "Search for products on Amazon." },
-  ]
+    return (
+        <Card className="relative w-full h-[100px] my-4 overflow-hidden shadow-none">
+            <BorderTrail
+                className={cn(
+                    'bg-gradient-to-l',
+                    variant.border
+                )}
+                size={80}
+            />
+            <CardContent className="p-6">
+                <div className="relative flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className={cn(
+                            "relative h-10 w-10 rounded-full flex items-center justify-center",
+                            variant.background
+                        )}>
+                            <BorderTrail
+                                className={cn(
+                                    "bg-gradient-to-l",
+                                    variant.border
+                                )}
+                                size={40}
+                            />
+                            <Icon className={cn("h-5 w-5", variant.icon)} />
+                        </div>
+                        <div className="space-y-2">
+                            <TextShimmer
+                                className="text-base font-medium"
+                                duration={2}
+                            >
+                                {text}
+                            </TextShimmer>
+                            <div className="flex gap-2">
+                                {[...Array(3)].map((_, i) => (
+                                    <div
+                                        key={i}
+                                        className="h-1.5 rounded-full bg-neutral-200 dark:bg-neutral-700 animate-pulse"
+                                        style={{
+                                            width: `${Math.random() * 40 + 20}px`,
+                                            animationDelay: `${i * 0.2}s`
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
 
-  const containerVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.5,
-        when: "beforeChildren",
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5 }
-    }
-  };
-
-  return (
-    <div className="flex flex-col min-h-screen bg-background font-sans" id='start'>
-      <ScrollProgress />
-      <header className="px-4 lg:px-6 h-16 flex items-center justify-between sm:justify-center sm:gap-5 sticky top-0 bg-background/80 backdrop-blur-sm z-40">
-        <NextLink className="flex items-center justify-center group" href="#start">
-          <span className="font-serif font-bold text-xl group-hover:text-primary transition-colors tracking-tight">MiniPerplx</span>
-        </NextLink>
-        <NavigationMenu className="hidden md:block">
-          <NavigationMenuList>
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>Explore</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="p-4 space-y-2 grid grid-cols-2 max-w-sm w-[400px]">
-                  <NavItem href="#about-us">
-                    <div className="text-sm font-medium">About Us</div>
-                    <p className="text-sm text-muted-foreground">Learn more about MiniPerplx and our mission.</p>
-                  </NavItem>
-                  <NavItem href="#features">
-                    <div className="text-sm font-medium">Features</div>
-                    <p className="text-sm text-muted-foreground">Discover the powerful capabilities of MiniPerplx.</p>
-                  </NavItem>
-                  <NavItem href="#tech-stack">
-                    <div className="text-sm font-medium">Tech Stack</div>
-                    <p className="text-sm text-muted-foreground">Explore the technologies powering MiniPerplx.</p>
-                  </NavItem>
-                  <NavItem href="#testimonials">
-                    <div className="text-sm font-medium">Testimonials</div>
-                    <p className="text-sm text-muted-foreground">See what others are saying about MiniPerplx.</p>
-                  </NavItem>
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NextLink href="#try-it" legacyBehavior passHref>
-                <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                  Try It
-                </NavigationMenuLink>
-              </NextLink>
-            </NavigationMenuItem>
-          </NavigationMenuList>
-        </NavigationMenu>
-        <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)} aria-label="Toggle menu">
-          {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </Button>
-      </header>
-
-      <AnimatePresence>
-        {isMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-x-0 top-16 bg-background border-b border-border z-30 md:hidden overflow-hidden"
-          >
-            <nav className="container px-4 py-4">
-              <ul className="space-y-4">
-                <MobileNavItem href="#about-us" onClick={() => setIsMenuOpen(false)}>About Us</MobileNavItem>
-                <MobileNavItem href="#features" onClick={() => setIsMenuOpen(false)}>Features</MobileNavItem>
-                <MobileNavItem href="#tech-stack" onClick={() => setIsMenuOpen(false)}>Tech Stack</MobileNavItem>
-                <MobileNavItem href="#testimonials" onClick={() => setIsMenuOpen(false)}>Testimonials</MobileNavItem>
-                <MobileNavItem href="#try-it" onClick={() => setIsMenuOpen(false)}>Try It</MobileNavItem>
-              </ul>
-            </nav>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <main className="flex-1">
-        <section className="w-full py-48 bg-gradient-to-b from-background f to-muted relative overflow-hidden">
-          <FloatingIcons />
-          <div className="container px-4 md:px-6 relative z-10">
-            <div className="text-center space-y-4">
-              <motion.h1
-                className="font-serif font-bold text-6xl md:text-7xl lg:text-8xl bg-clip-text text-transparent bg-black dark:bg-white leading-[1.1] tracking-tight pb-2"
-                variants={itemVariants}
-                initial="hidden"
-                animate="visible"
-              >
-                Introducing MiniPerplx
-              </motion.h1>
-              <motion.p
-                className="mx-auto max-w-[700px] text-muted-foreground dark:text-neutral-200 text-xl md:text-2xl text-balance font-serif tracking-normal"
-                variants={itemVariants}
-                initial="hidden"
-                animate="visible"
-              >
-                A minimalistic AI search engine designed to deliver answers in the simplest and most elegant way possible.✨
-              </motion.p>
-              <motion.div
-                className="flex flex-col items-center space-y-6"
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-              >
-                <motion.div variants={itemVariants}>
-                  <TryButton />
-                </motion.div>
-                <motion.div
-                  className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 py-4"
-                  variants={itemVariants}
-                >
-                  <NextLink className="transform transition-transform hover:scale-105" href="https://www.producthunt.com/posts/miniperplx?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-miniperplx" target="_blank" rel="noopener noreferrer" passHref>
-                    <Image
-                      src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=481378&theme=light"
-                      alt="MiniPerplx - A minimalistic AI-powered search engine. | Product Hunt"
-                      width={250}
-                      height={54}
-                      className="h-12 w-auto"
-                    />
-                  </NextLink>
-                  <NextLink className="transform transition-transform hover:scale-105" href="https://peerlist.io/zaidmukaddam/project/miniperplx" target="_blank" rel="noopener noreferrer" passHref>
-                    <Image
-                      src="/Launch_SVG_Light.svg"
-                      alt="Peerlist"
-                      width={32}
-                      height={32}
-                      className="h-12 w-auto block dark:hidden"
-                    />
-                    <Image
-                      src="/Launch_SVG_Dark.svg"
-                      alt="Peerlist"
-                      width={32}
-                      height={32}
-                      className="h-12 w-auto hidden dark:block"
-                    />
-                  </NextLink>
-                  {/* <a href="https://theresanaiforthat.com/ai/miniperplx/?ref=featured&v=2143659" target="_blank" rel="nofollow"><img width="300" src="https://media.theresanaiforthat.com/featured-on-taaft.png?width=600" /></a> */}
-                  <NextLink className="transform transition-transform hover:scale-105" href="https://theresanaiforthat.com/ai/miniperplx/?ref=featured&v=2143659" target="_blank" rel="nofollow" passHref>
-                    <Image
-                      src="https://media.theresanaiforthat.com/featured-on-taaft.png?width=600"
-                      alt="There's an AI for that"
-                      width={300}
-                      height={150}
-                      className="h-12 w-auto"
-                    />
-                  </NextLink>
-                  <NextLink className="transform transition-transform hover:scale-105" href="https://www.uneed.best/tool/miniperplx" passHref>
-                    <Image
-                      src="https://www.uneed.best/POTD1A.png"
-                      alt="Uneed Embed Badge"
-                      width={300}
-                      height={150}
-                      className="h-12 w-auto"
-                    />
-                  </NextLink>
-                  <NextLink className="transform transition-transform hover:scale-105" href="https://www.uneed.best/tool/miniperplx" passHref>
-                    <Image
-                      src="https://www.uneed.best/POTW3A.png"
-                      alt="Uneed Embed Badge"
-                      width={300}
-                      height={150}
-                      className="h-12 w-auto"
-                    />
-                  </NextLink>
-                </motion.div>
-              </motion.div>
-            </div>
-          </div>
-        </section>
-        <AboutUsSection />
-        <section id="features" className="w-full py-12 md:py-24 lg:py-32">
-          <div className="container px-4 md:px-6">
-            <h2 className="font-serif text-4xl font-bold sm:text-5xl md:text-6xl lg:text-7xl tracking-tight text-center mb-12">
-              Powerful Features
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-12">
-              {features.map((feature, index) => (
-                <FeatureCard key={index} {...feature} />
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section id="tech-stack" className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-muted to-background overflow-hidden">
-          <div className="container px-4 md:px-6">
-            <h2 className="font-serif text-4xl font-bold sm:text-5xl md:text-6xl lg:text-7xl tracking-tight text-center mb-12 text-balance">
-              Our Tech Constellation
-            </h2>
-            <p className="text-center text-lg sm:text-xl md:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto font-serif tracking-normal">
-              Explore the universe of technologies powering MiniPerplx. Hover over the stars to discover the constellations of our tech stack.
-            </p>
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="max-w-4xl mx-auto"
-            >
-              <TechConstellation />
-            </motion.div>
-          </div>
-        </section>
-
-        <TestimonialSection />
-        <MarqueeTestimonials />
-
-        <div className="border-b"></div>
-        <section id="try-it" className="w-full py-12 md:py-24 lg:py-32 relative overflow-hidden bg-opacity-85">
-          <div className="container px-4 md:px-6 relative z-10">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <AnimatedSection>
-                <h2 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-                  Ready to Experience MiniPerplx?
-                </h2>
-              </AnimatedSection>
-              <AnimatedSection delay={0.2}>
-                <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed font-serif tracking-normal">
-                  Discover the power of minimalistic AI search.
-                </p>
-              </AnimatedSection>
-              <AnimatedSection delay={0.4} className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" asChild className="group transition-all duration-300 hover:shadow-lg hover:shadow-primary/20">
-                  <NextLink href="/search">
-                    Try MiniPerplx
-                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                  </NextLink>
-                </Button>
-                <Button variant="outline" size="lg" asChild className="group transition-all duration-300 hover:shadow-lg hover:shadow-primary/20">
-                  <NextLink href="https://git.new/mplx" target="_blank" rel="noopener noreferrer">
-                    <Github className="mr-2 h-4 w-4 group-hover:rotate-12 transition-transform" />
-                    View on GitHub
-                  </NextLink>
-                </Button>
-              </AnimatedSection>
-            </div>
-          </div>
-          <motion.div
-            className="absolute inset-0 z-0 opacity-30"
-            initial={{ backgroundPosition: '0% 0%' }}
-            animate={{ backgroundPosition: '100% 100%' }}
-            transition={{ repeat: Infinity, duration: 20, ease: 'linear' }}
-            style={{
-              backgroundImage: 'url("data:image/svg+xml,%3Csvg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="%239C92AC" fill-opacity="0.4"%3E%3Cpath d="M0 0h20L0 20z"/%3E%3C/g%3E%3C/svg%3E")',
-              backgroundSize: '20px 20px',
-            }}
-          />
-        </section>
-      </main>
-      <footer className="w-full py-12 md:py-24 bg-gradient-to-t from-background to-muted relative overflow-hidden">
-        <AnimatePresence>
-          <div className="container px-4 md:px-6 relative z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-center"
-            >
-              <h2 className="font-serif text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-bold text-neutral-500">
-                MiniPerplx
-              </h2>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-              className="mt-8 text-center"
-            >
-              <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} MiniPerplx. All rights reserved.</p>
-            </motion.div>
-          </div>
-          <div className="absolute inset-0 z-0">
-            {[...Array(20)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute rounded-full bg-primary/10"
-                style={{
-                  width: Math.random() * 50 + 25,
-                  height: Math.random() * 50 + 25,
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                }}
-                animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0.3, 0.6, 0.3],
-                }}
-                transition={{
-                  duration: Math.random() * 5 + 5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-            ))}
-          </div>
-        </AnimatePresence>
-      </footer>
-    </div>
-  )
+// Base YouTube Types
+interface VideoDetails {
+    title?: string;
+    author_name?: string;
+    author_url?: string;
+    thumbnail_url?: string;
+    type?: string;
+    provider_name?: string;
+    provider_url?: string;
+    height?: number;
+    width?: number;
 }
 
-export default LandingPage
+interface VideoResult {
+    videoId: string;
+    url: string;
+    details?: VideoDetails;
+    captions?: string;
+    timestamps?: string[];
+    views?: string;
+    likes?: string;
+    summary?: string;
+}
+
+interface YouTubeSearchResponse {
+    results: VideoResult[];
+}
+
+// UI Component Types
+interface YouTubeCardProps {
+    video: VideoResult;
+    index: number;
+}
+
+const VercelIcon = ({ size = 16 }: { size: number }) => {
+    return (
+        <svg
+            height={size}
+            strokeLinejoin="round"
+            viewBox="0 0 16 16"
+            width={size}
+            style={{ color: "currentcolor" }}
+        >
+            <path
+                fillRule="evenodd"
+                clipRule="evenodd"
+                d="M8 1L16 15H0L8 1Z"
+                fill="currentColor"
+            ></path>
+        </svg>
+    );
+};
+
+
+const XAIIcon = ({ size = 16 }: { size: number }) => {
+    return (
+        <svg
+            height={size}
+            strokeLinejoin="round"
+            viewBox="0 0 24 24"
+            width={size}
+            style={{ color: "currentcolor" }}
+        >
+            <path
+                d="m3.005 8.858 8.783 12.544h3.904L6.908 8.858zM6.905 15.825 3 21.402h3.907l1.951-2.788zM16.585 2l-6.75 9.64 1.953 2.79L20.492 2zM17.292 7.965v13.437h3.2V3.395z"
+                fillRule='evenodd'
+                clipRule={'evenodd'}
+                fill={'currentColor'}
+            ></path>
+        </svg>
+    );
+}
+
+const YouTubeCard: React.FC<YouTubeCardProps> = ({ video, index }) => {
+    const [timestampsExpanded, setTimestampsExpanded] = useState(false);
+    const [transcriptExpanded, setTranscriptExpanded] = useState(false);
+
+    if (!video) return null;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.1 }}
+            className="w-[300px] flex-shrink-0 relative rounded-xl dark:bg-neutral-800/50 bg-gray-50 overflow-hidden"
+        >
+            {/* Thumbnail */}
+            <Link
+                href={video.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative aspect-video block bg-neutral-200 dark:bg-neutral-700"
+            >
+                {video.details?.thumbnail_url ? (
+                    <img
+                        src={video.details.thumbnail_url}
+                        alt={video.details?.title || 'Video thumbnail'}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                    />
+                ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <YoutubeIcon className="h-8 w-8 text-neutral-400" />
+                    </div>
+                )}
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                    <YoutubeIcon className="h-12 w-12 text-red-500" />
+                </div>
+            </Link>
+
+            <div className="p-4 flex flex-col gap-3">
+                {/* Title and Channel */}
+                <div className="space-y-2">
+                    <Link
+                        href={video.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-base font-medium line-clamp-2 hover:text-red-500 transition-colors dark:text-neutral-100"
+                    >
+                        {video.details?.title || 'YouTube Video'}
+                    </Link>
+
+                    {video.details?.author_name && (
+                        <Link
+                            href={video.details.author_url || video.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 group w-fit"
+                        >
+                            <div className="h-6 w-6 rounded-full bg-red-50 dark:bg-red-950 flex items-center justify-center flex-shrink-0">
+                                <User2 className="h-4 w-4 text-red-500" />
+                            </div>
+                            <span className="text-sm text-neutral-600 dark:text-neutral-400 group-hover:text-red-500 transition-colors truncate">
+                                {video.details.author_name}
+                            </span>
+                        </Link>
+                    )}
+                </div>
+
+                {/* Interactive Sections */}
+                {(video.timestamps && video.timestamps?.length > 0 || video.captions) && (
+                    <div className="space-y-3">
+                        <Separator />
+
+                        {/* Timestamps */}
+                        {video.timestamps && video.timestamps.length > 0 && (
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="text-xs font-medium dark:text-neutral-300">Key Moments</h4>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setTimestampsExpanded(!timestampsExpanded)}
+                                        className="h-6 px-2 text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                                    >
+                                        {timestampsExpanded ? 'Show Less' : `Show All (${video.timestamps.length})`}
+                                    </Button>
+                                </div>
+                                <div className={cn(
+                                    "space-y-1.5 overflow-hidden transition-all duration-300",
+                                    timestampsExpanded ? "max-h-[300px] overflow-y-auto" : "max-h-[72px]"
+                                )}>
+                                    {video.timestamps
+                                        .slice(0, timestampsExpanded ? undefined : 3)
+                                        .map((timestamp, i) => (
+                                            <div
+                                                key={i}
+                                                className="text-xs dark:text-neutral-400 text-neutral-600 line-clamp-1"
+                                            >
+                                                {timestamp}
+                                            </div>
+                                        ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Transcript */}
+                        {video.captions && (
+                            <>
+                                {video.timestamps && video.timestamps!.length > 0 && <Separator />}
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="text-xs font-medium dark:text-neutral-300">Transcript</h4>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setTranscriptExpanded(!transcriptExpanded)}
+                                            className="h-6 px-2 text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                                        >
+                                            {transcriptExpanded ? 'Hide' : 'Show'}
+                                        </Button>
+                                    </div>
+                                    {transcriptExpanded && (
+                                        <div className="text-xs dark:text-neutral-400 text-neutral-600 max-h-[200px] overflow-y-auto rounded-md bg-neutral-100 dark:bg-neutral-900 p-3">
+                                            <p className="whitespace-pre-wrap">
+                                                {video.captions}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
+            </div>
+        </motion.div>
+    );
+};
+
+const SponsorDialog = ({
+    open,
+    onClose
+}: {
+    open: boolean;
+    onClose: () => void;
+}) => {
+    const isMobile = useMediaQuery("(max-width: 768px)");
+
+    const handleDismiss = () => {
+        localStorage.setItem('dismissedSponsor', 'true');
+        onClose();
+    };
+
+    const SponsorContent = () => (
+        <div className="space-y-6 px-2 ">
+            <div className="flex flex-col items-center gap-4 text-center">
+                <div className="h-20 w-20 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+                    <Heart className="h-10 w-10 text-red-500 dark:text-red-400" />
+                </div>
+                <div>
+                    <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+                        Support MiniPerplx
+                    </h2>
+                    <p className="text-neutral-600 dark:text-neutral-400 mt-2 text-pretty">
+                        Help keep MiniPerplx running, bring in the best LLMs and be ad-free. Your support enables continuous improvements and new features.
+                    </p>
+                </div>
+            </div>
+
+            <div className="grid gap-4">
+                <Button
+                    onClick={() => window.open("https://github.com/sponsors/zaidmukaddam", "_blank")}
+                    className="bg-red-500 hover:bg-red-600 text-white w-full py-6 text-lg gap-2"
+                >
+                    <Heart className="h-5 w-5" />
+                    Become a Sponsor
+                </Button>
+
+                <div className="grid grid-cols-2 gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={() => window.open("https://github.com/zaidmukaddam/miniperplx", "_blank")}
+                        className="gap-2"
+                    >
+                        <GitHubLogoIcon className="h-4 w-4" />
+                        GitHub
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={handleDismiss}
+                        className="gap-2"
+                    >
+                        <X className="h-4 w-4" />
+                        Dismiss
+                    </Button>
+                </div>
+            </div>
+
+            <div className="text-center text-sm text-neutral-500 dark:text-neutral-400">
+                Your support means the world to us! ❤️
+            </div>
+        </div>
+    );
+
+    if (isMobile) {
+        return (
+            <Drawer open={open} onOpenChange={onClose}>
+                <DrawerContent className="max-h-[90vh] px-4 py-6 !z-[62] font-sans">
+                    <DrawerHeader className="text-center">
+                        <DrawerTitle>Support the Project</DrawerTitle>
+                    </DrawerHeader>
+                    <SponsorContent />
+                </DrawerContent>
+            </Drawer>
+        );
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={onClose}>
+            <DialogContent className="max-w-md !z-[62] font-sans">
+                <SponsorContent />
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+const HomeContent = () => {
+    const searchParams = useSearchParams();
+
+    // Memoize initial values to prevent re-calculation
+    const initialState = useMemo(() => ({
+        query: searchParams.get('query') || searchParams.get('q') || '',
+        model: searchParams.get('model') || 'grok-2-1212'
+    }), []); // Empty dependency array as we only want this on mount
+
+    const lastSubmittedQueryRef = useRef(initialState.query);
+    const [hasSubmitted, setHasSubmitted] = useState(() => !!initialState.query);
+    const [selectedModel, setSelectedModel] = useState(initialState.model);
+    const bottomRef = useRef<HTMLDivElement>(null);
+    const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
+    const [isEditingMessage, setIsEditingMessage] = useState(false);
+    const [editingMessageIndex, setEditingMessageIndex] = useState(-1);
+    const [attachments, setAttachments] = useState<Attachment[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
+    const initializedRef = useRef(false);
+    const [selectedGroup, setSelectedGroup] = useState<SearchGroupId>('web');
+
+    // At the top with other state declarations
+    const [showSponsorDialog, setShowSponsorDialog] = useState(false);
+    const [hasDismissedSponsor, setHasDismissedSponsor] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('dismissedSponsor') === 'true';
+        }
+        return false;
+    });
+
+    const CACHE_KEY = 'trendingQueriesCache';
+    const CACHE_DURATION = 5 * 60 * 60 * 1000; // 5 hours in milliseconds
+
+    // Add this type definition
+    interface TrendingQueriesCache {
+        data: TrendingQuery[];
+        timestamp: number;
+    }
+
+    const getTrendingQueriesFromCache = (): TrendingQueriesCache | null => {
+        if (typeof window === 'undefined') return null;
+
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (!cached) return null;
+
+        const parsedCache = JSON.parse(cached) as TrendingQueriesCache;
+        const now = Date.now();
+
+        if (now - parsedCache.timestamp > CACHE_DURATION) {
+            localStorage.removeItem(CACHE_KEY);
+            return null;
+        }
+
+        return parsedCache;
+    };
+
+    const { theme } = useTheme();
+
+    const [openChangelog, setOpenChangelog] = useState(false);
+
+    const [trendingQueries, setTrendingQueries] = useState<TrendingQuery[]>([]);
+
+    const { isLoading, input, messages, setInput, append, handleSubmit, setMessages, reload, stop } = useChat({
+        maxSteps: 8,
+        body: {
+            model: selectedModel,
+            group: selectedGroup,
+        },
+        onFinish: async (message, { finishReason }) => {
+            console.log("[finish reason]:", finishReason);
+            if (message.content && finishReason === 'stop' || finishReason === 'length') {
+                const newHistory = [...messages, { role: "user", content: lastSubmittedQueryRef.current }, { role: "assistant", content: message.content }];
+                const { questions } = await suggestQuestions(newHistory);
+                setSuggestedQuestions(questions);
+            }
+        },
+        onError: (error) => {
+            console.error("Chat error:", error.cause, error.message);
+            toast.error("An error occurred.", {
+                description: `Oops! An error occurred while processing your request. ${error.message}`,
+            });
+        },
+    });
+
+    // Add this useEffect in the HomeContent component
+    useEffect(() => {
+        if (!hasDismissedSponsor) {
+            const timer = setTimeout(() => {
+                setShowSponsorDialog(true);
+            }, 30000); // Show after 30 seconds
+
+            return () => clearTimeout(timer);
+        }
+    }, [hasDismissedSponsor]);
+
+    useEffect(() => {
+        if (!initializedRef.current && initialState.query && !messages.length) {
+            initializedRef.current = true;
+            setHasSubmitted(true);
+            console.log("[initial query]:", initialState.query);
+            append({
+                content: initialState.query,
+                role: 'user'
+            });
+        }
+    }, [initialState.query, append, setInput, messages.length]);
+
+    useEffect(() => {
+        const fetchTrending = async () => {
+            // Check cache first
+            const cached = getTrendingQueriesFromCache();
+            if (cached) {
+                setTrendingQueries(cached.data);
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/trending');
+                if (!res.ok) throw new Error('Failed to fetch trending queries');
+                const data = await res.json();
+
+                // Store in cache
+                const cacheData: TrendingQueriesCache = {
+                    data,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+
+                setTrendingQueries(data);
+            } catch (error) {
+                console.error('Error fetching trending queries:', error);
+                setTrendingQueries([]);
+            }
+        };
+
+        fetchTrending();
+    }, []);
+
+    const ThemeToggle: React.FC = () => {
+        const { theme, setTheme } = useTheme();
+
+        return (
+            <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            >
+                <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                <span className="sr-only">Toggle theme</span>
+            </Button>
+        );
+    };
+
+
+    const CopyButton = ({ text }: { text: string }) => {
+        const [isCopied, setIsCopied] = useState(false);
+
+        return (
+            <Button
+                variant="ghost"
+                size="sm"
+                onClick={async () => {
+                    if (!navigator.clipboard) {
+                        return;
+                    }
+                    await navigator.clipboard.writeText(text);
+                    setIsCopied(true);
+                    setTimeout(() => setIsCopied(false), 2000);
+                    toast.success("Copied to clipboard");
+                }}
+                className="h-8 px-2 text-xs rounded-full"
+            >
+                {isCopied ? (
+                    <Check className="h-4 w-4" />
+                ) : (
+                    <Copy className="h-4 w-4" />
+                )}
+            </Button>
+        );
+    };
+
+    type Changelog = {
+        id: string;
+        images: string[];
+        content: string;
+        title: string;
+    };
+
+    const changelogs: Changelog[] = [
+        {
+            id: "1",
+            title: "The Unexpected Collab",
+            images: [
+                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-collab.jpeg", 
+            ],
+            content: `
+## **MiniPerplx x Vercel x xAI Collab**
+
+Excited to annouce that MiniPerplx has partnered with Vercel and xAI to bring you the best of AI search experience. 
+Grok 2 models are now available for you to try out.
+`
+        }
+    ];
+
+
+    const ChangeLogs = ({ open, setOpen }: { open: boolean; setOpen: (open: boolean) => void }) => {
+        const isMobile = useMediaQuery("(max-width: 768px)");
+
+        const ChangelogContent = () => (
+            <>
+                {/* Fixed Header */}
+                <div className="w-full py-3 flex justify-center items-center border-b border-neutral-200 dark:border-neutral-700">
+                    <h2 className="text-lg font-bold flex items-center gap-2 text-neutral-800 dark:text-neutral-100">
+                        <Flame size={20} /> What&apos;s new
+                    </h2>
+                </div>
+
+                <div className="divide-y divide-neutral-200 dark:divide-neutral-700">
+                    {changelogs.map((changelog) => (
+                        <div key={changelog.id}>
+                            {/* Carousel */}
+                            <Carousel
+                                opts={{
+                                    align: "start",
+                                    loop: true,
+                                }}
+                                plugins={[
+                                    Autoplay({
+                                        delay: 2000,
+                                    }),
+                                ]}
+                                className="w-full bg-neutral-100 dark:bg-neutral-800"
+                            >
+                                <CarouselContent>
+                                    {changelog.images.map((image, index) => (
+                                        <CarouselItem key={index}>
+                                            <Image
+                                                src={image}
+                                                alt={changelog.title}
+                                                width={0}
+                                                height={0}
+                                                className="h-auto w-full object-cover"
+                                                sizes="100vw"
+                                            />
+                                        </CarouselItem>
+                                    ))}
+                                </CarouselContent>
+                            </Carousel>
+
+                            {/* Content Section */}
+                            <div className="flex flex-col gap-2 px-4 py-2">
+                                <h3 className="text-2xl font-bold text-left text-neutral-800 dark:text-neutral-100">
+                                    {changelog.title}
+                                </h3>
+                                <div className="overflow-y-auto max-h-[50vh]">
+                                    <ReactMarkdown
+                                        components={{
+                                            h2: ({ node, className, ...props }) => (
+                                                <h2
+                                                    {...props}
+                                                    className={cn(
+                                                        "my-2 text-lg font-medium text-neutral-800 dark:text-neutral-100",
+                                                        className
+                                                    )}
+                                                />
+                                            ),
+                                            p: ({ node, className, ...props }) => (
+                                                <p
+                                                    {...props}
+                                                    className={cn(
+                                                        "mb-3 text-neutral-700 dark:text-neutral-300 leading-relaxed",
+                                                        className
+                                                    )}
+                                                />
+                                            ),
+                                            a: ({ node, className, ...props }) => (
+                                                <a
+                                                    {...props}
+                                                    className={cn(
+                                                        "hover:text-blue-500 underline",
+                                                        className
+                                                    )}
+                                                />
+                                            ),
+                                        }}
+                                        className="text-sm text-left pr-2"
+                                    >
+                                        {changelog.content}
+                                    </ReactMarkdown>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </>
+        );
+
+        if (isMobile) {
+            return (
+                <Drawer open={open} onOpenChange={setOpen}>
+                    <DrawerContent className="max-h-[100vh] z-[81] font-sans text-left">
+                        <DrawerHeader className="p-0">
+                            <ChangelogContent />
+                        </DrawerHeader>
+                    </DrawerContent>
+                </Drawer>
+            );
+        }
+
+        return (
+            <Dialog open={open} onOpenChange={setOpen}>
+                <DialogContent className="max-h-[90vh] overflow-scroll rounded-xl border-none p-0 gap-0 font-sans bg-white dark:bg-neutral-900 z-[1000]">
+                    <ChangelogContent />
+                </DialogContent>
+            </Dialog>
+        );
+    };
+
+    const TranslationTool: React.FC<{ toolInvocation: ToolInvocation; result: any }> = ({ toolInvocation, result }) => {
+        const [isPlaying, setIsPlaying] = useState(false);
+        const [audioUrl, setAudioUrl] = useState<string | null>(null);
+        const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+        const audioRef = useRef<HTMLAudioElement | null>(null);
+        const canvasRef = useRef<HTMLCanvasElement | null>(null);
+        const waveRef = useRef<Wave | null>(null);
+
+        useEffect(() => {
+            return () => {
+                if (audioRef.current) {
+                    audioRef.current.pause();
+                    audioRef.current.src = '';
+                }
+            };
+        }, []);
+
+        useEffect(() => {
+            if (audioUrl && audioRef.current && canvasRef.current) {
+                waveRef.current = new Wave(audioRef.current, canvasRef.current);
+                waveRef.current.addAnimation(new waveRef.current.animations.Lines({
+                    lineColor: "rgb(203, 113, 93)",
+                    lineWidth: 2,
+                    mirroredY: true,
+                    count: 100,
+                }));
+            }
+        }, [audioUrl]);
+
+        const handlePlayPause = async () => {
+            if (!audioUrl && !isGeneratingAudio) {
+                setIsGeneratingAudio(true);
+                try {
+                    const { audio } = await generateSpeech(result.translatedText, 'alloy');
+                    setAudioUrl(audio);
+                    setIsGeneratingAudio(false);
+                } catch (error) {
+                    console.error("Error generating speech:", error);
+                    setIsGeneratingAudio(false);
+                }
+            } else if (audioRef.current) {
+                if (isPlaying) {
+                    audioRef.current.pause();
+                } else {
+                    audioRef.current.play();
+                }
+                setIsPlaying(!isPlaying);
+            }
+        };
+
+        const handleReset = () => {
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+                setIsPlaying(false);
+            }
+        };
+
+        if (!result) {
+            return (
+                <Card className="w-full my-4 bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700">
+                    <CardContent className="flex items-center justify-center h-24">
+                        <div className="animate-pulse flex items-center">
+                            <div className="h-4 w-4 bg-primary rounded-full mr-2"></div>
+                            <div className="h-4 w-32 bg-primary rounded"></div>
+                        </div>
+                    </CardContent>
+                </Card>
+            );
+        }
+
+        return (
+            <Card className="w-full my-4 shadow-none bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700">
+                <CardContent className="p-6">
+                    <div className="space-y-4">
+                        <div className="w-full h-24 bg-neutral-100 dark:bg-neutral-700 rounded-lg overflow-hidden">
+                            <canvas ref={canvasRef} width="800" height="200" className="w-full h-full" />
+                        </div>
+                        <div className="flex text-left gap-3 items-center justify-center text-pretty">
+                            <div className="flex justify-center space-x-2">
+                                <Button
+                                    onClick={handlePlayPause}
+                                    disabled={isGeneratingAudio}
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-xs sm:text-sm w-24 bg-neutral-100 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200"
+                                >
+                                    {isGeneratingAudio ? (
+                                        "Generating..."
+                                    ) : isPlaying ? (
+                                        <><Pause className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Pause</>
+                                    ) : (
+                                        <><Play className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Play</>
+                                    )}
+                                </Button>
+                            </div>
+                            <div className='text-sm text-neutral-800 dark:text-neutral-200'>
+                                The phrase <span className='font-semibold'>{toolInvocation.args.text}</span> translates from <span className='font-semibold'>{result.detectedLanguage}</span> to <span className='font-semibold'>{toolInvocation.args.to}</span> as <span className='font-semibold'>{result.translatedText}</span> in <span className='font-semibold'>{toolInvocation.args.to}</span>.
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+                {audioUrl && (
+                    <audio
+                        ref={audioRef}
+                        src={audioUrl}
+                        onPlay={() => setIsPlaying(true)}
+                        onPause={() => setIsPlaying(false)}
+                        onEnded={() => { setIsPlaying(false); handleReset(); }}
+                    />
+                )}
+            </Card>
+        );
+    };
+
+
+
+    interface TableData {
+        title: string;
+        content: string;
+    }
+
+    interface ResultsOverviewProps {
+        result: {
+            image: string;
+            title: string;
+            description: string;
+            table_data: TableData[];
+        };
+    }
+
+    const ResultsOverview: React.FC<ResultsOverviewProps> = React.memo(({ result }) => {
+        const [showAll, setShowAll] = useState(false);
+
+        const visibleData = useMemo(() => {
+            return showAll ? result.table_data : result.table_data.slice(0, 3);
+        }, [showAll, result.table_data]);
+
+        return (
+            <Card className="w-full my-4 overflow-hidden shadow-sm border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800">
+                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0 pb-4 bg-neutral-100 dark:bg-neutral-900">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full">
+                        {result.image && (
+                            <div className="relative w-full sm:w-24 h-40 sm:h-24 rounded-lg overflow-hidden shadow-sm flex-shrink-0">
+                                <img
+                                    src={result.image}
+                                    alt={result.title}
+                                    className="rounded-lg w-full h-full object-cover"
+                                />
+                            </div>
+                        )}
+                        <div className="flex-grow">
+                            <CardTitle className="text-xl sm:text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-2">{result.title}</CardTitle>
+                            <p className="text-sm text-neutral-600 dark:text-neutral-400">{result.description}</p>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="pt-4">
+                    <Table>
+                        <TableBody>
+                            {visibleData.map((item, index) => (
+                                <TableRow key={index} className="border-b border-neutral-200 dark:border-neutral-700 last:border-b-0">
+                                    <TableCell className="font-medium text-neutral-700 dark:text-neutral-300 w-1/3 py-3 px-2 sm:px-4">{item.title}</TableCell>
+                                    <TableCell className="text-neutral-600 dark:text-neutral-400 py-3 px-2 sm:px-4">{item.content}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                    {result.table_data.length > 3 && (
+                        <Button
+                            variant="ghost"
+                            className="mt-4 w-full text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900 transition-colors duration-200"
+                            onClick={() => setShowAll(!showAll)}
+                        >
+                            {showAll ? (
+                                <>
+                                    <ChevronUp className="mr-2 h-4 w-4" /> Show Less
+                                </>
+                            ) : (
+                                <>
+                                    <ChevronDown className="mr-2 h-4 w-4" /> Show More
+                                </>
+                            )}
+                        </Button>
+                    )}
+                </CardContent>
+            </Card>
+        );
+    });
+
+    ResultsOverview.displayName = 'ResultsOverview';
+
+    const renderToolInvocation = useCallback(
+        (toolInvocation: ToolInvocation, index: number) => {
+            const args = JSON.parse(JSON.stringify(toolInvocation.args));
+            const result = 'result' in toolInvocation ? JSON.parse(JSON.stringify(toolInvocation.result)) : null;
+
+            if (toolInvocation.toolName === 'thinking_canvas') {
+                return (
+                    <Card className="my-2 border border-neutral-200 dark:border-neutral-800 shadow-none rounded-xl overflow-hidden">
+                        <details className="group marker:content-none" open>
+                            <summary className="bg-neutral-50 hover:bg-neutral-100 dark:bg-neutral-900 dark:hover:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-800 cursor-pointer select-none list-none">
+                                <CardHeader className="py-2 px-4 flex flex-row items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-8 w-8 rounded-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 flex items-center justify-center">
+                                            <ListTodo className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-sm font-medium">{args.title}</CardTitle>
+                                            <p className="text-xs text-neutral-500">{args.content.length} steps</p>
+                                        </div>
+                                    </div>
+                                    <ChevronDown
+                                        className="h-5 w-5 text-neutral-500 transition-transform duration-200 ease-in-out group-open:rotate-180"
+                                    />
+                                </CardHeader>
+                            </summary>
+                            <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
+                                {args.content.map((thought: string, i: number) => (
+                                    <motion.div
+                                        key={i}
+                                        initial={{ opacity: 0, x: -5 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: i * 0.05 }}
+                                        className="group flex items-start gap-3 px-4 py-2.5 hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                                    >
+                                        <span className="flex-shrink-0 w-5 h-5 rounded border border-neutral-200 dark:border-neutral-800 flex items-center justify-center text-[10px] font-medium text-neutral-500">
+                                            {i + 1}
+                                        </span>
+                                        <p className="text-sm text-neutral-700 dark:text-neutral-300 leading-normal group-hover:text-neutral-900 dark:group-hover:text-neutral-100">
+                                            {thought}
+                                        </p>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </details>
+                    </Card>
+                );
+            }
+
+            // Find place results
+            if (toolInvocation.toolName === 'find_place') {
+                if (!result) {
+                    return <SearchLoadingState
+                        icon={MapPin}
+                        text="Finding locations..."
+                        color="blue"
+                    />;
+                }
+
+                const { features } = result;
+                if (!features || features.length === 0) return null;
+
+                return (
+                    <Card className="w-full my-4 overflow-hidden bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800">
+                        {/* Map Container */}
+                        <div className="relative w-full h-[60vh]">
+                            <div className="absolute top-4 left-4 z-10 flex gap-2">
+                                <Badge
+                                    variant="secondary"
+                                    className="bg-white/90 dark:bg-black/90 backdrop-blur-sm"
+                                >
+                                    {features.length} Locations Found
+                                </Badge>
+                            </div>
+
+                            <MapComponent
+                                center={{
+                                    lat: features[0].geometry.coordinates[1],
+                                    lng: features[0].geometry.coordinates[0],
+                                }}
+                                places={features.map((feature: any) => ({
+                                    name: feature.name,
+                                    location: {
+                                        lat: feature.geometry.coordinates[1],
+                                        lng: feature.geometry.coordinates[0],
+                                    },
+                                    vicinity: feature.formatted_address,
+                                }))}
+                                zoom={features.length > 1 ? 12 : 15}
+                            />
+                        </div>
+
+                        {/* Place Details Footer */}
+                        <div className="max-h-[300px] overflow-y-auto border-t border-neutral-200 dark:border-neutral-800">
+                            {features.map((place: any, index: any) => {
+                                const isGoogleResult = place.source === 'google';
+
+                                return (
+                                    <div
+                                        key={place.id || index}
+                                        className={cn(
+                                            "p-4",
+                                            index !== features.length - 1 && "border-b border-neutral-200 dark:border-neutral-800"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/20 flex items-center justify-center">
+                                                {place.feature_type === 'street_address' || place.feature_type === 'street' ? (
+                                                    <RoadHorizon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                                ) : place.feature_type === 'locality' ? (
+                                                    <Building className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                                ) : (
+                                                    <MapPin className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                                )}
+                                            </div>
+
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 truncate">
+                                                    {place.name}
+                                                </h3>
+                                                {place.formatted_address && (
+                                                    <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
+                                                        {place.formatted_address}
+                                                    </p>
+                                                )}
+                                                <Badge variant="secondary" className="mt-2">
+                                                    {place.feature_type.replace(/_/g, ' ')}
+                                                </Badge>
+                                            </div>
+
+                                            <div className="flex gap-2">
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                size="icon"
+                                                                variant="outline"
+                                                                onClick={() => {
+                                                                    const coords = `${place.geometry.coordinates[1]},${place.geometry.coordinates[0]}`;
+                                                                    navigator.clipboard.writeText(coords);
+                                                                    toast.success("Coordinates copied!");
+                                                                }}
+                                                                className="h-10 w-10"
+                                                            >
+                                                                <Copy className="h-4 w-4" />
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>Copy Coordinates</TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                size="icon"
+                                                                variant="outline"
+                                                                onClick={() => {
+                                                                    const url = isGoogleResult
+                                                                        ? `https://www.google.com/maps/place/?q=place_id:${place.place_id}`
+                                                                        : `https://www.google.com/maps/search/?api=1&query=${place.geometry.coordinates[1]},${place.geometry.coordinates[0]}`;
+                                                                    window.open(url, '_blank');
+                                                                }}
+                                                                className="h-10 w-10"
+                                                            >
+                                                                <ExternalLink className="h-4 w-4" />
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>View in Maps</TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </Card>
+                );
+            }
+
+            if (toolInvocation.toolName === 'tmdb_search') {
+                if (!result) {
+                    return <SearchLoadingState
+                        icon={Film}
+                        text="Discovering entertainment content..."
+                        color="violet"
+                    />;
+                }
+
+                return <TMDBResult result={result} />;
+            }
+
+            if (toolInvocation.toolName === 'trending_movies') {
+                if (!result) {
+                    return <SearchLoadingState
+                        icon={Film}
+                        text="Loading trending movies..."
+                        color="blue"
+                    />;
+                }
+                return <TrendingResults result={result} type="movie" />;
+            }
+
+            if (toolInvocation.toolName === 'trending_tv') {
+                if (!result) {
+                    return <SearchLoadingState
+                        icon={Tv}
+                        text="Loading trending TV shows..."
+                        color="blue"
+                    />;
+                }
+                return <TrendingResults result={result} type="tv" />;
+            }
+
+            
+            if (toolInvocation.toolName === 'x_search') {
+                if (!result) {
+                    return <SearchLoadingState
+                        icon={XLogo}
+                        text="Searching for latest news..."
+                        color="gray"
+                    />;
+                }
+
+                const PREVIEW_COUNT = 3;
+
+                // Shared content component
+                const FullTweetList = () => (
+                    <div className="grid gap-4 p-4 sm:max-w-[500px]">
+                        {result.map((post: XResult, index: number) => (
+                            <motion.div
+                                key={post.tweetId}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.3, delay: index * 0.1 }}
+                            >
+                                <Tweet id={post.tweetId} />
+                            </motion.div>
+                        ))}
+                    </div>
+                );
+
+                return (
+                    <Card className="w-full my-4 overflow-hidden shadow-none">
+                        <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="h-8 w-8 rounded-full bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center">
+                                    <XLogo className="h-4 w-4" />
+                                </div>
+                                <div>
+                                    <CardTitle>Latest from X</CardTitle>
+                                    <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                                        {result.length} tweets found
+                                    </p>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <div className="relative">
+                            <div className="px-4 pb-2 h-72">
+                                <div className="flex flex-nowrap overflow-x-auto gap-4 no-scrollbar">
+                                    {result.slice(0, PREVIEW_COUNT).map((post: XResult, index: number) => (
+                                        <motion.div
+                                            key={post.tweetId}
+                                            className="w-[min(100vw-2rem,320px)] flex-none"
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ duration: 0.3, delay: index * 0.1 }}
+                                        >
+                                            <Tweet id={post.tweetId} />
+                                        </motion.div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Gradient overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white dark:to-black pointer-events-none" />
+
+                            {/* Show More Buttons - Desktop Sheet */}
+                            <div className="absolute bottom-0 inset-x-0 flex items-center justify-center pb-4 pt-20 bg-gradient-to-t from-white dark:from-black to-transparent">
+                                {/* Desktop Sheet */}
+                                <div className="hidden sm:block">
+                                    <Sheet>
+                                        <SheetTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                className="gap-2 bg-white dark:bg-black"
+                                            >
+                                                <XLogo className="h-4 w-4" />
+                                                Show all {result.length} tweets
+                                            </Button>
+                                        </SheetTrigger>
+                                        <SheetContent side="right" className="w-[400px] sm:w-[600px] overflow-y-auto !p-0 !z-[70]">
+                                            <SheetHeader className='!mt-5 !font-sans'>
+                                                <SheetTitle className='text-center'>All Tweets</SheetTitle>
+                                            </SheetHeader>
+                                            <FullTweetList />
+                                        </SheetContent>
+                                    </Sheet>
+                                </div>
+
+                                {/* Mobile Drawer */}
+                                <div className="block sm:hidden">
+                                    <Drawer>
+                                        <DrawerTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                className="gap-2 bg-white dark:bg-black"
+                                            >
+                                                <XLogo className="h-4 w-4" />
+                                                Show all {result.length} tweets
+                                            </Button>
+                                        </DrawerTrigger>
+                                        <DrawerContent className="max-h-[85vh] font-sans">
+                                            <DrawerHeader>
+                                                <DrawerTitle>All Tweets</DrawerTitle>
+                                            </DrawerHeader>
+                                            <div className="overflow-y-auto">
+                                                <FullTweetList />
+                                            </div>
+                                        </DrawerContent>
+                                    </Drawer>
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+                );
+            }
+
+            if (toolInvocation.toolName === 'youtube_search') {
+                if (!result) {
+                    return <SearchLoadingState
+                        icon={YoutubeIcon}
+                        text="Searching YouTube videos..."
+                        color="red"
+                    />;
+                }
+
+                const youtubeResult = result as YouTubeSearchResponse;
+
+                return (
+                    <Accordion type="single" defaultValue="videos" collapsible className="w-full">
+                        <AccordionItem value="videos" className="border-0">
+                            <AccordionTrigger
+                                className={cn(
+                                    "w-full dark:bg-neutral-900 bg-white rounded-xl dark:border-neutral-800 border-gray-200 border px-6 py-4 hover:no-underline transition-all",
+                                    "[&[data-state=open]]:rounded-b-none",
+                                    "[&[data-state=open]]:border-b-0"
+                                )}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg dark:bg-neutral-800 bg-gray-100">
+                                        <YoutubeIcon className="h-4 w-4 text-red-500" />
+                                    </div>
+                                    <div>
+                                        <h2 className="dark:text-neutral-100 text-gray-900 font-medium text-left">
+                                            YouTube Results
+                                        </h2>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <Badge variant="secondary" className="dark:bg-neutral-800 bg-gray-100 dark:text-neutral-300 text-gray-600">
+                                                {youtubeResult.results.length} videos
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                </div>
+                            </AccordionTrigger>
+
+                            <AccordionContent className="dark:bg-neutral-900 bg-white dark:border-neutral-800 border-gray-200 border border-t-0 rounded-b-xl">
+                                <div className="flex overflow-x-auto gap-3 p-3 no-scrollbar">
+                                    {youtubeResult.results.map((video, index) => (
+                                        <YouTubeCard
+                                            key={video.videoId}
+                                            video={video}
+                                            index={index}
+                                        />
+                                    ))}
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
+                );
+            }
+
+            // Academic search results continued...
+            if (toolInvocation.toolName === 'academic_search') {
+                if (!result) {
+                    return <SearchLoadingState
+                        icon={Book}
+                        text="Searching academic papers..."
+                        color="violet"
+                    />;
+                }
+
+                return (
+                    <Card className="w-full my-4 overflow-hidden">
+                        <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-violet-500/20 to-violet-600/20 flex items-center justify-center backdrop-blur-sm">
+                                    <Book className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                                </div>
+                                <div>
+                                    <CardTitle>Academic Papers</CardTitle>
+                                    <p className="text-sm text-muted-foreground">Found {result.results.length} papers</p>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <div className="px-4 pb-2">
+                            <div className="flex overflow-x-auto gap-4 no-scrollbar">
+                                {result.results.map((paper: AcademicResult, index: number) => (
+                                    <motion.div
+                                        key={paper.url || index}
+                                        className="w-[400px] flex-none"
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                                    >
+                                        <div className="h-[300px] relative group">
+                                            {/* Background with gradient border */}
+                                            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-violet-500/20 via-violet-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                                            {/* Main content container */}
+                                            <div className="h-full relative backdrop-blur-sm bg-background/95 dark:bg-neutral-900/95 border border-neutral-200/50 dark:border-neutral-800/50 rounded-xl p-4 flex flex-col transition-all duration-500 group-hover:border-violet-500/20">
+                                                {/* Title */}
+                                                <h3 className="font-semibold text-xl tracking-tight mb-3 line-clamp-2 group-hover:text-violet-500 dark:group-hover:text-violet-400 transition-colors duration-300">
+                                                    {paper.title}
+                                                </h3>
+
+                                                {/* Authors with better overflow handling */}
+                                                {paper.author && (
+                                                    <div className="mb-3">
+                                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-muted-foreground bg-neutral-100 dark:bg-neutral-800 rounded-md">
+                                                            <User2 className="h-3.5 w-3.5 text-violet-500" />
+                                                            <span className="line-clamp-1">
+                                                                {paper.author.split(';')
+                                                                    .slice(0, 2) // Take first two authors
+                                                                    .join(', ') +
+                                                                    (paper.author.split(';').length > 2 ? ' et al.' : '')
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Date if available */}
+                                                {paper.publishedDate && (
+                                                    <div className="mb-4">
+                                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-muted-foreground bg-neutral-100 dark:bg-neutral-800 rounded-md">
+                                                            <Calendar className="h-3.5 w-3.5 text-violet-500" />
+                                                            {new Date(paper.publishedDate).toLocaleDateString()}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Summary with gradient border */}
+                                                <div className="flex-1 relative mb-4 pl-3">
+                                                    <div className="absolute -left-0 top-1 bottom-1 w-[2px] rounded-full bg-gradient-to-b from-violet-500 via-violet-400 to-transparent opacity-50" />
+                                                    <p className="text-sm text-muted-foreground line-clamp-4">
+                                                        {paper.summary}
+                                                    </p>
+                                                </div>
+
+                                                {/* Actions */}
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        variant="ghost"
+                                                        onClick={() => window.open(paper.url, '_blank')}
+                                                        className="flex-1 bg-neutral-100 dark:bg-neutral-800 hover:bg-violet-100 dark:hover:bg-violet-900/20 hover:text-violet-600 dark:hover:text-violet-400 group/btn"
+                                                    >
+                                                        <FileText className="h-4 w-4 mr-2 group-hover/btn:scale-110 transition-transform duration-300" />
+                                                        View Paper
+                                                    </Button>
+
+                                                    {paper.url.includes('arxiv.org') && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            onClick={() => window.open(paper.url.replace('abs', 'pdf'), '_blank')}
+                                                            className="bg-neutral-100 dark:bg-neutral-800 hover:bg-violet-100 dark:hover:bg-violet-900/20 hover:text-violet-600 dark:hover:text-violet-400 group/btn"
+                                                        >
+                                                            <Download className="h-4 w-4 group-hover/btn:scale-110 transition-transform duration-300" />
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </div>
+                    </Card>
+                );
+            }
+
+            if (toolInvocation.toolName === 'nearby_search') {
+                if (!result) {
+                    return (
+                        <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-2">
+                                <MapPin className="h-5 w-5 text-neutral-700 dark:text-neutral-300 animate-pulse" />
+                                <span className="text-neutral-700 dark:text-neutral-300 text-lg">
+                                    Finding nearby {args.type}...
+                                </span>
+                            </div>
+                            <motion.div className="flex space-x-1">
+                                {[0, 1, 2].map((index) => (
+                                    <motion.div
+                                        key={index}
+                                        className="w-2 h-2 bg-neutral-400 dark:bg-neutral-600 rounded-full"
+                                        initial={{ opacity: 0.3 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{
+                                            repeat: Infinity,
+                                            duration: 0.8,
+                                            delay: index * 0.2,
+                                            repeatType: "reverse",
+                                        }}
+                                    />
+                                ))}
+                            </motion.div>
+                        </div>
+                    );
+                }
+
+                console.log(result);
+
+                return (
+                    <div className="my-4">
+                        <NearbySearchMapView
+                            center={result.center}
+                            places={result.results}
+                            type={args.type}
+                        />
+                    </div>
+                );
+            }
+
+            if (toolInvocation.toolName === 'text_search') {
+                if (!result) {
+                    return (
+                        <div className="flex items-center justify-between w-full">
+                            <div className='flex items-center gap-2'>
+                                <MapPin className="h-5 w-5 text-neutral-700 dark:text-neutral-300 animate-pulse" />
+                                <span className="text-neutral-700 dark:text-neutral-300 text-lg">Searching places...</span>
+                            </div>
+                            <motion.div className="flex space-x-1">
+                                {[0, 1, 2].map((index) => (
+                                    <motion.div
+                                        key={index}
+                                        className="w-2 h-2 bg-neutral-400 dark:bg-neutral-600 rounded-full"
+                                        initial={{ opacity: 0.3 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{
+                                            repeat: Infinity,
+                                            duration: 0.8,
+                                            delay: index * 0.2,
+                                            repeatType: "reverse",
+                                        }}
+                                    />
+                                ))}
+                            </motion.div>
+                        </div>
+                    );
+                }
+
+                const centerLocation = result.results[0]?.geometry?.location;
+                return (
+                    <MapContainer
+                        title="Search Results"
+                        center={centerLocation}
+                        places={result.results.map((place: any) => ({
+                            name: place.name,
+                            location: place.geometry.location,
+                            vicinity: place.formatted_address
+                        }))}
+                    />
+                );
+            }
+
+            if (toolInvocation.toolName === 'get_weather_data') {
+                if (!result) {
+                    return (
+                        <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-2">
+                                <Cloud className="h-5 w-5 text-neutral-700 dark:text-neutral-300 animate-pulse" />
+                                <span className="text-neutral-700 dark:text-neutral-300 text-lg">Fetching weather data...</span>
+                            </div>
+                            <div className="flex space-x-1">
+                                {[0, 1, 2].map((index) => (
+                                    <motion.div
+                                        key={index}
+                                        className="w-2 h-2 bg-neutral-400 dark:bg-neutral-600 rounded-full"
+                                        initial={{ opacity: 0.3 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{
+                                            repeat: Infinity,
+                                            duration: 0.8,
+                                            delay: index * 0.2,
+                                            repeatType: "reverse",
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    );
+                }
+                return <WeatherChart result={result} />;
+            }
+
+            if (toolInvocation.toolName === 'programming') {
+                return (
+                    <Accordion type="single" collapsible className="w-full mt-4">
+                        <AccordionItem value={`item-${index}`} className="border-none">
+                            <AccordionTrigger className="hover:no-underline py-2">
+                                <div className="flex items-center justify-between w-full">
+                                    <div className="flex items-center gap-2">
+                                        <Code className="h-5 w-5 text-primary" />
+                                        <h2 className="text-base font-semibold text-neutral-800 dark:text-neutral-200">Programming</h2>
+                                    </div>
+                                    {!result ? (
+                                        <Badge variant="secondary" className="mr-2 rounded-full bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200">
+                                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                            Executing
+                                        </Badge>
+                                    ) : (
+                                        <Badge className="mr-2 rounded-full bg-green-200 dark:bg-green-900 text-green-800 dark:text-green-200">
+                                            <Check className="h-3 w-3 mr-1" />
+                                            Executed
+                                        </Badge>
+                                    )}
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                <div className="w-full my-2 border border-neutral-200 dark:border-neutral-700 overflow-hidden rounded-md">
+                                    <div className="bg-neutral-100 dark:bg-neutral-800 p-2 flex items-center">
+                                        {args.icon === 'stock' && <TrendingUpIcon className="h-5 w-5 text-primary mr-2" />}
+                                        {args.icon === 'default' && <Code className="h-5 w-5 text-primary mr-2" />}
+                                        {args.icon === 'date' && <Calendar className="h-5 w-5 text-primary mr-2" />}
+                                        {args.icon === 'calculation' && <Calculator className="h-5 w-5 text-primary mr-2" />}
+                                        <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{args.title}</span>
+                                    </div>
+                                    <Tabs defaultValue="code" className="w-full">
+                                        <TabsList className="bg-neutral-50 dark:bg-neutral-900 p-0 h-auto shadow-sm rounded-none">
+                                            <TabsTrigger
+                                                value="code"
+                                                className="px-4 py-2 text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-neutral-800 data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
+                                            >
+                                                Code
+                                            </TabsTrigger>
+                                            <TabsTrigger
+                                                value="output"
+                                                className="px-4 py-2 text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-neutral-800 data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
+                                            >
+                                                Output
+                                            </TabsTrigger>
+                                            {result?.images && result.images.length > 0 && (
+                                                <TabsTrigger
+                                                    value="images"
+                                                    className="px-4 py-2 text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-neutral-800 data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
+                                                >
+                                                    Images
+                                                </TabsTrigger>
+                                            )}
+                                            {result?.chart && (
+                                                <TabsTrigger
+                                                    value="visualization"
+                                                    className="px-4 py-2 text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-neutral-800 data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
+                                                >
+                                                    Visualization
+                                                </TabsTrigger>
+                                            )}
+                                        </TabsList>
+                                        <TabsContent value="code" className="p-0 m-0 rounded-none">
+                                            <div className="relative">
+                                                <SyntaxHighlighter
+                                                    language="python"
+                                                    style={theme === "light" ? oneLight : oneDark}
+                                                    customStyle={{
+                                                        margin: 0,
+                                                        padding: '1rem',
+                                                        fontSize: '0.875rem',
+                                                        borderRadius: 0,
+                                                    }}
+                                                >
+                                                    {args.code}
+                                                </SyntaxHighlighter>
+                                                <style jsx>{`
+                                                    @media (max-width: 640px) {
+                                                        .syntax-highlighter {
+                                                            font-size: 0.75rem;
+                                                        }
+                                                    }
+                                                `}</style>
+                                                <div className="absolute top-2 right-2">
+                                                    <CopyButton text={args.code} />
+                                                </div>
+                                            </div>
+                                        </TabsContent>
+                                        <TabsContent value="output" className="p-0 m-0 rounded-none">
+                                            <div className="relative bg-white dark:bg-neutral-800 p-4">
+                                                {result ? (
+                                                    <>
+                                                        <pre className="text-sm text-neutral-800 dark:text-neutral-200">
+                                                            <code>{result.message}</code>
+                                                        </pre>
+                                                        <div className="absolute top-2 right-2">
+                                                            <CopyButton text={result.message} />
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="flex items-center justify-center h-20">
+                                                        <div className="flex items-center gap-2">
+                                                            <Loader2 className="h-5 w-5 text-neutral-400 dark:text-neutral-600 animate-spin" />
+                                                            <span className="text-neutral-500 dark:text-neutral-400 text-sm">Executing code...</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </TabsContent>
+                                        {result?.images && result.images.length > 0 && (
+                                            <TabsContent value="images" className="p-0 m-0 bg-white dark:bg-neutral-800">
+                                                <div className="space-y-4 p-4">
+                                                    {result.images.map((img: { format: string, url: string }, imgIndex: number) => (
+                                                        <div key={imgIndex} className="space-y-2">
+                                                            <div className="flex justify-between items-center">
+                                                                <h4 className="text-sm font-medium text-neutral-800 dark:text-neutral-200">Image {imgIndex + 1}</h4>
+                                                                {img.url && img.url.trim() !== '' && (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        className="p-0 h-8 w-8"
+                                                                        onClick={() => {
+                                                                            window.open(img.url + "?download=1", '_blank');
+                                                                        }}
+                                                                    >
+                                                                        <Download className="h-4 w-4" />
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                            <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
+                                                                {img.url && img.url.trim() !== '' ? (
+                                                                    <Image
+                                                                        src={img.url}
+                                                                        alt={`Generated image ${imgIndex + 1}`}
+                                                                        layout="fill"
+                                                                        objectFit="contain"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="flex items-center justify-center h-full bg-neutral-100 dark:bg-neutral-700 text-neutral-400 dark:text-neutral-500">
+                                                                        Image upload failed or URL is empty
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </TabsContent>
+                                        )}
+                                        {result?.chart && (
+                                            <TabsContent value="visualization" className="p-4 m-0 bg-white dark:bg-neutral-800">
+                                                <InteractiveChart
+                                                    chart={{
+                                                        type: result.chart.type,
+                                                        title: result.chart.title,
+                                                        x_label: result.chart.x_label,
+                                                        y_label: result.chart.y_label,
+                                                        x_unit: result.chart.x_unit,
+                                                        y_unit: result.chart.y_unit,
+                                                        elements: result.chart.elements
+                                                    }}
+                                                />
+                                            </TabsContent>
+                                        )}
+                                    </Tabs>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
+                );
+            }
+
+            if (toolInvocation.toolName === 'web_search') {
+                return (
+                    <div className="mt-4">
+                        <MultiSearch result={result} args={args} />
+                    </div>
+                );
+            }
+
+            if (toolInvocation.toolName === 'retrieve') {
+                if (!result) {
+                    return (
+                        <div className="border border-neutral-200 rounded-xl my-4 p-4 dark:border-neutral-800 bg-gradient-to-b from-white to-neutral-50 dark:from-neutral-900 dark:to-neutral-900/90">
+                            <div className="flex items-center gap-4">
+                                <div className="relative w-10 h-10">
+                                    <div className="absolute inset-0 bg-primary/10 animate-pulse rounded-lg" />
+                                    <Globe className="h-5 w-5 text-primary/70 absolute inset-0 m-auto" />
+                                </div>
+                                <div className="space-y-2 flex-1">
+                                    <div className="h-4 w-36 bg-neutral-200 dark:bg-neutral-800 animate-pulse rounded-md" />
+                                    <div className="space-y-1.5">
+                                        <div className="h-3 w-full bg-neutral-100 dark:bg-neutral-800/50 animate-pulse rounded-md" />
+                                        <div className="h-3 w-2/3 bg-neutral-100 dark:bg-neutral-800/50 animate-pulse rounded-md" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div className="border border-neutral-200 rounded-xl my-4 overflow-hidden dark:border-neutral-800 bg-gradient-to-b from-white to-neutral-50 dark:from-neutral-900 dark:to-neutral-900/90">
+                        <div className="p-4">
+                            <div className="flex items-start gap-4">
+                                <div className="relative w-10 h-10 flex-shrink-0">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent rounded-lg" />
+                                    <img
+                                        className="h-5 w-5 absolute inset-0 m-auto"
+                                        src={`https://www.google.com/s2/favicons?sz=64&domain_url=${encodeURIComponent(result.results[0].url)}`}
+                                        alt=""
+                                    />
+                                </div>
+                                <div className="flex-1 min-w-0 space-y-2">
+                                    <h2 className="font-semibold text-lg text-neutral-900 dark:text-neutral-100 tracking-tight truncate">
+                                        {result.results[0].title}
+                                    </h2>
+                                    <p className="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-2">
+                                        {result.results[0].description}
+                                    </p>
+                                    <div className="flex items-center gap-3">
+                                        <span className="px-2.5 py-0.5 text-xs font-medium rounded-full bg-primary/10 text-primary">
+                                            {result.results[0].language || 'Unknown'}
+                                        </span>
+                                        <a
+                                            href={result.results[0].url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1.5 text-xs text-neutral-500 hover:text-primary transition-colors"
+                                        >
+                                            <ExternalLink className="h-3 w-3" />
+                                            View source
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-neutral-200 dark:border-neutral-800">
+                            <details className="group">
+                                <summary className="w-full px-4 py-2 cursor-pointer text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <TextIcon className="h-4 w-4 text-neutral-400" />
+                                        <span>View content</span>
+                                    </div>
+                                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-open:rotate-180" />
+                                </summary>
+                                <div className="max-h-[50vh] overflow-y-auto p-4 bg-neutral-50/50 dark:bg-neutral-800/30">
+                                    <div className="prose prose-neutral dark:prose-invert prose-sm max-w-none">
+                                        <ReactMarkdown>{result.results[0].content}</ReactMarkdown>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+                );
+            }
+            if (toolInvocation.toolName === 'text_translate') {
+                return <TranslationTool toolInvocation={toolInvocation} result={result} />;
+            }
+
+            if (toolInvocation.toolName === 'results_overview') {
+                if (!result) {
+                    return (
+                        <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-2">
+                                <Loader2 className="h-5 w-5 text-neutral-700 dark:text-neutral-300 animate-spin" />
+                                <span className="text-neutral-700 dark:text-neutral-300 text-lg">Generating overview...</span>
+                            </div>
+                        </div>
+                    );
+                }
+
+                return <ResultsOverview result={result} />;
+            }
+
+            if (toolInvocation.toolName === 'track_flight') {
+                if (!result) {
+                    return (
+                        <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-2">
+                                <Plane className="h-5 w-5 text-neutral-700 dark:text-neutral-300 animate-pulse" />
+                                <span className="text-neutral-700 dark:text-neutral-300 text-lg">Tracking flight...</span>
+                            </div>
+                            <div className="flex space-x-1">
+                                {[0, 1, 2].map((index) => (
+                                    <motion.div
+                                        key={index}
+                                        className="w-2 h-2 bg-neutral-400 dark:bg-neutral-600 rounded-full"
+                                        initial={{ opacity: 0.3 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{
+                                            repeat: Infinity,
+                                            duration: 0.8,
+                                            delay: index * 0.2,
+                                            repeatType: "reverse",
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    );
+                }
+
+                if (result.error) {
+                    return (
+                        <div className="text-red-500 dark:text-red-400">
+                            Error tracking flight: {result.error}
+                        </div>
+                    );
+                }
+
+                return (
+                    <div className="my-4">
+                        <FlightTracker data={result} />
+                    </div>
+                );
+            }
+
+            return null;
+        },
+        [ResultsOverview, theme]
+    );
+
+    interface MarkdownRendererProps {
+        content: string;
+    }
+
+    interface CitationLink {
+        text: string;
+        link: string;
+    }
+
+    interface LinkMetadata {
+        title: string;
+        description: string;
+    }
+
+    const isValidUrl = (str: string) => {
+        try {
+            new URL(str);
+            return true;
+        } catch {
+            return false;
+        }
+    };
+
+    const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
+        const [metadataCache, setMetadataCache] = useState<Record<string, LinkMetadata>>({});
+
+        const citationLinks = useMemo<CitationLink[]>(() => {
+            return Array.from(content.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)).map(([_, text, link]) => ({
+                text,
+                link,
+            }));
+        }, [content]);
+
+        const inlineMathRegex = /\$([^\$]+)\$/g;
+        const blockMathRegex = /\$\$([^\$]+)\$\$/g;
+
+        const isValidLatex = (text: string): boolean => {
+            // Basic validation - checks for balanced delimiters
+            return !(text.includes('\\') && !text.match(/\\[a-zA-Z{}\[\]]+/));
+        }
+
+        const renderLatexString = (text: string) => {
+            let parts = [];
+            let lastIndex = 0;
+            let match;
+
+            // Try to match inline math first ($...$)
+            while ((match = /\$([^\$]+)\$/g.exec(text.slice(lastIndex))) !== null) {
+                const mathText = match[1];
+                const fullMatch = match[0];
+                const matchIndex = lastIndex + match.index;
+
+                // Add text before math
+                if (matchIndex > lastIndex) {
+                    parts.push(text.slice(lastIndex, matchIndex));
+                }
+
+                // Only render as LaTeX if valid
+                if (isValidLatex(mathText)) {
+                    parts.push(<Latex key={matchIndex}>{fullMatch}</Latex>);
+                } else {
+                    parts.push(fullMatch);
+                }
+
+                lastIndex = matchIndex + fullMatch.length;
+            }
+
+            // Add remaining text
+            if (lastIndex < text.length) {
+                parts.push(text.slice(lastIndex));
+            }
+
+            return parts.length > 0 ? parts : text;
+        };
+
+        const fetchMetadataWithCache = useCallback(async (url: string) => {
+            if (metadataCache[url]) {
+                return metadataCache[url];
+            }
+
+            const metadata = await fetchMetadata(url);
+            if (metadata) {
+                setMetadataCache(prev => ({ ...prev, [url]: metadata }));
+            }
+            return metadata;
+        }, [metadataCache]);
+
+        interface CodeBlockProps {
+            language: string | undefined;
+            children: string;
+        }
+
+        const CodeBlock = React.memo(({ language, children }: CodeBlockProps) => {
+            const [isCopied, setIsCopied] = useState(false);
+            const { theme } = useTheme();
+
+            const handleCopy = useCallback(async () => {
+                await navigator.clipboard.writeText(children);
+                setIsCopied(true);
+                setTimeout(() => setIsCopied(false), 2000);
+            }, [children]);
+
+            return (
+                <div className="group my-3">
+                    <div className="grid grid-rows-[auto,1fr] rounded-lg border border-neutral-200 dark:border-neutral-800">
+                        <div className="flex items-center justify-between px-3 py-2 border-b border-neutral-200 dark:border-neutral-800">
+                            <div className="px-2 py-0.5 text-xs font-medium bg-neutral-100/80 dark:bg-neutral-800/80 text-neutral-500 dark:text-neutral-400 rounded-md border border-neutral-200 dark:border-neutral-700">
+                                {language || 'text'}
+                            </div>
+                            <button
+                                onClick={handleCopy}
+                                className={`
+                                    px-2 py-1.5 
+                                    rounded-md text-xs
+                                    transition-colors duration-200
+                                    ${isCopied ? 'bg-green-500/10 text-green-500' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'} 
+                                    opacity-0 group-hover:opacity-100
+                                    hover:bg-neutral-200 dark:hover:bg-neutral-700
+                                    flex items-center gap-1.5
+                                `}
+                                aria-label={isCopied ? 'Copied!' : 'Copy code'}
+                            >
+                                {isCopied ? (
+                                    <>
+                                        <Check className="h-3.5 w-3.5" />
+                                        <span>Copied!</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Copy className="h-3.5 w-3.5" />
+                                        <span>Copy</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <SyntaxHighlighter
+                                language={language || 'text'}
+                                style={theme === 'dark' ? atomDark : vs}
+                                showLineNumbers
+                                wrapLines
+                                customStyle={{
+                                    margin: 0,
+                                    padding: '1.5rem',
+                                    fontSize: '0.875rem',
+                                    background: theme === 'dark' ? '#171717' : '#ffffff',
+                                    lineHeight: 1.6,
+                                    borderBottomLeftRadius: '0.5rem',
+                                    borderBottomRightRadius: '0.5rem',
+                                }}
+                                lineNumberStyle={{
+                                    minWidth: '2.5em',
+                                    paddingRight: '1em',
+                                    color: theme === 'dark' ? '#404040' : '#94a3b8',
+                                    userSelect: 'none',
+                                }}
+                                codeTagProps={{
+                                    style: {
+                                        color: theme === 'dark' ? '#e5e5e5' : '#1e293b',
+                                        fontFamily: 'var(--font-mono)',
+                                    }
+                                }}
+                            >
+                                {children}
+                            </SyntaxHighlighter>
+                        </div>
+                    </div>
+                </div>
+            );
+        }, (prevProps, nextProps) =>
+            prevProps.children === nextProps.children &&
+            prevProps.language === nextProps.language
+        );
+
+        CodeBlock.displayName = 'CodeBlock';
+
+        const LinkPreview = ({ href }: { href: string }) => {
+            const [metadata, setMetadata] = useState<LinkMetadata | null>(null);
+            const [isLoading, setIsLoading] = useState(false);
+
+            React.useEffect(() => {
+                setIsLoading(true);
+                fetchMetadataWithCache(href).then((data) => {
+                    setMetadata(data);
+                    setIsLoading(false);
+                });
+            }, [href]);
+
+            if (isLoading) {
+                return (
+                    <div className="flex items-center justify-center p-4">
+                        <Loader2 className="h-5 w-5 animate-spin text-neutral-500 dark:text-neutral-400" />
+                    </div>
+                );
+            }
+
+            const domain = new URL(href).hostname;
+
+            return (
+                <div className="flex flex-col space-y-2 bg-white dark:bg-neutral-800 rounded-md shadow-md overflow-hidden">
+                    <div className="flex items-center space-x-2 p-3 bg-neutral-100 dark:bg-neutral-700">
+                        <Image
+                            src={`https://www.google.com/s2/favicons?domain=${domain}&sz=256`}
+                            alt="Favicon"
+                            width={20}
+                            height={20}
+                            className="rounded-sm"
+                        />
+                        <span className="text-sm font-medium text-neutral-600 dark:text-neutral-300 truncate">{domain}</span>
+                    </div>
+                    <div className="px-3 pb-3">
+                        <h3 className="text-base font-semibold text-neutral-800 dark:text-neutral-200 line-clamp-2">
+                            {metadata?.title || "Untitled"}
+                        </h3>
+                        {metadata?.description && (
+                            <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1 line-clamp-2">
+                                {metadata.description}
+                            </p>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const renderHoverCard = (href: string, text: React.ReactNode, isCitation: boolean = false) => {
+            return (
+                <HoverCard>
+                    <HoverCardTrigger asChild>
+                        <Link
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={isCitation ? "cursor-help text-sm text-primary py-0.5 px-1.5 m-0 bg-neutral-200 dark:bg-neutral-700 rounded-full no-underline" : "text-teal-600 dark:text-teal-400 no-underline hover:underline"}
+                        >
+                            {text}
+                        </Link>
+                    </HoverCardTrigger>
+                    <HoverCardContent
+                        side="top"
+                        align="start"
+                        className="w-80 p-0 shadow-lg"
+                    >
+                        <LinkPreview href={href} />
+                    </HoverCardContent>
+                </HoverCard>
+            );
+        };
+
+        const renderer: Partial<ReactRenderer> = {
+            text(text: string) {
+                if (!text.includes('$')) return text;
+
+                return (
+                    <Latex
+                        delimiters={[
+                            { left: '$$', right: '$$', display: true },
+                            { left: '$', right: '$', display: false }
+                        ]}
+                    >
+                        {text}
+                    </Latex>
+                );
+            },
+            paragraph(children) {
+                if (typeof children === 'string' && children.includes('$')) {
+                    return (
+                        <p className="my-4">
+                            <Latex
+                                delimiters={[
+                                    { left: '$$', right: '$$', display: true },
+                                    { left: '$', right: '$', display: false }
+                                ]}
+                            >
+                                {children}
+                            </Latex>
+                        </p>
+                    );
+                }
+                return <p className="my-4">{children}</p>;
+            },
+            code(children, language) {
+                return <CodeBlock language={language}>{String(children)}</CodeBlock>;
+            },
+            link(href, text) {
+                const citationIndex = citationLinks.findIndex(link => link.link === href);
+                if (citationIndex !== -1) {
+                    return (
+                        <sup>
+                            {renderHoverCard(href, citationIndex + 1, true)}
+                        </sup>
+                    );
+                }
+                return isValidUrl(href) ? renderHoverCard(href, text) : <a href={href} className="text-blue-600 dark:text-blue-400 hover:underline">{text}</a>;
+            },
+            heading(children, level) {
+                const HeadingTag = `h${level}` as keyof JSX.IntrinsicElements;
+                const className = `text-${4 - level}xl font-bold my-4 text-neutral-800 dark:text-neutral-100`;
+                return <HeadingTag className={className}>{children}</HeadingTag>;
+            },
+            list(children, ordered) {
+                const ListTag = ordered ? 'ol' : 'ul';
+                return <ListTag className="list-inside list-disc my-4 pl-4 text-neutral-800 dark:text-neutral-200">{children}</ListTag>;
+            },
+            listItem(children) {
+                return <li className="my-2 text-neutral-800 dark:text-neutral-200">{children}</li>;
+            },
+            blockquote(children) {
+                return <blockquote className="border-l-4 border-neutral-300 dark:border-neutral-600 pl-4 italic my-4 text-neutral-700 dark:text-neutral-300">{children}</blockquote>;
+            },
+        };
+
+        return (
+            <div className="markdown-body dark:text-neutral-200">
+                <Marked renderer={renderer}>{content}</Marked>
+            </div>
+        );
+    };
+
+
+
+    const lastUserMessageIndex = useMemo(() => {
+        for (let i = messages.length - 1; i >= 0; i--) {
+            if (messages[i].role === 'user') {
+                return i;
+            }
+        }
+        return -1;
+    }, [messages]);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const userScrolled = window.innerHeight + window.scrollY < document.body.offsetHeight;
+            if (!userScrolled && bottomRef.current && (messages.length > 0 || suggestedQuestions.length > 0)) {
+                bottomRef.current.scrollIntoView({ behavior: "smooth" });
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [messages, suggestedQuestions]);
+
+    const handleExampleClick = async (card: TrendingQuery) => {
+        const exampleText = card.text;
+        // track("search example", { query: exampleText });
+        lastSubmittedQueryRef.current = exampleText;
+        setHasSubmitted(true);
+        setSuggestedQuestions([]);
+        await append({
+            content: exampleText.trim(),
+            role: 'user',
+        });
+    };
+
+    const handleSuggestedQuestionClick = useCallback(async (question: string) => {
+        setHasSubmitted(true);
+        setSuggestedQuestions([]);
+
+        await append({
+            content: question.trim(),
+            role: 'user'
+        });
+    }, [append]);
+
+    const handleMessageEdit = useCallback((index: number) => {
+        setIsEditingMessage(true);
+        setEditingMessageIndex(index);
+        setInput(messages[index].content);
+    }, [messages, setInput]);
+
+    const handleMessageUpdate = useCallback((e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (input.trim()) {
+            const updatedMessages = [...messages];
+            updatedMessages[editingMessageIndex] = { ...updatedMessages[editingMessageIndex], content: input.trim() };
+            setMessages(updatedMessages);
+            setIsEditingMessage(false);
+            setEditingMessageIndex(-1);
+            handleSubmit(e);
+        } else {
+            toast.error("Please enter a valid message.");
+        }
+    }, [input, messages, editingMessageIndex, setMessages, handleSubmit]);
+
+    interface NavbarProps { }
+
+    const Navbar: React.FC<NavbarProps> = () => {
+        return (
+            <div className="fixed top-0 left-0 right-0 z-[60] flex justify-between items-center p-4 bg-white dark:bg-neutral-950">
+                <Link href="/new">
+                    <Button
+                        type="button"
+                        variant={'secondary'}
+                        className="rounded-full bg-neutral-200 dark:bg-neutral-800 group transition-all hover:scale-105 pointer-events-auto"
+                    >
+                        <Plus size={18} className="group-hover:rotate-90 transition-all" />
+                        <span className="text-sm ml-2 group-hover:block hidden animate-in fade-in duration-300">
+                            New
+                        </span>
+                    </Button>
+                </Link>
+                <div className='flex items-center space-x-4'>
+                    <Link
+                        target="_blank"
+                        href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fzaidmukaddam%2Fminiperplx&env=XAI_API_KEY,TAVILY_API_KEY,EXA_API_KEY,OPENWEATHER_API_KEY,E2B_API_KEY&envDescription=API%20keys%20needed%20for%20application"
+                        className="flex flex-row gap-2 items-center py-1.5 px-2 rounded-md text-neutral-950 bg-neutral-50 hover:bg-neutral-100 dark:bg-neutral-900 dark:text-zinc-50 dark:hover:bg-neutral-800 dark:shadow-sm shadow-none text-sm"
+                    >
+                        <VercelIcon size={14} />
+                        <span className='hidden sm:block'>Deploy with Vercel</span>
+                        <span className='sm:hidden block'>Deploy</span>
+                    </Link>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    size="sm"
+                                    onClick={() => window.open("https://github.com/sponsors/zaidmukaddam", "_blank")}
+                                    className="flex items-center space-x-2 bg-red-100 dark:bg-red-900 shadow-none hover:bg-red-200 dark:hover:bg-red-800"
+                                >
+                                    <Heart className="h-4 w-4 text-red-500 dark:text-red-400" />
+                                    <span className="text-red-800 dark:text-red-200">Sponsor</span>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent className="bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200">
+                                <p>Sponsor this project on GitHub</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                    <ThemeToggle />
+                </div>
+            </div>
+        );
+    };
+
+    const SuggestionCards: React.FC<{
+        trendingQueries: TrendingQuery[];
+    }> = ({ trendingQueries }) => {
+        const [isLoading, setIsLoading] = useState(true);
+        const scrollRef = useRef<HTMLDivElement>(null);
+        const [isPaused, setIsPaused] = useState(false);
+        const scrollIntervalRef = useRef<NodeJS.Timeout>();
+        const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+        useEffect(() => {
+            setIsLoading(false);
+            setIsTouchDevice('ontouchstart' in window);
+        }, [trendingQueries]);
+
+        useEffect(() => {
+            if (isTouchDevice) return; // Disable auto-scroll on touch devices
+
+            const startScrolling = () => {
+                if (!scrollRef.current || isPaused) return;
+                scrollRef.current.scrollLeft += 1; // Reduced speed
+
+                // Reset scroll when reaching end
+                if (scrollRef.current.scrollLeft >=
+                    (scrollRef.current.scrollWidth - scrollRef.current.clientWidth)) {
+                    scrollRef.current.scrollLeft = 0;
+                }
+            };
+
+            scrollIntervalRef.current = setInterval(startScrolling, 30);
+
+            return () => {
+                if (scrollIntervalRef.current) {
+                    clearInterval(scrollIntervalRef.current);
+                }
+            };
+        }, [isPaused, isTouchDevice]);
+
+        if (isLoading || trendingQueries.length === 0) {
+            return (
+                <div className="relative mt-4 px-0">
+                    {/* Overlay with Loading Text */}
+                    <div className="absolute inset-0 z-10 flex items-center justify-center">
+                        <div className="backdrop-blur-sm bg-white/30 dark:bg-black/30 rounded-2xl px-6 py-3 shadow-lg">
+                            <div className="flex items-center gap-2 text-sm font-medium text-neutral-600 dark:text-neutral-300">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>Loading trending queries</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Background Cards */}
+                    <div className="flex gap-2">
+                        {[1, 2, 3].map((_, index) => (
+                            <div
+                                key={index}
+                                className="flex-shrink-0 w-[140px] md:w-[220px] bg-neutral-100 dark:bg-neutral-800 rounded-xl p-4 animate-pulse"
+                            >
+                                <div className="flex items-center space-x-2">
+                                    <div className="w-5 h-5 bg-neutral-200 dark:bg-neutral-700 rounded-full" />
+                                    <div className="h-4 w-32 bg-neutral-200 dark:bg-neutral-700 rounded" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        const getIconForCategory = (category: string) => {
+            const iconMap = {
+                trending: <TrendingUp className="w-5 h-5" />,
+                community: <Users className="w-5 h-5" />,
+                science: <Brain className="w-5 h-5" />,
+                tech: <Code className="w-5 h-5" />,
+                travel: <Globe className="w-5 h-5" />,
+                politics: <Flag className="w-5 h-5" />,
+                health: <Heart className="w-5 h-5" />,
+                sports: <TennisBall className="w-5 h-5" />,
+                finance: <CurrencyDollar className="w-5 h-5" />,
+                football: <SoccerBall className="w-5 h-5" />,
+            };
+            return iconMap[category as keyof typeof iconMap] || <Sparkles className="w-5 h-5" />;
+        };
+
+        return (
+            <div className="relative">
+                {/* Gradient Fades */}
+                <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-background to-transparent z-10" />
+                <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-background to-transparent z-10" />
+
+                <div
+                    ref={scrollRef}
+                    className="flex gap-4 mt-4 overflow-x-auto pb-4 px-4 md:px-0 relative scroll-smooth no-scrollbar"
+                    onMouseEnter={() => !isTouchDevice && setIsPaused(true)}
+                    onMouseLeave={() => !isTouchDevice && setIsPaused(false)}
+                    onTouchStart={() => setIsPaused(true)}
+                    onTouchEnd={() => setIsPaused(false)}
+                >
+                    {Array(20).fill(trendingQueries).flat().map((query, index) => (
+                        <button
+                            key={`${index}-${query.text}`}
+                            onClick={() => handleExampleClick(query)}
+                            className="group flex-shrink-0 bg-neutral-50/50 dark:bg-neutral-800/50 
+                                   backdrop-blur-sm rounded-xl p-3.5 text-left 
+                                   hover:bg-neutral-100 dark:hover:bg-neutral-700/70
+                                   transition-all duration-200 ease-out
+                                   hover:scale-102 origin-center
+                                   h-[52px] min-w-fit
+                                   hover:shadow-lg
+                                   border border-neutral-200/50 dark:border-neutral-700/50
+                                   hover:border-neutral-300 dark:hover:border-neutral-600"
+                        >
+
+                            <div className="flex items-center gap-3 text-neutral-700 dark:text-neutral-300">
+                                <span
+                                    className="flex-shrink-0 transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3"
+                                >
+                                    {getIconForCategory(query.category)}
+                                </span>
+                                <span
+                                    className="text-sm font-medium truncate max-w-[180px] group-hover:text-neutral-900 dark:group-hover:text-neutral-100"
+                                >
+                                    {query.text}
+                                </span>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
+    const handleModelChange = useCallback((newModel: string) => {
+        setSelectedModel(newModel);
+        setSuggestedQuestions([]);
+        reload({ body: { model: newModel } });
+    }, [reload]);
+
+    const resetSuggestedQuestions = useCallback(() => {
+        setSuggestedQuestions([]);
+    }, []);
+
+
+    const memoizedMessages = useMemo(() => messages, [messages]);
+
+    const memoizedSuggestionCards = useMemo(() => (
+        <SuggestionCards
+            trendingQueries={trendingQueries}
+        />
+    ), [trendingQueries]);
+
+    return (
+        <div className="flex flex-col font-sans items-center justify-center p-2 sm:p-4 bg-background text-foreground transition-all duration-500">
+            <Navbar />
+
+            <div className={`w-full max-w-[90%] sm:max-w-2xl space-y-6 p-0 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[20vh] sm:mt-[25vh]'}`}>
+                {!hasSubmitted && (
+                    <div className="text-center">
+                        <Badge
+                            onClick={() => setOpenChangelog(true)}
+                            className="cursor-pointer gap-1 mb-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+                            variant="secondary"
+                        >
+                            <Flame size={14} /> What&apos;s new
+                        </Badge>
+                        <h1 className="text-4xl sm:text-6xl mb-1 text-neutral-800 dark:text-neutral-100 font-serif">MiniPerplx</h1>
+                        <h2 className='text-xl sm:text-2xl font-serif text-balance text-center mb-2 text-neutral-600 dark:text-neutral-400'>
+                            In search for minimalism and simplicity
+                        </h2>
+                        <div className="flex flex-row items-center gap-1 justify-center text-center mx-auto !p-0 !m-0">
+                            <span className="text-base text-neutral-500 dark:text-neutral-400">
+                                Powered by
+                            </span>
+                            <div className="flex flex-wrap gap-1 items-center justify-center">
+                                <a
+                                    href="https://vercel.com"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="no-underline"
+                                >
+                                    <Badge
+                                        variant="secondary"
+                                        className="bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full transition-colors shadow-none"
+                                    >
+                                        <VercelIcon size={10} />
+                                        <span className="ml-2 text-sm">Vercel</span>
+                                    </Badge>
+                                </a>
+                                {/* span with a + */}
+                                <span className="text-neutral-500 dark:text-neutral-400">+</span>
+                                <a
+                                    href="https://x.ai/grok"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="no-underline"
+                                >
+                                    <Badge
+                                        variant="secondary"
+                                        className="bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors rounded-full shadow-none"
+                                    >
+                                        <XAIIcon size={12} />
+                                        <span className="ml-2 text-sm">xAI Grok</span>
+                                    </Badge>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <AnimatePresence>
+                    {!hasSubmitted && (
+                        <motion.div
+                            initial={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                            transition={{ duration: 0.5 }}
+                        >
+                            <FormComponent
+                                input={input}
+                                setInput={setInput}
+                                attachments={attachments}
+                                setAttachments={setAttachments}
+                                hasSubmitted={hasSubmitted}
+                                setHasSubmitted={setHasSubmitted}
+                                isLoading={isLoading}
+                                handleSubmit={handleSubmit}
+                                fileInputRef={fileInputRef}
+                                inputRef={inputRef}
+                                stop={stop}
+                                messages={memoizedMessages}
+                                append={append}
+                                selectedModel={selectedModel}
+                                setSelectedModel={handleModelChange}
+                                resetSuggestedQuestions={resetSuggestedQuestions}
+                                lastSubmittedQueryRef={lastSubmittedQueryRef}
+                                selectedGroup={selectedGroup}
+                                setSelectedGroup={setSelectedGroup}
+                            />
+                            {memoizedSuggestionCards}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <div className="space-y-4 sm:space-y-6 mb-32">
+                    {memoizedMessages.map((message, index) => (
+                        <div key={index}>
+                            {message.role === 'user' && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.5 }}
+                                    className="flex items-start space-x-2 mb-4"
+                                >
+                                    <User2 className="size-5 sm:size-6 text-primary flex-shrink-0 mt-1" />
+                                    <div className="flex-grow min-w-0">
+                                        {isEditingMessage && editingMessageIndex === index ? (
+                                            <form onSubmit={handleMessageUpdate} className="flex items-center space-x-2">
+                                                <Input
+                                                    value={input}
+                                                    onChange={(e) => setInput(e.target.value)}
+                                                    className="flex-grow bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
+                                                />
+                                                <Button
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setIsEditingMessage(false)
+                                                        setEditingMessageIndex(-1)
+                                                        setInput('')
+                                                    }}
+                                                    disabled={isLoading}
+                                                    className="bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200"
+                                                >
+                                                    <X size={16} />
+                                                </Button>
+                                                <Button type="submit" size="sm" className="bg-primary text-white">
+                                                    <ArrowRight size={16} />
+                                                </Button>
+                                            </form>
+                                        ) : (
+                                            <div>
+                                                <p className="text-xl sm:text-2xl font-medium font-serif break-words text-neutral-800 dark:text-neutral-200">
+                                                    {message.content}
+                                                </p>
+                                                <div className='flex flex-row gap-2'>
+                                                    {message.experimental_attachments?.map((attachment, attachmentIndex) => (
+                                                        <div key={attachmentIndex} className="mt-2">
+                                                            {attachment.contentType!.startsWith('image/') && (
+                                                                <img
+                                                                    src={attachment.url}
+                                                                    alt={attachment.name || `Attachment ${attachmentIndex + 1}`}
+                                                                    className="max-w-full h-32 object-fill rounded-lg"
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {!isEditingMessage && index === lastUserMessageIndex && (
+                                        <div className="flex items-center space-x-2">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleMessageEdit(index)}
+                                                className="ml-2 text-neutral-500 dark:text-neutral-400"
+                                                disabled={isLoading}
+                                            >
+                                                <Edit2 size={16} />
+                                            </Button>
+                                        </div>
+                                    )}
+                                </motion.div>
+                            )}
+                            {message.role === 'assistant' && message.content !== null && !message.toolInvocations && (
+                                <div>
+                                    <div className='flex items-center justify-between mb-2'>
+                                        <div className='flex items-center gap-2'>
+                                            <Sparkles className="size-5 text-primary" />
+                                            <h2 className="text-base font-semibold text-neutral-800 dark:text-neutral-200">Answer</h2>
+                                        </div>
+                                        <div className='flex items-center gap-2'>
+                                            <CopyButton text={message.content} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <MarkdownRenderer content={message.content} />
+                                    </div>
+                                </div>
+                            )}
+                            {message.toolInvocations?.map((toolInvocation: ToolInvocation, toolIndex: number) => (
+                                <div key={`tool-${toolIndex}`}>
+                                    {renderToolInvocation(toolInvocation, toolIndex)}
+                                </div>
+                            ))}
+                        </div>
+                    ))}
+
+                    {suggestedQuestions.length > 0 && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                            transition={{ duration: 0.5 }}
+                            className="w-full max-w-xl sm:max-w-2xl"
+                        >
+                            <div className="flex items-center gap-2 mb-4">
+                                <AlignLeft className="w-5 h-5 text-primary" />
+                                <h2 className="font-semibold text-base text-neutral-800 dark:text-neutral-200">Suggested questions</h2>
+                            </div>
+                            <div className="space-y-2 flex flex-col">
+                                {suggestedQuestions.map((question, index) => (
+                                    <Button
+                                        key={index}
+                                        variant="ghost"
+                                        className="w-fit font-light rounded-2xl p-1 justify-start text-left h-auto py-2 px-4 bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 hover:bg-neutral-200 dark:hover:bg-neutral-700 whitespace-normal"
+                                        onClick={() => handleSuggestedQuestionClick(question)}
+                                    >
+                                        {question}
+                                    </Button>
+                                ))}
+                            </div>
+                        </motion.div>
+                    )}
+                </div>
+                <div ref={bottomRef} />
+            </div>
+
+            <AnimatePresence>
+                {hasSubmitted && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        transition={{ duration: 0.5 }}
+                        className="fixed bottom-4 w-full max-w-[90%] sm:max-w-2xl"
+                    >
+                        <FormComponent
+                            input={input}
+                            setInput={setInput}
+                            attachments={attachments}
+                            setAttachments={setAttachments}
+                            hasSubmitted={hasSubmitted}
+                            setHasSubmitted={setHasSubmitted}
+                            isLoading={isLoading}
+                            handleSubmit={handleSubmit}
+                            fileInputRef={fileInputRef}
+                            inputRef={inputRef}
+                            stop={stop}
+                            messages={messages}
+                            append={append}
+                            selectedModel={selectedModel}
+                            setSelectedModel={handleModelChange}
+                            resetSuggestedQuestions={resetSuggestedQuestions}
+                            lastSubmittedQueryRef={lastSubmittedQueryRef}
+                            selectedGroup={selectedGroup}
+                            setSelectedGroup={setSelectedGroup}
+                        />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+            {!hasSubmitted && (
+                <TooltipProvider>
+                    <motion.footer
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                        className="flex flex-row justify-between items-center w-full max-w-2xl bottom-3 fixed p-4 sm:p-auto"
+                    >
+                        <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                            © {new Date().getFullYear()} MiniPerplx
+                        </div>
+                        <Tooltip delayDuration={100}>
+                            <TooltipTrigger>
+                                <a
+                                    href="https://x.com/zaidmukaddam"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors text-neutral-600 dark:text-neutral-400"
+                                >
+                                    @zaidmukaddam
+                                </a>
+                            </TooltipTrigger>
+                            <TooltipContent
+                                side="top"
+                                sideOffset={5}
+                                className="bg-neutral-800 dark:bg-neutral-900 text-neutral-100 px-3 py-2 text-xs font-medium rounded-xl shadow-lg border border-neutral-700/50"
+                            >
+                                <p className="flex items-center gap-1.5">
+                                    <span className='flex gap-1'>Follow me on <XLogo className='size-4' /></span>
+                                </p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </motion.footer>
+                </TooltipProvider>
+            )}
+            <ChangeLogs open={openChangelog} setOpen={setOpenChangelog} />
+        </div>
+    );
+}
+
+const LoadingFallback = () => (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100">
+        <div className="text-center space-y-4">
+            <h1 className="text-4xl sm:text-6xl mb-1 text-neutral-800 dark:text-neutral-100 font-serif animate-pulse">
+                MiniPerplx
+            </h1>
+            <p className="text-xl sm:text-2xl font-serif text-neutral-600 dark:text-neutral-400 animate-pulse">
+                Loading your minimalist AI experience...
+            </p>
+            <Loader2 className="w-10 h-10 text-primary mx-auto animate-spin" />
+        </div>
+    </div>
+);
+
+const Home = () => {
+    return (
+        <Suspense fallback={<LoadingFallback />}>
+            <HomeContent />
+            <InstallPrompt />
+        </Suspense>
+    );
+};
+
+export default Home;

@@ -1,15 +1,14 @@
 /* eslint-disable @next/next/no-img-element */
 // /components/ui/form-component.tsx
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { ChatRequestOptions, CreateMessage, Message } from 'ai';
-import { track } from '@vercel/analytics';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 import useWindowSize from '@/hooks/use-window-size';
-import { Sparkles, X, Zap, Cpu, Search, ChevronDown, Check, Atom } from 'lucide-react';
+import { X, Zap, ChevronDown, ScanEye } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -18,7 +17,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn, SearchGroup, SearchGroupId, searchGroups } from '@/lib/utils';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import { XLogo } from '@phosphor-icons/react';
 
 interface ModelSwitcherProps {
     selectedModel: string;
@@ -27,39 +25,23 @@ interface ModelSwitcherProps {
 }
 
 const models = [
-    { value: "azure:gpt4o-mini", label: "GPT-4o Mini", icon: Zap, description: "God speed, good quality", color: "emerald", vision: true },
-    { value: "anthropic:claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku", icon: Sparkles, description: "Good quality, high speed", color: "orange", vision: false },
-    { value: "xai:grok-2-vision-1212", label: "Grok 2.0 Vision", icon: XLogo, description: "Good quality, normal speed", color: "glossyblack", vision: true },
-    { value: "anthropic:claude-3-5-sonnet-latest", label: "Claude 3.5 Sonnet (New)", icon: Sparkles, description: "High quality, good speed", color: "indigo", vision: true },
-    { value: "azure:gpt-4o", label: "GPT-4o", icon: Cpu, description: "Higher quality, normal speed", color: "blue", vision: true },
+    { value: "grok-2-1212", label: "Grok 2.0", icon: Zap, description: "Most intelligent text model", color: "glossyblack", vision: false },
+    { value: "grok-2-vision-1212", icon: ScanEye, label: "Grok 2.0 Vision", description: "Most intelligent vision model", color: "offgray", vision: true },
 ];
-
 
 const getColorClasses = (color: string, isSelected: boolean = false) => {
     const baseClasses = "transition-colors duration-200";
     const selectedClasses = isSelected ? "!bg-opacity-90 dark:!bg-opacity-90" : "";
 
     switch (color) {
-        case 'emerald':
-            return isSelected
-                ? `${baseClasses} ${selectedClasses} !bg-emerald-500 dark:!bg-emerald-600 !text-white hover:!bg-emerald-600 dark:hover:!bg-emerald-700`
-                : `${baseClasses} !text-emerald-700 dark:!text-emerald-300 hover:!bg-emerald-200 dark:hover:!bg-emerald-800/70`;
-        case 'indigo':
-            return isSelected
-                ? `${baseClasses} ${selectedClasses} !bg-indigo-500 dark:!bg-indigo-600 !text-white hover:!bg-indigo-600 dark:hover:!bg-indigo-700`
-                : `${baseClasses} !text-indigo-700 dark:!text-indigo-300 hover:!bg-indigo-200 dark:hover:!bg-indigo-800/70`;
-        case 'blue':
-            return isSelected
-                ? `${baseClasses} ${selectedClasses} !bg-blue-500 dark:!bg-blue-600 !text-white hover:!bg-blue-600 dark:hover:!bg-blue-700`
-                : `${baseClasses} !text-blue-700 dark:!text-blue-300 hover:!bg-blue-200 dark:hover:!bg-blue-800/70`;
-        case 'orange':
-            return isSelected
-                ? `${baseClasses} ${selectedClasses} !bg-orange-500 dark:!bg-orange-600 !text-white hover:!bg-orange-600 dark:hover:!bg-orange-700`
-                : `${baseClasses} !text-orange-700 dark:!text-orange-300 hover:!bg-orange-200 dark:hover:!bg-orange-800/70`;
         case 'glossyblack':
             return isSelected
-                ? `${baseClasses} ${selectedClasses} bg-gradient-to-br from-black to-neutral-800 !text-white shadow-inner`
-                : `${baseClasses} !text-black dark:!text-white hover:!bg-black/10 dark:hover:!bg-black/40`;
+                ? `${baseClasses} ${selectedClasses} !bg-[#2D2D2D] dark:!bg-[#333333] !text-white hover:!text-white hover:!bg-[#1a1a1a] dark:hover:!bg-[#444444]`
+                : `${baseClasses} !text-[#4A4A4A] dark:!text-[#F0F0F0] hover:!text-white hover:!bg-[#1a1a1a] dark:hover:!bg-[#333333]`;
+        case 'offgray':
+            return isSelected
+                ? `${baseClasses} ${selectedClasses} !bg-[#4B5457] dark:!bg-[#707677] !text-white hover:!text-white hover:!bg-[#707677] dark:hover:!bg-[#4B5457]`
+                : `${baseClasses} !text-[#5C6366] dark:!text-[#D1D5D6] hover:!text-white hover:!bg-[#707677] dark:hover:!bg-[#4B5457]`;
         default:
             return isSelected
                 ? `${baseClasses} ${selectedClasses} !bg-neutral-500 dark:!bg-neutral-600 !text-white hover:!bg-neutral-600 dark:hover:!bg-neutral-700`
@@ -351,22 +333,6 @@ const themeColors: Record<SearchGroupId, {
         description: '!text-neutral-600 dark:!text-neutral-500',
         focus: 'focus:!ring-neutral-500 dark:focus:!ring-neutral-400'
     },
-    shopping: {
-        bg: '!bg-white hover:!bg-green-50 dark:!bg-neutral-900/40 dark:hover:!bg-green-950/40',
-        bgHover: 'hover:!border-green-200 dark:hover:!border-green-500/30',
-        bgSelected: '!bg-green-50 dark:!bg-green-950/40 !border-green-500 dark:!border-green-400',
-        text: '!text-green-600 dark:!text-green-400',
-        description: '!text-neutral-600 dark:!text-neutral-500',
-        focus: 'focus:!ring-green-500 dark:focus:!ring-green-400'
-    },
-    writing: {
-        bg: '!bg-white hover:!bg-blue-50 dark:!bg-neutral-900/40 dark:hover:!bg-blue-950/40',
-        bgHover: 'hover:!border-blue-200 dark:hover:!border-blue-500/30',
-        bgSelected: '!bg-blue-50 dark:!bg-blue-950/40 !border-blue-500 dark:!border-blue-400',
-        text: '!text-blue-600 dark:!text-blue-400',
-        description: '!text-neutral-600 dark:!text-neutral-500',
-        focus: 'focus:!ring-blue-500 dark:focus:!ring-blue-400'
-    }
 };
 
 const DrawerSelectionContent = ({
@@ -436,7 +402,7 @@ const DropdownSelectionContent = ({
     selectedGroup: SearchGroupId,
     onGroupSelect: (group: SearchGroup) => void
 }) => (
-    <div className="grid grid-cols-2 lg:grid-cols-3 gap-1.5 p-0.5">
+    <div className="grid grid-cols-2 gap-1.5 p-0.5">
         {searchGroups.map((group) => {
             const Icon = group.icon;
             const isSelected = selectedGroup === group.id;
@@ -593,7 +559,7 @@ const GroupSelector = ({ selectedGroup, onGroupSelect }: GroupSelectorProps) => 
                 align="start"
                 sideOffset={8}
                 className={cn(
-                    "w-[600px] font-sans z-[60] -ml-2 mt-1",
+                    "w-[400px] font-sans z-[60] -ml-2 mt-1",
                     "border border-neutral-200 dark:border-neutral-800",
                     "bg-white dark:bg-neutral-900",
                     "shadow-lg rounded-lg"
@@ -770,7 +736,8 @@ const FormComponent: React.FC<FormComponentProps> = ({
     return (
 
         <div className={cn(
-            "relative w-full flex flex-col gap-2 rounded-lg transition-all duration-300 z-[51]",
+            "relative w-full flex flex-col gap-2 rounded-lg transition-all duration-300",
+            hasSubmitted ?? "z-[51]",
             attachments.length > 0 || uploadQueue.length > 0
                 ? "bg-gray-100/70 dark:bg-neutral-800 p-1"
                 : "bg-transparent"
@@ -815,7 +782,7 @@ const FormComponent: React.FC<FormComponentProps> = ({
                     onFocus={handleFocus}
                     onBlur={handleBlur}
                     className={cn(
-                        "min-h-[40px] max-h-[300px] w-full resize-none rounded-lg",
+                        "min-h-[56px] max-h-[400px] w-full resize-none rounded-lg",
                         "overflow-x-hidden",
                         "text-base leading-relaxed",
                         "bg-neutral-100 dark:bg-neutral-900",
