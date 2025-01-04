@@ -128,12 +128,12 @@ export async function POST(req: Request) {
   const { messages, model, group } = await req.json();
   const { tools: activeTools, systemPrompt } = await getGroupConfig(group);
 
-  const identifier = ipAddress(req) || "api";
-  const { success } = await ratelimit.limit(identifier);
+  // const identifier = ipAddress(req) || "api";
+  // const { success } = await ratelimit.limit(identifier);
 
-  if (!success) {
-    return new Response("Rate limit exceeded for 100 searches a day.", { status: 429 });
-  }
+  // if (!success) {
+  //   return new Response("Rate limit exceeded for 100 searches a day.", { status: 429 });
+  // }
 
   const result = streamText({
     model: xai(model),
