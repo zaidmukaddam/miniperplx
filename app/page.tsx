@@ -2630,7 +2630,7 @@ Grok 2 models are now available for you to try out.
                                 {/* span with a + */}
                                 <span className="text-neutral-500 dark:text-neutral-400">+</span>
                                 <a
-                                    href="https://x.ai/grok"
+                                    href="https://x.ai/api"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="no-underline"
