@@ -559,7 +559,7 @@ const GroupSelector = ({ selectedGroup, onGroupSelect }: GroupSelectorProps) => 
                 align="start"
                 sideOffset={8}
                 className={cn(
-                    "w-[400px] font-sans z-[60] -ml-2 mt-1",
+                    "w-[420px] font-sans z-[60] -ml-2 mt-1",
                     "border border-neutral-200 dark:border-neutral-800",
                     "bg-white dark:bg-neutral-900",
                     "shadow-lg rounded-lg"
@@ -629,12 +629,10 @@ const FormComponent: React.FC<FormComponentProps> = ({
 
     const handleGroupSelect = useCallback((group: SearchGroup) => {
         setSelectedGroup(group.id);
-        setInput('');
         resetSuggestedQuestions();
         inputRef.current?.focus();
-    }, [setSelectedGroup, setInput, resetSuggestedQuestions, inputRef]);
+    }, [setSelectedGroup, resetSuggestedQuestions, inputRef]);
 
-    // Keep existing file upload and form submission logic...
     const uploadFile = async (file: File): Promise<Attachment> => {
         const formData = new FormData();
         formData.append('file', file);
@@ -736,7 +734,7 @@ const FormComponent: React.FC<FormComponentProps> = ({
     return (
 
         <div className={cn(
-            "relative w-full flex flex-col gap-2 rounded-lg transition-all duration-300",
+            "relative w-full flex flex-col gap-2 rounded-lg transition-all duration-300 !font-sans",
             hasSubmitted ?? "z-[51]",
             attachments.length > 0 || uploadQueue.length > 0
                 ? "bg-gray-100/70 dark:bg-neutral-800 p-1"

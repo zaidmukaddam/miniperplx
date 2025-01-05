@@ -23,9 +23,9 @@ const config = {
         'screen-small': '100svh',
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-        serif: ['var(--font-serif)', 'serif'],
-        mono: ['var(--font-mono)', 'monospace'],
+        sans: ['var(--font-geist-sans)'],
+        serif: ['var(--font-serif)'],
+        mono: ['var(--font-geist-mono)'],
       },
       colors: {
         border: "hsl(var(--border))",

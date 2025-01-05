@@ -167,11 +167,13 @@ const groupPrompts = {
   - Specify the year or "latest" in queries to fetch recent information.
   
   #### Retrieve Tool:
-  - Use this for extracting information from specific URLs, categorized as "normal" or "news."  
+  - Use this for extracting information from specific URLs provided.
   - Do not use this tool for general web searches.
   
   #### Weather Data:
-  - Provide only the current day's weather in 3-hour intervals. Avoid forecasts for subsequent days.
+  - Run the tool with the location and date parameters directly no need to plan in the thinking canvas.
+  - When you get the weather data, talk about the weather conditions and what to wear or do in that weather.
+  - Answer in paragraphs and no need of citations for this tool.
   
   #### Programming Tool:
   - Use this Python-only sandbox for calculations, data analysis, or visualizations.  
@@ -185,8 +187,9 @@ const groupPrompts = {
   - Only use the text_translate tool for user-requested translations.
   
   #### Stock Charts:
-  - Assume stock names from user queries. Use 'yfinance' and include installation commands.  
-  
+  - Assume stock names from user queries. Use the programming tool with Python code including 'yfinance'.
+  - Once the response is ready, talk about the stock's performance and trends, and then finish with the stock chart like this ![Stock Chart](URL).
+
   #### Image Search:
   - Analyze image details to determine tool parameters.
   
@@ -196,9 +199,9 @@ const groupPrompts = {
   
   ### Prohibited Actions:
   - Never write your thoughts or preamble before running a tool.  
-  - Avoid running the same tool twice with identical parameters.  
+  - Avoid running the same tool twice with same parameters.  
   - Do not include images in responses unless explicitly allowed (e.g., plots from the programming tool).  
-  - Avoid GUI-based Python code.  
+  - Avoid running GUI-based Python code in the programming tool.
   - Do not run 'web_search' for stock queries.
   
   ### Citations Rules:

@@ -132,7 +132,7 @@ import { vs } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import TMDBResult from '@/components/movie-info';
 import TrendingResults from '@/components/trending-tv-movies-results';
-
+import { GeistMono } from 'geist/font/mono';
 
 export const maxDuration = 60;
 
@@ -1083,8 +1083,8 @@ Grok 2 models are now available for you to try out.
             if (toolInvocation.toolName === 'thinking_canvas') {
                 return (
                     <Card className="my-2 border border-neutral-200 dark:border-neutral-800 shadow-none rounded-xl overflow-hidden">
-                        <details className="group marker:content-none" open>
-                            <summary className="bg-neutral-50 hover:bg-neutral-100 dark:bg-neutral-900 dark:hover:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-800 cursor-pointer select-none list-none">
+                        <details className="group [&>summary::-webkit-details-marker]:hidden [&>summary]:list-none" open>
+                            <summary className="bg-neutral-50 hover:bg-neutral-100 dark:bg-neutral-900 dark:hover:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-800 cursor-pointer select-none">
                                 <CardHeader className="py-2 px-4 flex flex-row items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className="h-8 w-8 rounded-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 flex items-center justify-center">
@@ -2141,7 +2141,7 @@ Grok 2 models are now available for you to try out.
                             </button>
                         </div>
 
-                        <div className="overflow-x-auto">
+                        <div className={`overflow-x-auto ${GeistMono.className}`}>
                             <SyntaxHighlighter
                                 language={language || 'text'}
                                 style={theme === 'dark' ? atomDark : vs}
@@ -2318,7 +2318,7 @@ Grok 2 models are now available for you to try out.
         };
 
         return (
-            <div className="markdown-body dark:text-neutral-200">
+            <div className="markdown-body dark:text-neutral-200 font-sans">
                 <Marked renderer={renderer}>{content}</Marked>
             </div>
         );
@@ -2393,7 +2393,7 @@ Grok 2 models are now available for you to try out.
 
     const Navbar: React.FC<NavbarProps> = () => {
         return (
-            <div className="fixed top-0 left-0 right-0 z-[60] flex justify-between items-center p-4 bg-white dark:bg-neutral-950">
+            <div className="fixed top-0 left-0 right-0 z-[60] flex justify-between items-center p-4 bg-white dark:bg-neutral-950 font-sans">
                 <Link href="/new">
                     <Button
                         type="button"
@@ -2591,12 +2591,12 @@ Grok 2 models are now available for you to try out.
     ), [trendingQueries]);
 
     return (
-        <div className="flex flex-col font-sans items-center justify-center p-2 sm:p-4 bg-background text-foreground transition-all duration-500">
+        <div className="flex flex-col !font-sans items-center justify-center p-2 sm:p-4 bg-background text-foreground transition-all duration-500">
             <Navbar />
 
-            <div className={`w-full max-w-[90%] sm:max-w-2xl space-y-6 p-0 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[20vh] sm:mt-[25vh]'}`}>
+            <div className={`w-full max-w-[90%] !font-sans sm:max-w-2xl space-y-6 p-0 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[20vh] sm:mt-[25vh]'}`}>
                 {!hasSubmitted && (
-                    <div className="text-center">
+                    <div className="text-center !font-sans">
                         <Badge
                             onClick={() => setOpenChangelog(true)}
                             className="cursor-pointer gap-1 mb-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
@@ -2604,10 +2604,7 @@ Grok 2 models are now available for you to try out.
                         >
                             <Flame size={14} /> What&apos;s new
                         </Badge>
-                        <h1 className="text-4xl sm:text-6xl mb-1 text-neutral-800 dark:text-neutral-100 font-serif">MiniPerplx</h1>
-                        <h2 className='text-xl sm:text-2xl font-serif text-balance text-center mb-2 text-neutral-600 dark:text-neutral-400'>
-                            In search for minimalism and simplicity
-                        </h2>
+                        <h1 className="text-4xl sm:text-6xl mb-3 text-neutral-800 dark:text-neutral-100 font-serif">MiniPerplx</h1>
                         <div className="flex flex-row items-center gap-1 justify-center text-center mx-auto !p-0 !m-0">
                             <span className="text-base text-neutral-500 dark:text-neutral-400">
                                 Powered by
@@ -2691,7 +2688,7 @@ Grok 2 models are now available for you to try out.
                                     transition={{ duration: 0.5 }}
                                     className="flex items-start space-x-2 mb-4"
                                 >
-                                    <User2 className="size-5 sm:size-6 text-primary flex-shrink-0 mt-1" />
+                                    <User2 className="size-5 text-primary flex-shrink-0 mt-1" />
                                     <div className="flex-grow min-w-0">
                                         {isEditingMessage && editingMessageIndex === index ? (
                                             <form onSubmit={handleMessageUpdate} className="flex items-center space-x-2">
@@ -2720,7 +2717,7 @@ Grok 2 models are now available for you to try out.
                                             </form>
                                         ) : (
                                             <div>
-                                                <p className="text-xl sm:text-2xl font-medium font-serif break-words text-neutral-800 dark:text-neutral-200">
+                                                <p className="text-xl font-medium font-sans break-words text-neutral-800 dark:text-neutral-200">
                                                     {message.content}
                                                 </p>
                                                 <div className='flex flex-row gap-2'>
@@ -2796,7 +2793,7 @@ Grok 2 models are now available for you to try out.
                                     <Button
                                         key={index}
                                         variant="ghost"
-                                        className="w-fit font-light rounded-2xl p-1 justify-start text-left h-auto py-2 px-4 bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 hover:bg-neutral-200 dark:hover:bg-neutral-700 whitespace-normal"
+                                        className="w-fit font-medium rounded-2xl p-1 justify-start text-left h-auto py-2 px-4 bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 hover:bg-neutral-200 dark:hover:bg-neutral-700 whitespace-normal"
                                         onClick={() => handleSuggestedQuestionClick(question)}
                                     >
                                         {question}
@@ -2884,15 +2881,22 @@ Grok 2 models are now available for you to try out.
 }
 
 const LoadingFallback = () => (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100">
-        <div className="text-center space-y-4">
-            <h1 className="text-4xl sm:text-6xl mb-1 text-neutral-800 dark:text-neutral-100 font-serif animate-pulse">
-                MiniPerplx
-            </h1>
-            <p className="text-xl sm:text-2xl font-serif text-neutral-600 dark:text-neutral-400 animate-pulse">
-                Loading your minimalist AI experience...
-            </p>
-            <Loader2 className="w-10 h-10 text-primary mx-auto animate-spin" />
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-white to-neutral-100 dark:from-neutral-900 dark:to-black">
+        <div className="backdrop-blur-xl bg-white/30 dark:bg-neutral-900/30 p-8 rounded-2xl border border-neutral-200/20 dark:border-neutral-700/20 shadow-xl">
+            <div className="text-center space-y-6">
+                <h1 className="text-4xl sm:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-neutral-900 to-neutral-600 dark:from-white dark:to-neutral-400">
+                    MiniPerplx
+                </h1>
+                <p className="text-base sm:text-lg text-neutral-600 dark:text-neutral-400">
+                    Loading your minimalist AI experience
+                    <span className="animate-pulse">...</span>
+                </p>
+                <div className="relative">
+                    <div className="h-1 w-32 mx-auto bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-primary w-1/2 animate-[loader_1s_ease-in-out_infinite] rounded-full" />
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 );

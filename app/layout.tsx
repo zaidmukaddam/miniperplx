@@ -3,9 +3,10 @@ import 'katex/dist/katex.min.css';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Metadata, Viewport } from "next";
 import { Toaster } from "sonner";
-import { Inter, Instrument_Serif, IBM_Plex_Mono } from 'next/font/google';
+import { Instrument_Serif } from 'next/font/google';
 import { Analytics } from "@vercel/analytics/react";
 import { Providers } from './providers'
+import { GeistSans } from 'geist/font/sans';
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://mplx.run"),
@@ -33,18 +34,11 @@ export const viewport: Viewport = {
   minimumScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#000" },
+    { media: "(prefers-color-scheme: light)", color: "#fff" },
+  ]
 }
-
-const inter = Inter({
-  weight: "variable",
-  subsets: ["latin"],
-})
-
-const plexMono = IBM_Plex_Mono({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-mono"
-})
 
 const instrumentSerif = Instrument_Serif({
   weight: "400",
@@ -59,7 +53,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} ${instrumentSerif.className} ${plexMono.className}`}>
+      <body className={` ${GeistSans.className} ${instrumentSerif.className}`}>
         <Providers>
           <Toaster position="top-center" richColors />
           {children}
