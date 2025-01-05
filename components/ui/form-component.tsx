@@ -770,7 +770,7 @@ const FormComponent: React.FC<FormComponentProps> = ({
                 </div>
             )}
 
-            <div className="relative">
+            <div className="relative rounded-lg bg-neutral-100 dark:bg-neutral-900">
                 <Textarea
                     ref={inputRef}
                     placeholder={hasSubmitted ? "Ask a new question..." : "Ask a question..."}

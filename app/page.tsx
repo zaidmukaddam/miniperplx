@@ -2481,8 +2481,8 @@ Grok 2 models are now available for you to try out.
                 <div className="relative mt-4 px-0">
                     {/* Overlay with Loading Text */}
                     <div className="absolute inset-0 z-10 flex items-center justify-center">
-                        <div className="backdrop-blur-sm bg-white/30 dark:bg-black/30 rounded-2xl px-6 py-3 shadow-lg">
-                            <div className="flex items-center gap-2 text-sm font-medium text-neutral-600 dark:text-neutral-300">
+                        <div className="backdrop-blur-sm bg-white/30 dark:bg-black/30 rounded-xl px-4 h-full py-3 shadow-lg">
+                            <div className="flex items-center gap-2 text-sm font-medium text-neutral-600 h-full dark:text-neutral-300">
                                 <Loader2 className="w-4 h-4 animate-spin" />
                                 <span>Loading trending queries</span>
                             </div>
@@ -2490,7 +2490,7 @@ Grok 2 models are now available for you to try out.
                     </div>
 
                     {/* Background Cards */}
-                    <div className="flex gap-2">
+                    <div className="flex justify-between">
                         {[1, 2, 3].map((_, index) => (
                             <div
                                 key={index}
