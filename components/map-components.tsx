@@ -1,10 +1,11 @@
 // /app/components/map-components.tsx
-import React, { useEffect, useRef } from 'react';
+import { Skeleton } from "@/components/ui/skeleton";
+import { clientEnv } from "@/env/client";
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Skeleton } from "@/components/ui/skeleton";
+import React, { useEffect, useRef } from 'react';
 
-mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
+mapboxgl.accessToken = clientEnv.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
 interface Location {
   lat: number;
@@ -171,4 +172,4 @@ const MapContainer: React.FC<MapContainerProps> = ({
   );
 };
 
-export { MapComponent, MapSkeleton, MapContainer };
+export { MapComponent, MapContainer, MapSkeleton };
