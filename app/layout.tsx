@@ -1,12 +1,12 @@
-import "./globals.css";
+import { Analytics } from "@vercel/analytics/react";
+import { GeistSans } from 'geist/font/sans';
 import 'katex/dist/katex.min.css';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Metadata, Viewport } from "next";
-import { Toaster } from "sonner";
 import { Instrument_Serif } from 'next/font/google';
-import { Analytics } from "@vercel/analytics/react";
-import { Providers } from './providers'
-import { GeistSans } from 'geist/font/sans';
+import { Toaster } from "sonner";
+import "./globals.css";
+import { Providers } from './providers';
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://mplx.run"),
@@ -43,7 +43,11 @@ export const viewport: Viewport = {
 const instrumentSerif = Instrument_Serif({
   weight: "400",
   subsets: ["latin"],
-  variable: "--font-serif"
+  style: ['normal', 'italic'],
+  variable: "--font-serif",
+  preload: true,
+  display: 'swap',
+  fallback: ['sans-serif'],
 })
 
 export default function RootLayout({
@@ -53,7 +57,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={` ${GeistSans.className} ${instrumentSerif.className}`}>
+      <body className={`${GeistSans.variable} ${instrumentSerif.variable} font-sans antialiased`}>
         <Providers>
           <Toaster position="top-center" richColors />
           {children}

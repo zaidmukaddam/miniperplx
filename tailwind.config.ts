@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import { fontFamily } from 'tailwindcss/defaultTheme';
 
 const config = {
   darkMode: ["class"],
@@ -23,9 +24,9 @@ const config = {
         'screen-small': '100svh',
       },
       fontFamily: {
-        sans: ['var(--font-geist-sans)'],
-        serif: ['var(--font-serif)'],
-        mono: ['var(--font-geist-mono)'],
+        sans: ['var(--font-geist-sans)', ...fontFamily.sans],
+        serif: ['var(--font-serif)', ...fontFamily.serif],
+        mono: ['var(--font-geist-mono)', ...fontFamily.mono],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -87,7 +88,11 @@ const config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography"),require("tailwind-scrollbar")],
+  plugins: [
+    require("tailwindcss-animate"),
+    require("@tailwindcss/typography"),
+    require("tailwind-scrollbar")
+  ],
 } satisfies Config
 
 export default config

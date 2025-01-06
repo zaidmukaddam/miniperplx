@@ -1,15 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:wght@400&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-:root {
-  --font-serif: "Instrument Serif", serif;
-}
-
-body {
-  font-family: var(--font-sans), sans-serif;
-}
 
 .homeBtn {
   box-shadow: rgba(0, 0, 0, 0.4) 0px 2px 4px,
