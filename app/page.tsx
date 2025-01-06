@@ -2,137 +2,133 @@
 "use client";
 import 'katex/dist/katex.min.css';
 
-import
-React,
-{
-    useRef,
-    useCallback,
-    useState,
-    useEffect,
-    useMemo,
-    Suspense
-} from 'react';
-import ReactMarkdown from 'react-markdown';
-import { useTheme } from 'next-themes';
-import Marked, { ReactRenderer } from 'marked-react';
-import Latex from 'react-latex-next';
-import { useSearchParams } from 'next/navigation';
-import { useChat } from 'ai/react';
-import { ToolInvocation } from 'ai';
-import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
-import Image from 'next/image';
-import {
-    fetchMetadata,
-    generateSpeech,
-    suggestQuestions
-} from './actions';
-import { Wave } from "@foobar404/wave";
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import {
-    Sparkles,
-    ArrowRight,
-    Globe,
-    AlignLeft,
-    Copy,
-    Cloud,
-    Code,
-    Check,
-    Loader2,
-    User2,
-    Heart,
-    X,
-    MapPin,
-    Plus,
-    Download,
-    Flame,
-    Sun,
-    Pause,
-    Play,
-    TrendingUpIcon,
-    Calendar,
-    Calculator,
-    ChevronDown,
-    Edit2,
-    ChevronUp,
-    Moon,
-    Star,
-    YoutubeIcon,
-    LucideIcon,
-    FileText,
-    Book,
-    ExternalLink,
-    Building,
-    Users,
-    Brain,
-    TrendingUp,
-    Plane,
-    Film,
-    Tv,
-    ListTodo
-} from 'lucide-react';
-import {
-    HoverCard,
-    HoverCardContent,
-    HoverCardTrigger,
-} from "@/components/ui/hover-card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
-import { GitHubLogoIcon, TextIcon } from '@radix-ui/react-icons';
-import Link from 'next/link';
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
-import { cn, SearchGroupId } from '@/lib/utils';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableRow,
-} from "@/components/ui/table";
-import Autoplay from 'embla-carousel-autoplay';
-import FormComponent from '@/components/ui/form-component';
-import WeatherChart from '@/components/weather-chart';
-import InteractiveChart from '@/components/interactive-charts';
-import { MapComponent, MapContainer } from '@/components/map-components';
-import MultiSearch from '@/components/multi-search';
-import { CurrencyDollar, Flag, RoadHorizon, SoccerBall, TennisBall, XLogo } from '@phosphor-icons/react';
 import { BorderTrail } from '@/components/core/border-trail';
 import { TextShimmer } from '@/components/core/text-shimmer';
-import { Tweet } from 'react-tweet';
-import NearbySearchMapView from '@/components/nearby-search-map-view';
-import { Separator } from '@/components/ui/separator';
-import { TrendingQuery } from './api/trending/route';
 import { FlightTracker } from '@/components/flight-tracker';
 import { InstallPrompt } from '@/components/InstallPrompt';
-import { atomDark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
-import { vs } from 'react-syntax-highlighter/dist/cjs/styles/prism';
-import { useMediaQuery } from '@/hooks/use-media-query';
+import InteractiveChart from '@/components/interactive-charts';
+import { MapComponent, MapContainer } from '@/components/map-components';
 import TMDBResult from '@/components/movie-info';
+import MultiSearch from '@/components/multi-search';
+import NearbySearchMapView from '@/components/nearby-search-map-view';
 import TrendingResults from '@/components/trending-tv-movies-results';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
+import FormComponent from '@/components/ui/form-component';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import WeatherChart from '@/components/weather-chart';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { cn, SearchGroupId } from '@/lib/utils';
+import { Wave } from "@foobar404/wave";
+import { CurrencyDollar, Flag, RoadHorizon, SoccerBall, TennisBall, XLogo } from '@phosphor-icons/react';
+import { GitHubLogoIcon, TextIcon } from '@radix-ui/react-icons';
+import { ToolInvocation } from 'ai';
+import { useChat } from 'ai/react';
+import Autoplay from 'embla-carousel-autoplay';
+import { AnimatePresence, motion } from 'framer-motion';
 import { GeistMono } from 'geist/font/mono';
+import {
+  AlignLeft,
+  ArrowRight,
+  Book,
+  Brain,
+  Building,
+  Calculator,
+  Calendar,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Cloud,
+  Code,
+  Copy,
+  Download,
+  Edit2,
+  ExternalLink,
+  FileText,
+  Film,
+  Flame,
+  Globe,
+  Heart,
+  ListTodo,
+  Loader2,
+  LucideIcon,
+  MapPin,
+  Moon,
+  Pause,
+  Plane,
+  Play,
+  Plus,
+  Sparkles,
+  Sun,
+  TrendingUp,
+  TrendingUpIcon,
+  Tv,
+  User2,
+  Users,
+  X,
+  YoutubeIcon
+} from 'lucide-react';
+import Marked, { ReactRenderer } from 'marked-react';
+import { useTheme } from 'next-themes';
+import Image from 'next/image';
+import Link from 'next/link';
+import { parseAsString, useQueryState } from 'nuqs';
+import React, {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
+import Latex from 'react-latex-next';
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { atomDark, vs } from 'react-syntax-highlighter/dist/cjs/styles/prism';
+import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { Tweet } from 'react-tweet';
+import { toast } from 'sonner';
+import {
+  fetchMetadata,
+  generateSpeech,
+  suggestQuestions
+} from './actions';
+import { TrendingQuery } from './api/trending/route';
 
 export const maxDuration = 60;
 
@@ -563,12 +559,15 @@ const SponsorDialog = ({
 };
 
 const HomeContent = () => {
-    const searchParams = useSearchParams();
+    const [query] = useQueryState('query', parseAsString.withDefault(''))
+    const [q] = useQueryState('q', parseAsString.withDefault(''))
+    const [model] = useQueryState('model', parseAsString.withDefault('grok-2-1212'))
 
     // Memoize initial values to prevent re-calculation
     const initialState = useMemo(() => ({
-        query: searchParams.get('query') || searchParams.get('q') || '',
-        model: searchParams.get('model') || 'grok-2-1212'
+        query: query || q,
+        model: model
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }), []); // Empty dependency array as we only want this on mount
 
     const lastSubmittedQueryRef = useRef(initialState.query);
@@ -699,6 +698,7 @@ const HomeContent = () => {
         };
 
         fetchTrending();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const ThemeToggle: React.FC = () => {
@@ -758,12 +758,12 @@ const HomeContent = () => {
             id: "1",
             title: "The Unexpected Collab",
             images: [
-                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-collab.jpeg", 
+                "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-collab.jpeg",
             ],
             content: `
 ## **MiniPerplx x Vercel x xAI Collab**
 
-Excited to annouce that MiniPerplx has partnered with Vercel and xAI to bring you the best of AI search experience. 
+Excited to annouce that MiniPerplx has partnered with Vercel and xAI to bring you the best of AI search experience.
 Grok 2 models are now available for you to try out.
 `
         }
@@ -892,10 +892,11 @@ Grok 2 models are now available for you to try out.
         const waveRef = useRef<Wave | null>(null);
 
         useEffect(() => {
+          const _audioRef = audioRef.current
             return () => {
-                if (audioRef.current) {
-                    audioRef.current.pause();
-                    audioRef.current.src = '';
+                if (_audioRef) {
+                    _audioRef.pause();
+                    _audioRef.src = '';
                 }
             };
         }, []);
@@ -1289,7 +1290,7 @@ Grok 2 models are now available for you to try out.
                 return <TrendingResults result={result} type="tv" />;
             }
 
-            
+
             if (toolInvocation.toolName === 'x_search') {
                 if (!result) {
                     return <SearchLoadingState
@@ -2117,10 +2118,10 @@ Grok 2 models are now available for you to try out.
                             <button
                                 onClick={handleCopy}
                                 className={`
-                                    px-2 py-1.5 
+                                    px-2 py-1.5
                                     rounded-md text-xs
                                     transition-colors duration-200
-                                    ${isCopied ? 'bg-green-500/10 text-green-500' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'} 
+                                    ${isCopied ? 'bg-green-500/10 text-green-500' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'}
                                     opacity-0 group-hover:opacity-100
                                     hover:bg-neutral-200 dark:hover:bg-neutral-700
                                     flex items-center gap-1.5
@@ -2541,8 +2542,8 @@ Grok 2 models are now available for you to try out.
                         <button
                             key={`${index}-${query.text}`}
                             onClick={() => handleExampleClick(query)}
-                            className="group flex-shrink-0 bg-neutral-50/50 dark:bg-neutral-800/50 
-                                   backdrop-blur-sm rounded-xl p-3.5 text-left 
+                            className="group flex-shrink-0 bg-neutral-50/50 dark:bg-neutral-800/50
+                                   backdrop-blur-sm rounded-xl p-3.5 text-left
                                    hover:bg-neutral-100 dark:hover:bg-neutral-700/70
                                    transition-all duration-200 ease-out
                                    hover:scale-102 origin-center
@@ -2588,6 +2589,7 @@ Grok 2 models are now available for you to try out.
         <SuggestionCards
             trendingQueries={trendingQueries}
         />
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     ), [trendingQueries]);
 
     return (

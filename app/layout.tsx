@@ -4,6 +4,7 @@ import 'katex/dist/katex.min.css';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Metadata, Viewport } from "next";
 import { Instrument_Serif } from 'next/font/google';
+import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { Toaster } from "sonner";
 import "./globals.css";
 import { Providers } from './providers';
@@ -58,10 +59,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${GeistSans.variable} ${instrumentSerif.variable} font-sans antialiased`}>
-        <Providers>
-          <Toaster position="top-center" richColors />
-          {children}
-        </Providers>
+        <NuqsAdapter>
+          <Providers>
+            <Toaster position="top-center" richColors />
+            {children}
+          </Providers>
+        </NuqsAdapter>
         <Analytics />
       </body>
     </html>
