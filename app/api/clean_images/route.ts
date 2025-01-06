@@ -1,10 +1,10 @@
-import { list, del, ListBlobResult } from '@vercel/blob';
+import { del, list, ListBlobResult } from '@vercel/blob';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
 export async function GET(req: NextRequest) {
-  if (req.headers.get('Authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (req.headers.get('Authorization') !== `Bearer ${serverEnv.CRON_SECRET}`) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
 

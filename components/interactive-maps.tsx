@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import { clientEnv } from "@/env/client";
+import { cn } from "@/lib/utils";
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { cn } from "@/lib/utils";
+import React, { useCallback, useEffect, useRef } from 'react';
 
 interface Location {
   lat: number;
@@ -38,7 +39,7 @@ interface Place {
   timezone?: string;
 }
 
-mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
+mapboxgl.accessToken = clientEnv.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
 interface InteractiveMapProps {
   center: Location;

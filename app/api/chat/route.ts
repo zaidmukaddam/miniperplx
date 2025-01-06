@@ -1,21 +1,21 @@
 // /app/api/chat/route.ts
-import { z } from "zod";
-import { xai } from '@ai-sdk/xai'
-import Exa from 'exa-js'
-import {
-  convertToCoreMessages,
-  streamText,
-  tool,
-  smoothStream
-} from "ai";
-import { BlobRequestAbortedError, put } from '@vercel/blob';
+import { getGroupConfig } from "@/app/actions";
+import { serverEnv } from "@/env/server";
+import { xai } from '@ai-sdk/xai';
 import CodeInterpreter from "@e2b/code-interpreter";
 import FirecrawlApp from '@mendable/firecrawl-js';
-import { tavily } from '@tavily/core'
-import { getGroupConfig } from "@/app/actions";
-import { geolocation, ipAddress } from '@vercel/functions'
+import { tavily } from '@tavily/core';
 import { Ratelimit } from "@upstash/ratelimit"; // for deno: see above
 import { Redis } from "@upstash/redis"; // see below for cloudflare and fastly adapters
+import { BlobRequestAbortedError, put } from '@vercel/blob';
+import {
+  convertToCoreMessages,
+  smoothStream,
+  streamText,
+  tool
+} from "ai";
+import Exa from 'exa-js';
+import { z } from "zod";
 
 // Allow streaming responses up to 60 seconds
 export const maxDuration = 120;
@@ -182,7 +182,7 @@ export async function POST(req: Request) {
           searchDepth: ("basic" | "advanced")[];
           exclude_domains?: string[];
         }) => {
-          const apiKey = process.env.TAVILY_API_KEY;
+          const apiKey = serverEnv.TAVILY_API_KEY;
           const tvly = tavily({ apiKey });
           const includeImageDescriptions = true;
 
@@ -258,7 +258,7 @@ export async function POST(req: Request) {
         }),
         execute: async ({ query }: { query: string }) => {
           try {
-            const exa = new Exa(process.env.EXA_API_KEY as string);
+            const exa = new Exa(serverEnv.EXA_API_KEY as string);
 
             const result = await exa.searchAndContents(
               query,
@@ -304,7 +304,7 @@ export async function POST(req: Request) {
           query: z.string().describe("The search query for movies/TV shows"),
         }),
         execute: async ({ query }: { query: string }) => {
-          const TMDB_API_KEY = process.env.TMDB_API_KEY;
+          const TMDB_API_KEY = serverEnv.TMDB_API_KEY;
           const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
           try {
@@ -389,7 +389,7 @@ export async function POST(req: Request) {
         description: "Get trending movies from TMDB",
         parameters: z.object({}),
         execute: async () => {
-          const TMDB_API_KEY = process.env.TMDB_API_KEY;
+          const TMDB_API_KEY = serverEnv.TMDB_API_KEY;
           const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
           try {
@@ -423,7 +423,7 @@ export async function POST(req: Request) {
         description: "Get trending TV shows from TMDB",
         parameters: z.object({}),
         execute: async () => {
-          const TMDB_API_KEY = process.env.TMDB_API_KEY;
+          const TMDB_API_KEY = serverEnv.TMDB_API_KEY;
           const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
           try {
@@ -460,7 +460,7 @@ export async function POST(req: Request) {
         }),
         execute: async ({ query }: { query: string }) => {
           try {
-            const exa = new Exa(process.env.EXA_API_KEY as string);
+            const exa = new Exa(serverEnv.EXA_API_KEY as string);
 
             // Search academic papers with content summary
             const result = await exa.searchAndContents(
@@ -516,7 +516,7 @@ export async function POST(req: Request) {
         }),
         execute: async ({ query, no_of_results }: { query: string, no_of_results: number }) => {
           try {
-            const exa = new Exa(process.env.EXA_API_KEY as string);
+            const exa = new Exa(serverEnv.EXA_API_KEY as string);
 
             // Simple search to get YouTube URLs only
             const searchResult = await exa.search(
@@ -545,17 +545,17 @@ export async function POST(req: Request) {
                 try {
                   // Fetch detailed info from our endpoints
                   const [detailsResponse, captionsResponse, timestampsResponse] = await Promise.all([
-                    fetch(`${process.env.YT_ENDPOINT}/video-data`, {
+                    fetch(`${serverEnv.YT_ENDPOINT}/video-data`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ url: result.url })
                     }).then(res => res.ok ? res.json() : null),
-                    fetch(`${process.env.YT_ENDPOINT}/video-captions`, {
+                    fetch(`${serverEnv.YT_ENDPOINT}/video-captions`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ url: result.url })
                     }).then(res => res.ok ? res.text() : null),
-                    fetch(`${process.env.YT_ENDPOINT}/video-timestamps`, {
+                    fetch(`${serverEnv.YT_ENDPOINT}/video-timestamps`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ url: result.url })
@@ -595,7 +595,7 @@ export async function POST(req: Request) {
           url: z.string().describe("The URL to retrieve the information from."),
         }),
         execute: async ({ url }: { url: string }) => {
-          const app = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY });
+          const app = new FirecrawlApp({ apiKey: serverEnv.FIRECRAWL_API_KEY });
           try {
             const content = await app.scrapeUrl(url);
             if (!content.success || !content.metadata) {
@@ -625,7 +625,7 @@ export async function POST(req: Request) {
           lon: z.number().describe("The longitude of the location."),
         }),
         execute: async ({ lat, lon }: { lat: number; lon: number }) => {
-          const apiKey = process.env.OPENWEATHER_API_KEY;
+          const apiKey = serverEnv.OPENWEATHER_API_KEY;
           const response = await fetch(
             `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}`,
           );
@@ -645,7 +645,7 @@ export async function POST(req: Request) {
           console.log("Title:", title);
           console.log("Icon:", icon);
 
-          const sandbox = await CodeInterpreter.create(process.env.SANDBOX_TEMPLATE_ID!);
+          const sandbox = await CodeInterpreter.create(serverEnv.SANDBOX_TEMPLATE_ID!);
           const execution = await sandbox.runCode(code);
           let message = "";
           let images = [];
@@ -729,14 +729,14 @@ export async function POST(req: Request) {
         execute: async ({ query, coordinates }: { query: string; coordinates: number[] }) => {
           try {
             // Forward geocoding with Google Maps API
-            const googleApiKey = process.env.GOOGLE_MAPS_API_KEY;
+            const googleApiKey = serverEnv.GOOGLE_MAPS_API_KEY;
             const googleResponse = await fetch(
               `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${googleApiKey}`
             );
             const googleData = await googleResponse.json();
 
             // Reverse geocoding with Mapbox
-            const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
+            const mapboxToken = serverEnv.MAPBOX_ACCESS_TOKEN;
             const [lat, lng] = coordinates;
             const mapboxResponse = await fetch(
               `https://api.mapbox.com/search/geocode/v6/reverse?longitude=${lng}&latitude=${lat}&access_token=${mapboxToken}`
@@ -805,7 +805,7 @@ export async function POST(req: Request) {
           location?: string;
           radius?: number;
         }) => {
-          const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
+          const mapboxToken = serverEnv.MAPBOX_ACCESS_TOKEN;
 
           let proximity = '';
           if (location) {
@@ -854,9 +854,9 @@ export async function POST(req: Request) {
           from: z.string().describe("The source language (optional, will be auto-detected if not provided)."),
         }),
         execute: async ({ text, to, from }: { text: string; to: string; from?: string }) => {
-          const key = process.env.AZURE_TRANSLATOR_KEY;
+          const key = serverEnv.AZURE_TRANSLATOR_KEY;
           const endpoint = "https://api.cognitive.microsofttranslator.com";
-          const location = process.env.AZURE_TRANSLATOR_LOCATION;
+          const location = serverEnv.AZURE_TRANSLATOR_LOCATION;
 
           const url = `${endpoint}/translate?api-version=3.0&to=${to}${from ? `&from=${from}` : ''}`;
 
@@ -893,14 +893,14 @@ export async function POST(req: Request) {
           type: string;
           radius: number;
         }) => {
-          const apiKey = process.env.TRIPADVISOR_API_KEY;
+          const apiKey = serverEnv.TRIPADVISOR_API_KEY;
           let finalLat = latitude;
           let finalLng = longitude;
 
           try {
             // Try geocoding first
             const geocodingData = await fetch(
-              `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${process.env.GOOGLE_MAPS_API_KEY}`
+              `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${serverEnv.GOOGLE_MAPS_API_KEY}`
             );
 
             const geocoding = await geocodingData.json();
@@ -1007,7 +1007,7 @@ export async function POST(req: Request) {
 
                   // Get timezone for the location
                   const tzResponse = await fetch(
-                    `https://maps.googleapis.com/maps/api/timezone/json?location=${details.latitude},${details.longitude}&timestamp=${Math.floor(Date.now() / 1000)}&key=${process.env.GOOGLE_MAPS_API_KEY}`
+                    `https://maps.googleapis.com/maps/api/timezone/json?location=${details.latitude},${details.longitude}&timestamp=${Math.floor(Date.now() / 1000)}&key=${serverEnv.GOOGLE_MAPS_API_KEY}`
                   );
                   const tzData = await tzResponse.json();
                   const timezone = tzData.timeZoneId || 'UTC';
@@ -1131,7 +1131,7 @@ export async function POST(req: Request) {
         execute: async ({ flight_number }: { flight_number: string }) => {
           try {
             const response = await fetch(
-              `https://api.aviationstack.com/v1/flights?access_key=${process.env.AVIATION_STACK_API_KEY}&flight_iata=${flight_number}`
+              `https://api.aviationstack.com/v1/flights?access_key=${serverEnv.AVIATION_STACK_API_KEY}&flight_iata=${flight_number}`
             );
             return await response.json();
           } catch (error) {
