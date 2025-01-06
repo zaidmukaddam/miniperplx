@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { geolocation } from '@vercel/functions';
 import { xai } from '@ai-sdk/xai';
 
 export interface TrendingQuery {
@@ -16,7 +15,7 @@ interface RedditPost {
   };
 }
 
-async function fetchGoogleTrends(countryCode: string = 'US'): Promise<TrendingQuery[]> {
+async function fetchGoogleTrends(): Promise<TrendingQuery[]> {
   const fetchTrends = async (geo: string): Promise<TrendingQuery[]> => {
     try {
       const response = await fetch(`https://trends.google.com/trends/trendingsearches/daily/rss?geo=${geo}`, {
@@ -62,7 +61,7 @@ async function fetchGoogleTrends(countryCode: string = 'US'): Promise<TrendingQu
     }
   };
 
-  const trends = await fetchTrends(countryCode);
+  const trends = await fetchTrends("US");
 
   return [ ...trends];
 }
@@ -95,11 +94,11 @@ async function fetchRedditQuestions(): Promise<TrendingQuery[]> {
   }
 }
 
-async function fetchFromMultipleSources(countryCode: string) {
+async function fetchFromMultipleSources() {
   const [googleTrends,
     // redditQuestions
   ] = await Promise.all([
-    fetchGoogleTrends(countryCode),
+    fetchGoogleTrends(),
     // fetchRedditQuestions(),
   ]);
 
@@ -112,11 +111,11 @@ async function fetchFromMultipleSources(countryCode: string) {
 
 export async function GET(req: Request) {
   try {
-    const countryCode = geolocation(req).countryRegion ?? 'US';
-    const trends = await fetchFromMultipleSources(countryCode);
+    const trends = await fetchFromMultipleSources();
 
     if (trends.length === 0) {
       // Fallback queries if both sources fail
+      console.error('Both sources failed to fetch trends, returning fallback queries');
       return NextResponse.json([
         {
           icon: 'sparkles',
