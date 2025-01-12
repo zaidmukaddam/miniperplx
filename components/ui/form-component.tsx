@@ -67,7 +67,7 @@ const ModelSwitcher: React.FC<ModelSwitcherProps> = ({ selectedModel, setSelecte
             >
                 <selectedModelData.icon className="w-4 h-4" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-[220px] p-1 !font-sans rounded-md shadow-md bg-white dark:bg-neutral-800 ml-4 !mt-0 sm:m-auto !z-[52]">
+            <DropdownMenuContent className="w-[220px] p-1 !font-sans rounded-md bg-white dark:bg-neutral-800 ml-4 !mt-0 sm:m-auto !z-[52]">
                 {models.map((model) => (
                     <DropdownMenuItem
                         key={model.value}
@@ -309,6 +309,22 @@ const themeColors: Record<SearchGroupId, {
         description: '!text-neutral-600 dark:!text-neutral-500',
         focus: 'focus:!ring-cyan-500 dark:focus:!ring-cyan-400'
     },
+    analysis: {
+        bg: '!bg-white hover:!bg-green-50 dark:!bg-neutral-900/40 dark:hover:!bg-green-950/40',
+        bgHover: 'hover:!border-green-200 dark:hover:!border-green-500/30',
+        bgSelected: '!bg-green-50 dark:!bg-green-950/40 !border-green-500 dark:!border-green-400',
+        text: '!text-green-600 dark:!text-green-400',
+        description: '!text-neutral-600 dark:!text-neutral-500',
+        focus: 'focus:!ring-green-500 dark:focus:!ring-green-400'
+    },
+    fun: {
+        bg: '!bg-white hover:!bg-orange-50 dark:!bg-neutral-900/40 dark:hover:!bg-orange-950/40',
+        bgHover: 'hover:!border-orange-200 dark:hover:!border-orange-500/30',
+        bgSelected: '!bg-orange-50 dark:!bg-orange-950/40 !border-orange-500 dark:!border-orange-400',
+        text: '!text-orange-600 dark:!text-orange-400',
+        description: '!text-neutral-600 dark:!text-neutral-500',
+        focus: 'focus:!ring-orange-500 dark:focus:!ring-orange-400'
+    },
     academic: {
         bg: '!bg-white hover:!bg-violet-50 dark:!bg-neutral-900/40 dark:hover:!bg-violet-950/40',
         bgHover: 'hover:!border-violet-200 dark:hover:!border-violet-500/30',
@@ -342,7 +358,7 @@ const DrawerSelectionContent = ({
     selectedGroup: SearchGroupId,
     onGroupSelect: (group: SearchGroup) => void
 }) => (
-    <div className="grid grid-cols-2 lg:grid-cols-3 gap-1.5 p-0.5">
+    <div className="grid grid-cols-2 gap-1.5 p-0.5">
         {searchGroups.map((group) => {
             const Icon = group.icon;
             const isSelected = selectedGroup === group.id;
@@ -359,8 +375,7 @@ const DrawerSelectionContent = ({
                             groupColors.bg,
                             groupColors.bgHover,
                             isSelected && cn(
-                                "ring-1 dark:ring-white/20 ring-black/10",
-                                "shadow-lg",
+                                "ring-2 dark:ring-white/20 ring-black/10",
                                 groupColors.bgSelected,
                                 groupColors.focus
                             ),
@@ -402,7 +417,7 @@ const DropdownSelectionContent = ({
     selectedGroup: SearchGroupId,
     onGroupSelect: (group: SearchGroup) => void
 }) => (
-    <div className="grid grid-cols-2 gap-1.5 p-0.5">
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-1.5 p-0.5">
         {searchGroups.map((group) => {
             const Icon = group.icon;
             const isSelected = selectedGroup === group.id;
@@ -420,7 +435,6 @@ const DropdownSelectionContent = ({
                         groupColors.bgHover,
                         isSelected && cn(
                             "ring-1 dark:ring-white/20 ring-black/10",
-                            "shadow-lg",
                             groupColors.bgSelected
                         )
                     )}
@@ -559,10 +573,10 @@ const GroupSelector = ({ selectedGroup, onGroupSelect }: GroupSelectorProps) => 
                 align="start"
                 sideOffset={8}
                 className={cn(
-                    "w-[420px] font-sans z-[60] -ml-2 mt-1",
+                    "w-[560px] font-sans z-[60] -ml-2 mt-1",
                     "border border-neutral-200 dark:border-neutral-800",
                     "bg-white dark:bg-neutral-900",
-                    "shadow-lg rounded-lg"
+                    "rounded-lg"
                 )}
             >
                 <DropdownSelectionContent
@@ -791,6 +805,7 @@ const FormComponent: React.FC<FormComponentProps> = ({
                         "px-4 pt-3 pb-5"
                     )}
                     rows={3}
+                    autoFocus
                     onKeyDown={(event) => {
                         if (event.key === "Enter" && !event.shiftKey) {
                             event.preventDefault();

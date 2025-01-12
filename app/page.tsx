@@ -4,6 +4,7 @@ import 'katex/dist/katex.min.css';
 
 import { BorderTrail } from '@/components/core/border-trail';
 import { TextShimmer } from '@/components/core/text-shimmer';
+import { TextLoop } from '@/components/core/text-loop';
 import { FlightTracker } from '@/components/flight-tracker';
 import { InstallPrompt } from '@/components/InstallPrompt';
 import InteractiveChart from '@/components/interactive-charts';
@@ -13,49 +14,65 @@ import MultiSearch from '@/components/multi-search';
 import NearbySearchMapView from '@/components/nearby-search-map-view';
 import TrendingResults from '@/components/trending-tv-movies-results';
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+    Drawer,
+    DrawerClose,
+    DrawerContent,
+    DrawerDescription,
+    DrawerFooter,
+    DrawerHeader,
+    DrawerTitle,
+    DrawerTrigger,
+} from "@/components/ui/drawer";
 import FormComponent from '@/components/ui/form-component';
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from "@/components/ui/tooltip";
 import WeatherChart from '@/components/weather-chart';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { cn, SearchGroupId } from '@/lib/utils';
 import { Wave } from "@foobar404/wave";
-import { CurrencyDollar, Flag, RoadHorizon, SoccerBall, TennisBall, XLogo } from '@phosphor-icons/react';
+import { CurrencyDollar, Flag, GithubLogo, Info, Newspaper, QuestionMark, RoadHorizon, SoccerBall, TennisBall, XCircle, XLogo } from '@phosphor-icons/react';
 import { GitHubLogoIcon, TextIcon } from '@radix-ui/react-icons';
 import { ToolInvocation } from 'ai';
 import { useChat } from 'ai/react';
@@ -63,45 +80,52 @@ import Autoplay from 'embla-carousel-autoplay';
 import { AnimatePresence, motion } from 'framer-motion';
 import { GeistMono } from 'geist/font/mono';
 import {
-  AlignLeft,
-  ArrowRight,
-  Book,
-  Brain,
-  Building,
-  Calculator,
-  Calendar,
-  Check,
-  ChevronDown,
-  ChevronUp,
-  Cloud,
-  Code,
-  Copy,
-  Download,
-  Edit2,
-  ExternalLink,
-  FileText,
-  Film,
-  Flame,
-  Globe,
-  Heart,
-  ListTodo,
-  Loader2,
-  LucideIcon,
-  MapPin,
-  Moon,
-  Pause,
-  Plane,
-  Play,
-  Plus,
-  Sparkles,
-  Sun,
-  TrendingUp,
-  TrendingUpIcon,
-  Tv,
-  User2,
-  Users,
-  X,
-  YoutubeIcon
+    AlertTriangle,
+    AlignLeft,
+    ArrowRight,
+    Book,
+    Brain,
+    Building,
+    Calculator,
+    Calendar,
+    Check,
+    ChevronDown,
+    ChevronUp,
+    Cloud,
+    Code,
+    Copy,
+    Download,
+    Edit2,
+    ExternalLink,
+    FileText,
+    Film,
+    Flame,
+    Globe,
+    GraduationCap,
+    Heart,
+    HelpCircle,
+    ListTodo,
+    Loader2,
+    LucideIcon,
+    MapPin,
+    Moon,
+    Pause,
+    Plane,
+    Play,
+    Plus,
+    Search,
+    Share2,
+    Sparkles,
+    Sun,
+    Terminal,
+    TrendingUp,
+    TrendingUpIcon,
+    Tv,
+    User2,
+    Users,
+    X,
+    YoutubeIcon,
+    Zap
 } from 'lucide-react';
 import Marked, { ReactRenderer } from 'marked-react';
 import { useTheme } from 'next-themes';
@@ -109,12 +133,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { parseAsString, useQueryState } from 'nuqs';
 import React, {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
+    Suspense,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState
 } from 'react';
 import Latex from 'react-latex-next';
 import ReactMarkdown from 'react-markdown';
@@ -124,11 +148,13 @@ import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/pris
 import { Tweet } from 'react-tweet';
 import { toast } from 'sonner';
 import {
-  fetchMetadata,
-  generateSpeech,
-  suggestQuestions
+    fetchMetadata,
+    generateSpeech,
+    suggestQuestions
 } from './actions';
 import { TrendingQuery } from './api/trending/route';
+import InteractiveStockChart from '@/components/interactive-stock-chart';
+import { CurrencyConverter } from '@/components/currency_conv';
 
 export const maxDuration = 60;
 
@@ -335,6 +361,135 @@ const XAIIcon = ({ size = 16 }: { size: number }) => {
     );
 }
 
+const IconMapping: Record<string, LucideIcon> = {
+    stock: TrendingUp,
+    default: Code,
+    date: Calendar,
+    calculation: Calculator,
+    output: FileText
+};
+
+interface CollapsibleSectionProps {
+    code: string;
+    output?: string;
+    language?: string;
+    title?: string;
+    icon?: string;
+}
+
+function CollapsibleSection({
+    code,
+    output,
+    language = "plaintext",
+    title,
+    icon,
+}: CollapsibleSectionProps) {
+    const [copied, setCopied] = React.useState(false);
+    const [isExpanded, setIsExpanded] = React.useState(true);
+    const [activeTab, setActiveTab] = React.useState<'code' | 'output'>('code');
+    const { theme } = useTheme();
+    const IconComponent = icon ? IconMapping[icon] : null;
+
+    const handleCopy = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const textToCopy = activeTab === 'code' ? code : output;
+        await navigator.clipboard.writeText(textToCopy || '');
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+        <div className="group rounded-lg border border-neutral-200 dark:border-neutral-800 overflow-hidden transition-all duration-200 hover:shadow-sm">
+            <div
+                className="flex items-center justify-between px-4 py-3 cursor-pointer bg-white dark:bg-neutral-900 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
+                onClick={() => setIsExpanded(!isExpanded)}
+            >
+                <div className="flex items-center gap-3">
+                    {IconComponent && (
+                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800">
+                            <IconComponent className="h-4 w-4 text-primary" />
+                        </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                            {title}
+                        </h3>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                        onClick={handleCopy}
+                    >
+                        {copied ? (
+                            <Check className="h-3.5 w-3.5 text-green-500" />
+                        ) : (
+                            <Copy className="h-3.5 w-3.5" />
+                        )}
+                    </Button>
+                    <ChevronDown
+                        className={cn(
+                            "h-4 w-4 transition-transform duration-200",
+                            !isExpanded && "-rotate-90"
+                        )}
+                    />
+                </div>
+            </div>
+
+            {isExpanded && (
+                <div>
+                    <div className="flex border-b border-neutral-200 dark:border-neutral-800">
+                        <button
+                            className={cn(
+                                "px-4 py-2 text-sm font-medium transition-colors",
+                                activeTab === 'code'
+                                    ? "border-b-2 border-primary text-primary"
+                                    : "text-neutral-600 dark:text-neutral-400"
+                            )}
+                            onClick={() => setActiveTab('code')}
+                        >
+                            Code
+                        </button>
+                        {output && (
+                            <button
+                                className={cn(
+                                    "px-4 py-2 text-sm font-medium transition-colors",
+                                    activeTab === 'output'
+                                        ? "border-b-2 border-primary text-primary"
+                                        : "text-neutral-600 dark:text-neutral-400"
+                                )}
+                                onClick={() => setActiveTab('output')}
+                            >
+                                Output
+                            </button>
+                        )}
+                    </div>
+                    <div className={cn(
+                        "text-sm",
+                        theme === "dark" ? "bg-[rgb(40,44,52)]" : "bg-[rgb(250,250,250)]"
+                    )}>
+                        <SyntaxHighlighter
+                            language={activeTab === 'code' ? language : 'plaintext'}
+                            style={theme === "dark" ? oneDark : oneLight}
+                            showLineNumbers
+                            customStyle={{
+                                margin: 0,
+                                padding: "1rem",
+                                fontSize: "0.813rem",
+                                background: "transparent",
+                            }}
+                        >
+                            {activeTab === 'code' ? code : output || ''}
+                        </SyntaxHighlighter>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 const YouTubeCard: React.FC<YouTubeCardProps> = ({ video, index }) => {
     const [timestampsExpanded, setTimestampsExpanded] = useState(false);
     const [transcriptExpanded, setTranscriptExpanded] = useState(false);
@@ -471,93 +626,6 @@ const YouTubeCard: React.FC<YouTubeCardProps> = ({ video, index }) => {
     );
 };
 
-const SponsorDialog = ({
-    open,
-    onClose
-}: {
-    open: boolean;
-    onClose: () => void;
-}) => {
-    const isMobile = useMediaQuery("(max-width: 768px)");
-
-    const handleDismiss = () => {
-        localStorage.setItem('dismissedSponsor', 'true');
-        onClose();
-    };
-
-    const SponsorContent = () => (
-        <div className="space-y-6 px-2 ">
-            <div className="flex flex-col items-center gap-4 text-center">
-                <div className="h-20 w-20 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
-                    <Heart className="h-10 w-10 text-red-500 dark:text-red-400" />
-                </div>
-                <div>
-                    <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-                        Support MiniPerplx
-                    </h2>
-                    <p className="text-neutral-600 dark:text-neutral-400 mt-2 text-pretty">
-                        Help keep MiniPerplx running, bring in the best LLMs and be ad-free. Your support enables continuous improvements and new features.
-                    </p>
-                </div>
-            </div>
-
-            <div className="grid gap-4">
-                <Button
-                    onClick={() => window.open("https://github.com/sponsors/zaidmukaddam", "_blank")}
-                    className="bg-red-500 hover:bg-red-600 text-white w-full py-6 text-lg gap-2"
-                >
-                    <Heart className="h-5 w-5" />
-                    Become a Sponsor
-                </Button>
-
-                <div className="grid grid-cols-2 gap-2">
-                    <Button
-                        variant="outline"
-                        onClick={() => window.open("https://github.com/zaidmukaddam/miniperplx", "_blank")}
-                        className="gap-2"
-                    >
-                        <GitHubLogoIcon className="h-4 w-4" />
-                        GitHub
-                    </Button>
-                    <Button
-                        variant="outline"
-                        onClick={handleDismiss}
-                        className="gap-2"
-                    >
-                        <X className="h-4 w-4" />
-                        Dismiss
-                    </Button>
-                </div>
-            </div>
-
-            <div className="text-center text-sm text-neutral-500 dark:text-neutral-400">
-                Your support means the world to us! ❤️
-            </div>
-        </div>
-    );
-
-    if (isMobile) {
-        return (
-            <Drawer open={open} onOpenChange={onClose}>
-                <DrawerContent className="max-h-[90vh] px-4 py-6 !z-[62] font-sans">
-                    <DrawerHeader className="text-center">
-                        <DrawerTitle>Support the Project</DrawerTitle>
-                    </DrawerHeader>
-                    <SponsorContent />
-                </DrawerContent>
-            </Drawer>
-        );
-    }
-
-    return (
-        <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="max-w-md !z-[62] font-sans">
-                <SponsorContent />
-            </DialogContent>
-        </Dialog>
-    );
-};
-
 const HomeContent = () => {
     const [query] = useQueryState('query', parseAsString.withDefault(''))
     const [q] = useQueryState('q', parseAsString.withDefault(''))
@@ -567,7 +635,7 @@ const HomeContent = () => {
     const initialState = useMemo(() => ({
         query: query || q,
         model: model
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }), []); // Empty dependency array as we only want this on mount
 
     const lastSubmittedQueryRef = useRef(initialState.query);
@@ -582,15 +650,6 @@ const HomeContent = () => {
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const initializedRef = useRef(false);
     const [selectedGroup, setSelectedGroup] = useState<SearchGroupId>('web');
-
-    // At the top with other state declarations
-    const [showSponsorDialog, setShowSponsorDialog] = useState(false);
-    const [hasDismissedSponsor, setHasDismissedSponsor] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('dismissedSponsor') === 'true';
-        }
-        return false;
-    });
 
     const CACHE_KEY = 'trendingQueriesCache';
     const CACHE_DURATION = 5 * 60 * 60 * 1000; // 5 hours in milliseconds
@@ -620,8 +679,6 @@ const HomeContent = () => {
 
     const { theme } = useTheme();
 
-    const [openChangelog, setOpenChangelog] = useState(false);
-
     const [trendingQueries, setTrendingQueries] = useState<TrendingQuery[]>([]);
 
     const { isLoading, input, messages, setInput, append, handleSubmit, setMessages, reload, stop } = useChat({
@@ -645,17 +702,6 @@ const HomeContent = () => {
             });
         },
     });
-
-    // Add this useEffect in the HomeContent component
-    useEffect(() => {
-        if (!hasDismissedSponsor) {
-            const timer = setTimeout(() => {
-                setShowSponsorDialog(true);
-            }, 30000); // Show after 30 seconds
-
-            return () => clearTimeout(timer);
-        }
-    }, [hasDismissedSponsor]);
 
     useEffect(() => {
         if (!initializedRef.current && initialState.query && !messages.length) {
@@ -698,7 +744,7 @@ const HomeContent = () => {
         };
 
         fetchTrending();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const ThemeToggle: React.FC = () => {
@@ -761,127 +807,14 @@ const HomeContent = () => {
                 "https://metwm7frkvew6tn1.public.blob.vercel-storage.com/mplx-changelogs/mplx-collab.jpeg",
             ],
             content: `
-## **MiniPerplx x Vercel x xAI Collab**
+## **Scira x Vercel x xAI Collab**
 
-Excited to annouce that MiniPerplx has partnered with Vercel and xAI to bring you the best of AI search experience.
+Excited to annouce that Scira has partnered with Vercel and xAI to bring you the best of AI search experience.
 Grok 2 models are now available for you to try out.
 `
         }
     ];
 
-
-    const ChangeLogs = ({ open, setOpen }: { open: boolean; setOpen: (open: boolean) => void }) => {
-        const isMobile = useMediaQuery("(max-width: 768px)");
-
-        const ChangelogContent = () => (
-            <>
-                {/* Fixed Header */}
-                <div className="w-full py-3 flex justify-center items-center border-b border-neutral-200 dark:border-neutral-700">
-                    <h2 className="text-lg font-bold flex items-center gap-2 text-neutral-800 dark:text-neutral-100">
-                        <Flame size={20} /> What&apos;s new
-                    </h2>
-                </div>
-
-                <div className="divide-y divide-neutral-200 dark:divide-neutral-700">
-                    {changelogs.map((changelog) => (
-                        <div key={changelog.id}>
-                            {/* Carousel */}
-                            <Carousel
-                                opts={{
-                                    align: "start",
-                                    loop: true,
-                                }}
-                                plugins={[
-                                    Autoplay({
-                                        delay: 2000,
-                                    }),
-                                ]}
-                                className="w-full bg-neutral-100 dark:bg-neutral-800"
-                            >
-                                <CarouselContent>
-                                    {changelog.images.map((image, index) => (
-                                        <CarouselItem key={index}>
-                                            <Image
-                                                src={image}
-                                                alt={changelog.title}
-                                                width={0}
-                                                height={0}
-                                                className="h-auto w-full object-cover"
-                                                sizes="100vw"
-                                            />
-                                        </CarouselItem>
-                                    ))}
-                                </CarouselContent>
-                            </Carousel>
-
-                            {/* Content Section */}
-                            <div className="flex flex-col gap-2 px-4 py-2">
-                                <h3 className="text-2xl font-bold text-left text-neutral-800 dark:text-neutral-100">
-                                    {changelog.title}
-                                </h3>
-                                <div className="overflow-y-auto max-h-[50vh]">
-                                    <ReactMarkdown
-                                        components={{
-                                            h2: ({ node, className, ...props }) => (
-                                                <h2
-                                                    {...props}
-                                                    className={cn(
-                                                        "my-2 text-lg font-medium text-neutral-800 dark:text-neutral-100",
-                                                        className
-                                                    )}
-                                                />
-                                            ),
-                                            p: ({ node, className, ...props }) => (
-                                                <p
-                                                    {...props}
-                                                    className={cn(
-                                                        "mb-3 text-neutral-700 dark:text-neutral-300 leading-relaxed",
-                                                        className
-                                                    )}
-                                                />
-                                            ),
-                                            a: ({ node, className, ...props }) => (
-                                                <a
-                                                    {...props}
-                                                    className={cn(
-                                                        "hover:text-blue-500 underline",
-                                                        className
-                                                    )}
-                                                />
-                                            ),
-                                        }}
-                                        className="text-sm text-left pr-2"
-                                    >
-                                        {changelog.content}
-                                    </ReactMarkdown>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </>
-        );
-
-        if (isMobile) {
-            return (
-                <Drawer open={open} onOpenChange={setOpen}>
-                    <DrawerContent className="max-h-[100vh] z-[81] font-sans text-left">
-                        <DrawerHeader className="p-0">
-                            <ChangelogContent />
-                        </DrawerHeader>
-                    </DrawerContent>
-                </Drawer>
-            );
-        }
-
-        return (
-            <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="max-h-[90vh] overflow-scroll rounded-xl border-none p-0 gap-0 font-sans bg-white dark:bg-neutral-900 z-[1000]">
-                    <ChangelogContent />
-                </DialogContent>
-            </Dialog>
-        );
-    };
 
     const TranslationTool: React.FC<{ toolInvocation: ToolInvocation; result: any }> = ({ toolInvocation, result }) => {
         const [isPlaying, setIsPlaying] = useState(false);
@@ -892,7 +825,7 @@ Grok 2 models are now available for you to try out.
         const waveRef = useRef<Wave | null>(null);
 
         useEffect(() => {
-          const _audioRef = audioRef.current
+            const _audioRef = audioRef.current
             return () => {
                 if (_audioRef) {
                     _audioRef.pause();
@@ -1000,129 +933,15 @@ Grok 2 models are now available for you to try out.
     };
 
 
-
     interface TableData {
         title: string;
         content: string;
     }
 
-    interface ResultsOverviewProps {
-        result: {
-            image: string;
-            title: string;
-            description: string;
-            table_data: TableData[];
-        };
-    }
-
-    const ResultsOverview: React.FC<ResultsOverviewProps> = React.memo(({ result }) => {
-        const [showAll, setShowAll] = useState(false);
-
-        const visibleData = useMemo(() => {
-            return showAll ? result.table_data : result.table_data.slice(0, 3);
-        }, [showAll, result.table_data]);
-
-        return (
-            <Card className="w-full my-4 overflow-hidden shadow-sm border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800">
-                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0 pb-4 bg-neutral-100 dark:bg-neutral-900">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full">
-                        {result.image && (
-                            <div className="relative w-full sm:w-24 h-40 sm:h-24 rounded-lg overflow-hidden shadow-sm flex-shrink-0">
-                                <img
-                                    src={result.image}
-                                    alt={result.title}
-                                    className="rounded-lg w-full h-full object-cover"
-                                />
-                            </div>
-                        )}
-                        <div className="flex-grow">
-                            <CardTitle className="text-xl sm:text-2xl font-bold text-neutral-800 dark:text-neutral-100 mb-2">{result.title}</CardTitle>
-                            <p className="text-sm text-neutral-600 dark:text-neutral-400">{result.description}</p>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="pt-4">
-                    <Table>
-                        <TableBody>
-                            {visibleData.map((item, index) => (
-                                <TableRow key={index} className="border-b border-neutral-200 dark:border-neutral-700 last:border-b-0">
-                                    <TableCell className="font-medium text-neutral-700 dark:text-neutral-300 w-1/3 py-3 px-2 sm:px-4">{item.title}</TableCell>
-                                    <TableCell className="text-neutral-600 dark:text-neutral-400 py-3 px-2 sm:px-4">{item.content}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                    {result.table_data.length > 3 && (
-                        <Button
-                            variant="ghost"
-                            className="mt-4 w-full text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900 transition-colors duration-200"
-                            onClick={() => setShowAll(!showAll)}
-                        >
-                            {showAll ? (
-                                <>
-                                    <ChevronUp className="mr-2 h-4 w-4" /> Show Less
-                                </>
-                            ) : (
-                                <>
-                                    <ChevronDown className="mr-2 h-4 w-4" /> Show More
-                                </>
-                            )}
-                        </Button>
-                    )}
-                </CardContent>
-            </Card>
-        );
-    });
-
-    ResultsOverview.displayName = 'ResultsOverview';
-
     const renderToolInvocation = useCallback(
         (toolInvocation: ToolInvocation, index: number) => {
             const args = JSON.parse(JSON.stringify(toolInvocation.args));
             const result = 'result' in toolInvocation ? JSON.parse(JSON.stringify(toolInvocation.result)) : null;
-
-            if (toolInvocation.toolName === 'thinking_canvas') {
-                return (
-                    <Card className="my-2 border border-neutral-200 dark:border-neutral-800 shadow-none rounded-xl overflow-hidden">
-                        <details className="group [&>summary::-webkit-details-marker]:hidden [&>summary]:list-none" open>
-                            <summary className="bg-neutral-50 hover:bg-neutral-100 dark:bg-neutral-900 dark:hover:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-800 cursor-pointer select-none">
-                                <CardHeader className="py-2 px-4 flex flex-row items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-8 w-8 rounded-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 flex items-center justify-center">
-                                            <ListTodo className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
-                                        </div>
-                                        <div>
-                                            <CardTitle className="text-sm font-medium">{args.title}</CardTitle>
-                                            <p className="text-xs text-neutral-500">{args.content.length} steps</p>
-                                        </div>
-                                    </div>
-                                    <ChevronDown
-                                        className="h-5 w-5 text-neutral-500 transition-transform duration-200 ease-in-out group-open:rotate-180"
-                                    />
-                                </CardHeader>
-                            </summary>
-                            <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
-                                {args.content.map((thought: string, i: number) => (
-                                    <motion.div
-                                        key={i}
-                                        initial={{ opacity: 0, x: -5 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: i * 0.05 }}
-                                        className="group flex items-start gap-3 px-4 py-2.5 hover:bg-neutral-50 dark:hover:bg-neutral-900"
-                                    >
-                                        <span className="flex-shrink-0 w-5 h-5 rounded border border-neutral-200 dark:border-neutral-800 flex items-center justify-center text-[10px] font-medium text-neutral-500">
-                                            {i + 1}
-                                        </span>
-                                        <p className="text-sm text-neutral-700 dark:text-neutral-300 leading-normal group-hover:text-neutral-900 dark:group-hover:text-neutral-100">
-                                            {thought}
-                                        </p>
-                                    </motion.div>
-                                ))}
-                            </div>
-                        </details>
-                    </Card>
-                );
-            }
 
             // Find place results
             if (toolInvocation.toolName === 'find_place') {
@@ -1458,7 +1277,6 @@ Grok 2 models are now available for you to try out.
                 );
             }
 
-            // Academic search results continued...
             if (toolInvocation.toolName === 'academic_search') {
                 if (!result) {
                     return <SearchLoadingState
@@ -1682,175 +1500,78 @@ Grok 2 models are now available for you to try out.
                 return <WeatherChart result={result} />;
             }
 
-            if (toolInvocation.toolName === 'programming') {
+            if (toolInvocation.toolName === 'currency_converter') {
+                return <CurrencyConverter toolInvocation={toolInvocation} result={result} />;
+            }
+
+            if (toolInvocation.toolName === 'stock_chart') {
                 return (
-                    <Accordion type="single" collapsible className="w-full mt-4">
-                        <AccordionItem value={`item-${index}`} className="border-none">
-                            <AccordionTrigger className="hover:no-underline py-2">
-                                <div className="flex items-center justify-between w-full">
-                                    <div className="flex items-center gap-2">
-                                        <Code className="h-5 w-5 text-primary" />
-                                        <h2 className="text-base font-semibold text-neutral-800 dark:text-neutral-200">Programming</h2>
-                                    </div>
-                                    {!result ? (
-                                        <Badge variant="secondary" className="mr-2 rounded-full bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200">
-                                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                                            Executing
-                                        </Badge>
-                                    ) : (
-                                        <Badge className="mr-2 rounded-full bg-green-200 dark:bg-green-900 text-green-800 dark:text-green-200">
-                                            <Check className="h-3 w-3 mr-1" />
-                                            Executed
-                                        </Badge>
-                                    )}
-                                </div>
-                            </AccordionTrigger>
-                            <AccordionContent>
-                                <div className="w-full my-2 border border-neutral-200 dark:border-neutral-700 overflow-hidden rounded-md">
-                                    <div className="bg-neutral-100 dark:bg-neutral-800 p-2 flex items-center">
-                                        {args.icon === 'stock' && <TrendingUpIcon className="h-5 w-5 text-primary mr-2" />}
-                                        {args.icon === 'default' && <Code className="h-5 w-5 text-primary mr-2" />}
-                                        {args.icon === 'date' && <Calendar className="h-5 w-5 text-primary mr-2" />}
-                                        {args.icon === 'calculation' && <Calculator className="h-5 w-5 text-primary mr-2" />}
-                                        <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{args.title}</span>
-                                    </div>
-                                    <Tabs defaultValue="code" className="w-full">
-                                        <TabsList className="bg-neutral-50 dark:bg-neutral-900 p-0 h-auto shadow-sm rounded-none">
-                                            <TabsTrigger
-                                                value="code"
-                                                className="px-4 py-2 text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-neutral-800 data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
-                                            >
-                                                Code
-                                            </TabsTrigger>
-                                            <TabsTrigger
-                                                value="output"
-                                                className="px-4 py-2 text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-neutral-800 data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
-                                            >
-                                                Output
-                                            </TabsTrigger>
-                                            {result?.images && result.images.length > 0 && (
-                                                <TabsTrigger
-                                                    value="images"
-                                                    className="px-4 py-2 text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-neutral-800 data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
-                                                >
-                                                    Images
-                                                </TabsTrigger>
-                                            )}
-                                            {result?.chart && (
-                                                <TabsTrigger
-                                                    value="visualization"
-                                                    className="px-4 py-2 text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-neutral-800 data-[state=active]:border-b data-[state=active]:border-blue-500 rounded-none shadow-sm"
-                                                >
-                                                    Visualization
-                                                </TabsTrigger>
-                                            )}
-                                        </TabsList>
-                                        <TabsContent value="code" className="p-0 m-0 rounded-none">
-                                            <div className="relative">
-                                                <SyntaxHighlighter
-                                                    language="python"
-                                                    style={theme === "light" ? oneLight : oneDark}
-                                                    customStyle={{
-                                                        margin: 0,
-                                                        padding: '1rem',
-                                                        fontSize: '0.875rem',
-                                                        borderRadius: 0,
-                                                    }}
-                                                >
-                                                    {args.code}
-                                                </SyntaxHighlighter>
-                                                <style jsx>{`
-                                                    @media (max-width: 640px) {
-                                                        .syntax-highlighter {
-                                                            font-size: 0.75rem;
-                                                        }
-                                                    }
-                                                `}</style>
-                                                <div className="absolute top-2 right-2">
-                                                    <CopyButton text={args.code} />
-                                                </div>
-                                            </div>
-                                        </TabsContent>
-                                        <TabsContent value="output" className="p-0 m-0 rounded-none">
-                                            <div className="relative bg-white dark:bg-neutral-800 p-4">
-                                                {result ? (
-                                                    <>
-                                                        <pre className="text-sm text-neutral-800 dark:text-neutral-200">
-                                                            <code>{result.message}</code>
-                                                        </pre>
-                                                        <div className="absolute top-2 right-2">
-                                                            <CopyButton text={result.message} />
-                                                        </div>
-                                                    </>
-                                                ) : (
-                                                    <div className="flex items-center justify-center h-20">
-                                                        <div className="flex items-center gap-2">
-                                                            <Loader2 className="h-5 w-5 text-neutral-400 dark:text-neutral-600 animate-spin" />
-                                                            <span className="text-neutral-500 dark:text-neutral-400 text-sm">Executing code...</span>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </TabsContent>
-                                        {result?.images && result.images.length > 0 && (
-                                            <TabsContent value="images" className="p-0 m-0 bg-white dark:bg-neutral-800">
-                                                <div className="space-y-4 p-4">
-                                                    {result.images.map((img: { format: string, url: string }, imgIndex: number) => (
-                                                        <div key={imgIndex} className="space-y-2">
-                                                            <div className="flex justify-between items-center">
-                                                                <h4 className="text-sm font-medium text-neutral-800 dark:text-neutral-200">Image {imgIndex + 1}</h4>
-                                                                {img.url && img.url.trim() !== '' && (
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        className="p-0 h-8 w-8"
-                                                                        onClick={() => {
-                                                                            window.open(img.url + "?download=1", '_blank');
-                                                                        }}
-                                                                    >
-                                                                        <Download className="h-4 w-4" />
-                                                                    </Button>
-                                                                )}
-                                                            </div>
-                                                            <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
-                                                                {img.url && img.url.trim() !== '' ? (
-                                                                    <Image
-                                                                        src={img.url}
-                                                                        alt={`Generated image ${imgIndex + 1}`}
-                                                                        layout="fill"
-                                                                        objectFit="contain"
-                                                                    />
-                                                                ) : (
-                                                                    <div className="flex items-center justify-center h-full bg-neutral-100 dark:bg-neutral-700 text-neutral-400 dark:text-neutral-500">
-                                                                        Image upload failed or URL is empty
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </TabsContent>
-                                        )}
-                                        {result?.chart && (
-                                            <TabsContent value="visualization" className="p-4 m-0 bg-white dark:bg-neutral-800">
-                                                <InteractiveChart
-                                                    chart={{
-                                                        type: result.chart.type,
-                                                        title: result.chart.title,
-                                                        x_label: result.chart.x_label,
-                                                        y_label: result.chart.y_label,
-                                                        x_unit: result.chart.x_unit,
-                                                        y_unit: result.chart.y_unit,
-                                                        elements: result.chart.elements
-                                                    }}
-                                                />
-                                            </TabsContent>
-                                        )}
-                                    </Tabs>
-                                </div>
-                            </AccordionContent>
-                        </AccordionItem>
-                    </Accordion>
+                    <div className="flex flex-col gap-3 w-full mt-4">
+                        <Badge
+                            variant="secondary"
+                            className={cn(
+                                "w-fit flex items-center gap-3 px-4 py-2 rounded-full transition-colors duration-200",
+                                !result
+                                    ? "bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                                    : "bg-green-50/50 dark:bg-green-900/20 text-green-600 dark:text-green-400"
+                            )}>
+                            <TrendingUpIcon className="h-4 w-4" />
+                            <span className="font-medium">{args.title}</span>
+                            {!result ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Check className="h-4 w-4" />
+                            )}
+                        </Badge>
+
+                        {result?.chart && (
+                            <div className="w-full">
+                                <InteractiveStockChart
+                                    title={args.title}
+                                    chart={{
+                                        ...result.chart,
+                                        x_scale: 'datetime'
+                                    }}
+                                    data={result.chart.elements}
+                                />
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+
+            if (toolInvocation.toolName === "code_interpreter") {
+                return (
+                    <div className="space-y-6">
+                        <Badge
+                            variant="secondary"
+                            className={cn(
+                                "w-fit flex items-center gap-2 px-3 py-1.5",
+                                !result
+                                    ? "bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                                    : "bg-green-50/50 dark:bg-green-900/20 text-green-600 dark:text-green-400"
+                            )}
+                        >
+                            <Terminal className="h-4 w-4" />
+                            {!result ? "Running..." : "Completed"}
+                        </Badge>
+
+                        <div className="space-y-4">
+                            <CollapsibleSection
+                                code={args.code}
+                                output={result?.message}
+                                language="python"
+                                title={args.title}
+                                icon={args.icon || 'default'}
+                            />
+                        </div>
+
+                        {result?.chart && (
+                            <div className="pt-1">
+                                <InteractiveChart chart={result.chart} />
+                            </div>
+                        )}
+                    </div>
                 );
             }
 
@@ -1943,21 +1664,6 @@ Grok 2 models are now available for you to try out.
                 return <TranslationTool toolInvocation={toolInvocation} result={result} />;
             }
 
-            if (toolInvocation.toolName === 'results_overview') {
-                if (!result) {
-                    return (
-                        <div className="flex items-center justify-between w-full">
-                            <div className="flex items-center gap-2">
-                                <Loader2 className="h-5 w-5 text-neutral-700 dark:text-neutral-300 animate-spin" />
-                                <span className="text-neutral-700 dark:text-neutral-300 text-lg">Generating overview...</span>
-                            </div>
-                        </div>
-                    );
-                }
-
-                return <ResultsOverview result={result} />;
-            }
-
             if (toolInvocation.toolName === 'track_flight') {
                 if (!result) {
                     return (
@@ -2003,7 +1709,7 @@ Grok 2 models are now available for you to try out.
 
             return null;
         },
-        [ResultsOverview, theme]
+        []
     );
 
     interface MarkdownRendererProps {
@@ -2033,59 +1739,13 @@ Grok 2 models are now available for you to try out.
         const [metadataCache, setMetadataCache] = useState<Record<string, LinkMetadata>>({});
 
         const citationLinks = useMemo<CitationLink[]>(() => {
-            return Array.from(content.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)).map(([_, text, link]) => ({
-                text,
-                link,
-            }));
+            return Array.from(content.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)).map(([_, text, link]) => ({ text, link }));
         }, [content]);
-
-        const inlineMathRegex = /\$([^\$]+)\$/g;
-        const blockMathRegex = /\$\$([^\$]+)\$\$/g;
-
-        const isValidLatex = (text: string): boolean => {
-            // Basic validation - checks for balanced delimiters
-            return !(text.includes('\\') && !text.match(/\\[a-zA-Z{}\[\]]+/));
-        }
-
-        const renderLatexString = (text: string) => {
-            let parts = [];
-            let lastIndex = 0;
-            let match;
-
-            // Try to match inline math first ($...$)
-            while ((match = /\$([^\$]+)\$/g.exec(text.slice(lastIndex))) !== null) {
-                const mathText = match[1];
-                const fullMatch = match[0];
-                const matchIndex = lastIndex + match.index;
-
-                // Add text before math
-                if (matchIndex > lastIndex) {
-                    parts.push(text.slice(lastIndex, matchIndex));
-                }
-
-                // Only render as LaTeX if valid
-                if (isValidLatex(mathText)) {
-                    parts.push(<Latex key={matchIndex}>{fullMatch}</Latex>);
-                } else {
-                    parts.push(fullMatch);
-                }
-
-                lastIndex = matchIndex + fullMatch.length;
-            }
-
-            // Add remaining text
-            if (lastIndex < text.length) {
-                parts.push(text.slice(lastIndex));
-            }
-
-            return parts.length > 0 ? parts : text;
-        };
 
         const fetchMetadataWithCache = useCallback(async (url: string) => {
             if (metadataCache[url]) {
                 return metadataCache[url];
             }
-
             const metadata = await fetchMetadata(url);
             if (metadata) {
                 setMetadataCache(prev => ({ ...prev, [url]: metadata }));
@@ -2118,14 +1778,14 @@ Grok 2 models are now available for you to try out.
                             <button
                                 onClick={handleCopy}
                                 className={`
-                                    px-2 py-1.5
-                                    rounded-md text-xs
-                                    transition-colors duration-200
-                                    ${isCopied ? 'bg-green-500/10 text-green-500' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'}
-                                    opacity-0 group-hover:opacity-100
-                                    hover:bg-neutral-200 dark:hover:bg-neutral-700
-                                    flex items-center gap-1.5
-                                `}
+                      px-2 py-1.5
+                      rounded-md text-xs
+                      transition-colors duration-200
+                      ${isCopied ? 'bg-green-500/10 text-green-500' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'}
+                      opacity-0 group-hover:opacity-100
+                      hover:bg-neutral-200 dark:hover:bg-neutral-700
+                      flex items-center gap-1.5
+                    `}
                                 aria-label={isCopied ? 'Copied!' : 'Copy code'}
                             >
                                 {isCopied ? (
@@ -2258,7 +1918,6 @@ Grok 2 models are now available for you to try out.
         const renderer: Partial<ReactRenderer> = {
             text(text: string) {
                 if (!text.includes('$')) return text;
-
                 return (
                     <Latex
                         delimiters={[
@@ -2299,7 +1958,9 @@ Grok 2 models are now available for you to try out.
                         </sup>
                     );
                 }
-                return isValidUrl(href) ? renderHoverCard(href, text) : <a href={href} className="text-blue-600 dark:text-blue-400 hover:underline">{text}</a>;
+                return isValidUrl(href)
+                    ? renderHoverCard(href, text)
+                    : <a href={href} className="text-blue-600 dark:text-blue-400 hover:underline">{text}</a>;
             },
             heading(children, level) {
                 const HeadingTag = `h${level}` as keyof JSX.IntrinsicElements;
@@ -2324,7 +1985,6 @@ Grok 2 models are now available for you to try out.
             </div>
         );
     };
-
 
 
     const lastUserMessageIndex = useMemo(() => {
@@ -2390,50 +2050,152 @@ Grok 2 models are now available for you to try out.
         }
     }, [input, messages, editingMessageIndex, setMessages, handleSubmit]);
 
+    const AboutContent = () => {
+        return (
+            <div className="prose prose-neutral dark:prose-invert max-w-none space-y-8 p-1">
+                <section className="space-y-4 font-syne">
+                    <h2 className="text-2xl font-medium mt-2">Welcome to Scira</h2>
+                    <p className="text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                        Scira (Formerly MiniPerplx) is an minimalistic AI-powered search engine that combines multiple data sources to provide comprehensive answers. The name &lsquo;Scira&rsquo; is derived from the Latin word &lsquo;scire&rsquo;, meaning &lsquo;to know&rsquo; - reflecting our mission to make knowledge accessible and intuitive.
+                    </p>
+                    <div className="flex flex-row items-center gap-2 h-8">
+                        <Link
+                            href="https://git.new/scira"
+                            className="inline-flex h-8 items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors no-underline"
+                        >
+                            <GithubLogo className="h-3.5 w-3.5" />
+                            <span className="font-medium">View on GitHub</span>
+                        </Link>
+                        <a
+                            href="https://www.producthunt.com/posts/scira?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-scira"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center hover:opacity-90 transition-opacity"
+                        >
+                            <img
+                                src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=426999&theme=light"
+                                alt="Product Hunt Badge"
+                                className="h-8"
+                            />
+                        </a>
+                    </div>
+                </section>
+
+                <Separator className="bg-neutral-200 dark:bg-neutral-800" />
+
+                <section className="space-y-4">
+                    <h3 className="text-xl font-semibold">Core Features</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {[
+                            { icon: Search, text: "Multi-source search integration" },
+                            { icon: Zap, text: "Real-time data processing" },
+                            { icon: GraduationCap, text: "Academic paper analysis" },
+                            { icon: Share2, text: "Social media insights" },
+                            { icon: Cloud, text: "Weather and location services" },
+                        ].map((feature, i) => (
+                            <div
+                                key={i}
+                                className="flex items-center gap-3 p-3 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800"
+                            >
+                                <feature.icon className="h-5 w-5 text-primary" />
+                                <span className="text-sm text-neutral-600 dark:text-neutral-400">{feature.text}</span>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
+                <Separator className="bg-neutral-200 dark:bg-neutral-800" />
+
+                <section className="space-y-4">
+                    <h3 className="text-xl font-semibold">Technology</h3>
+                    <div className="bg-neutral-50 dark:bg-neutral-900 p-4 rounded-lg border border-neutral-200 dark:border-neutral-800">
+                        <div className="flex items-center gap-2 text-sm">
+                            <span className="text-primary">→</span>
+                            Built with Next.js, Vercel AI SDK, and Powered by xAI&apos;s Grok 2.0
+                        </div>
+                    </div>
+                </section>
+            </div>
+        );
+    };
+    const AboutButton = () => {
+        const [isOpen, setIsOpen] = useState(false);
+        const isDesktop = useMediaQuery("(min-width: 768px)");
+
+        if (isDesktop) {
+            return (
+                <Dialog open={isOpen} onOpenChange={setIsOpen}>
+                    <DialogTrigger asChild>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="rounded-full w-8 h-8 bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"
+                        >
+                            <Info className="h-5 w-5 text-neutral-600 dark:text-neutral-400" />
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[725px] z-[100] max-h-[80vh] overflow-y-auto">
+                        <AboutContent />
+                    </DialogContent>
+                </Dialog>
+            );
+        }
+
+        return (
+            <Drawer open={isOpen} onOpenChange={setIsOpen}>
+                <DrawerTrigger asChild>
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        className="rounded-full w-8 h-8 bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"
+                    >
+                        <Info className="h-5 w-5 text-neutral-600 dark:text-neutral-400" />
+                    </Button>
+                </DrawerTrigger>
+                <DrawerContent className="z-[100]">
+                    <div className="px-4 my-0 h-[75vh] overflow-y-auto">
+                        <AboutContent />
+                    </div>
+                    <DrawerFooter className="pt-2 border-t">
+                        <DrawerClose asChild>
+                            <Button variant="outline">Close</Button>
+                        </DrawerClose>
+                    </DrawerFooter>
+                </DrawerContent>
+            </Drawer>
+        );
+    };
+
     interface NavbarProps { }
 
     const Navbar: React.FC<NavbarProps> = () => {
         return (
-            <div className="fixed top-0 left-0 right-0 z-[60] flex justify-between items-center p-4 bg-white dark:bg-neutral-950 font-sans">
-                <Link href="/new">
-                    <Button
-                        type="button"
-                        variant={'secondary'}
-                        className="rounded-full bg-neutral-200 dark:bg-neutral-800 group transition-all hover:scale-105 pointer-events-auto"
-                    >
-                        <Plus size={18} className="group-hover:rotate-90 transition-all" />
-                        <span className="text-sm ml-2 group-hover:block hidden animate-in fade-in duration-300">
-                            New
-                        </span>
-                    </Button>
-                </Link>
+            <div className="fixed top-0 left-0 right-0 z-[60] flex justify-between items-center p-4 bg-white/90 dark:bg-neutral-950/90 font-sans">
+                <div className="flex items-center gap-4">
+                    <Link href="/new">
+                        <Button
+                            type="button"
+                            variant={'secondary'}
+                            className="rounded-full bg-neutral-200 dark:bg-neutral-800 group transition-all hover:scale-105 pointer-events-auto"
+                        >
+                            <Plus size={18} className="group-hover:rotate-90 transition-all" />
+                            <span className="text-sm ml-2 group-hover:block hidden animate-in fade-in duration-300">
+                                New
+                            </span>
+                        </Button>
+                    </Link>
+                </div>
                 <div className='flex items-center space-x-4'>
                     <Link
                         target="_blank"
-                        href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fzaidmukaddam%2Fminiperplx&env=XAI_API_KEY,UPSTASH_REDIS_REST_URL,UPSTASH_REDIS_REST_TOKEN,AVIATION_STACK_API_KEY,SANDBOX_TEMPLATE_ID,TMDB_API_KEY,NEXT_PUBLIC_POSTHOG_KEY,NEXT_PUBLIC_POSTHOG_HOST,YT_ENDPOINT,EXA_API_KEY,TRIPADVISOR_API_KEY,BLOB_READ_WRITE_TOKEN,ELEVENLABS_API_KEY,AZURE_TRANSLATOR_LOCATION,AZURE_TRANSLATOR_KEY,AZURE_RESOURCE_NAME,AZURE_API_KEY,MAPBOX_ACCESS_TOKEN,NEXT_PUBLIC_MAPBOX_TOKEN,FIRECRAWL_API_KEY,TAVILY_API_KEY,OPENWEATHER_API_KEY,E2B_API_KEY,GOOGLE_MAPS_API_KEY,NEXT_PUBLIC_GOOGLE_MAPS_API_KEY&envDescription=All%20environment%20variables%20needed%20for%20application"
+                        href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fzaidmukaddam%2Fscira&env=XAI_API_KEY,UPSTASH_REDIS_REST_URL,UPSTASH_REDIS_REST_TOKEN,AVIATION_STACK_API_KEY,SANDBOX_TEMPLATE_ID,TMDB_API_KEY,NEXT_PUBLIC_POSTHOG_KEY,NEXT_PUBLIC_POSTHOG_HOST,YT_ENDPOINT,EXA_API_KEY,TRIPADVISOR_API_KEY,BLOB_READ_WRITE_TOKEN,ELEVENLABS_API_KEY,AZURE_TRANSLATOR_LOCATION,AZURE_TRANSLATOR_KEY,AZURE_RESOURCE_NAME,AZURE_API_KEY,MAPBOX_ACCESS_TOKEN,NEXT_PUBLIC_MAPBOX_TOKEN,FIRECRAWL_API_KEY,TAVILY_API_KEY,OPENWEATHER_API_KEY,E2B_API_KEY,GOOGLE_MAPS_API_KEY,NEXT_PUBLIC_GOOGLE_MAPS_API_KEY&envDescription=All%20environment%20variables%20needed%20for%20application"
                         className="flex flex-row gap-2 items-center py-1.5 px-2 rounded-md text-neutral-950 bg-neutral-50 hover:bg-neutral-100 dark:bg-neutral-900 dark:text-zinc-50 dark:hover:bg-neutral-800 dark:shadow-sm shadow-none text-sm"
                     >
                         <VercelIcon size={14} />
                         <span className='hidden sm:block'>Deploy with Vercel</span>
                         <span className='sm:hidden block'>Deploy</span>
                     </Link>
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    size="sm"
-                                    onClick={() => window.open("https://github.com/sponsors/zaidmukaddam", "_blank")}
-                                    className="flex items-center space-x-2 bg-red-100 dark:bg-red-900 shadow-none hover:bg-red-200 dark:hover:bg-red-800"
-                                >
-                                    <Heart className="h-4 w-4 text-red-500 dark:text-red-400" />
-                                    <span className="text-red-800 dark:text-red-200">Sponsor</span>
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent className="bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200">
-                                <p>Sponsor this project on GitHub</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
+                    <AboutButton />
                     <ThemeToggle />
                 </div>
             </div>
@@ -2442,133 +2204,144 @@ Grok 2 models are now available for you to try out.
 
     const SuggestionCards: React.FC<{
         trendingQueries: TrendingQuery[];
-    }> = ({ trendingQueries }) => {
+        handleExampleClick: (query: TrendingQuery) => void;
+    }> = ({ trendingQueries, handleExampleClick }) => {
         const [isLoading, setIsLoading] = useState(true);
         const scrollRef = useRef<HTMLDivElement>(null);
         const [isPaused, setIsPaused] = useState(false);
-        const scrollIntervalRef = useRef<NodeJS.Timeout>();
-        const [isTouchDevice, setIsTouchDevice] = useState(false);
+        const animationFrameRef = useRef<number>();
+        const lastScrollTime = useRef<number>(0);
 
         useEffect(() => {
-            setIsLoading(false);
-            setIsTouchDevice('ontouchstart' in window);
+            if (trendingQueries.length > 0) {
+                setIsLoading(false);
+            }
         }, [trendingQueries]);
 
         useEffect(() => {
-            if (isTouchDevice) return; // Disable auto-scroll on touch devices
-
-            const startScrolling = () => {
-                if (!scrollRef.current || isPaused) return;
-                scrollRef.current.scrollLeft += 1; // Reduced speed
-
-                // Reset scroll when reaching end
-                if (scrollRef.current.scrollLeft >=
-                    (scrollRef.current.scrollWidth - scrollRef.current.clientWidth)) {
-                    scrollRef.current.scrollLeft = 0;
+            const animate = (timestamp: number) => {
+                if (!scrollRef.current || isPaused) {
+                    animationFrameRef.current = requestAnimationFrame(animate);
+                    return;
                 }
+
+                if (timestamp - lastScrollTime.current > 16) {
+                    const newScrollLeft = scrollRef.current.scrollLeft + 1;
+
+                    if (newScrollLeft >= scrollRef.current.scrollWidth - scrollRef.current.clientWidth) {
+                        scrollRef.current.scrollLeft = 0;
+                    } else {
+                        scrollRef.current.scrollLeft = newScrollLeft;
+                    }
+
+                    lastScrollTime.current = timestamp;
+                }
+
+                animationFrameRef.current = requestAnimationFrame(animate);
             };
 
-            scrollIntervalRef.current = setInterval(startScrolling, 30);
+            animationFrameRef.current = requestAnimationFrame(animate);
 
             return () => {
-                if (scrollIntervalRef.current) {
-                    clearInterval(scrollIntervalRef.current);
+                if (animationFrameRef.current) {
+                    cancelAnimationFrame(animationFrameRef.current);
                 }
             };
-        }, [isPaused, isTouchDevice]);
+        }, [isPaused]);
+
+        const getIconForCategory = (category: string) => {
+            const iconMap = {
+                trending: <TrendingUp className="w-3 h-3" />,
+                community: <Users className="w-3 h-3" />,
+                science: <Brain className="w-3 h-3" />,
+                tech: <Code className="w-3 h-3" />,
+                travel: <Globe className="w-3 h-3" />,
+                politics: <Flag className="w-3 h-3" />,
+                health: <Heart className="w-3 h-3" />,
+                sports: <TennisBall className="w-3 h-3" />,
+                finance: <CurrencyDollar className="w-3 h-3" />,
+                football: <SoccerBall className="w-3 h-3" />,
+            };
+            return iconMap[category as keyof typeof iconMap] || <Sparkles className="w-3 h-3" />;
+        };
 
         if (isLoading || trendingQueries.length === 0) {
             return (
-                <div className="relative mt-4 px-0">
-                    {/* Overlay with Loading Text */}
-                    <div className="absolute inset-0 z-10 flex items-center justify-center">
-                        <div className="backdrop-blur-sm bg-white/30 dark:bg-black/30 rounded-xl px-4 h-full py-3 shadow-lg">
-                            <div className="flex items-center gap-2 text-sm font-medium text-neutral-600 h-full dark:text-neutral-300">
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                <span>Loading trending queries</span>
-                            </div>
-                        </div>
-                    </div>
+                <div className="mt-4 relative">
+                    <div className="relative">
+                        <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background to-transparent z-10" />
+                        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent z-10" />
 
-                    {/* Background Cards */}
-                    <div className="flex justify-between">
-                        {[1, 2, 3].map((_, index) => (
-                            <div
-                                key={index}
-                                className="flex-shrink-0 w-[140px] md:w-[220px] bg-neutral-100 dark:bg-neutral-800 rounded-xl p-4 animate-pulse"
-                            >
-                                <div className="flex items-center space-x-2">
-                                    <div className="w-5 h-5 bg-neutral-200 dark:bg-neutral-700 rounded-full" />
-                                    <div className="h-4 w-32 bg-neutral-200 dark:bg-neutral-700 rounded" />
+                        <div className="flex gap-2 overflow-x-auto pb-2 px-2 scroll-smooth no-scrollbar">
+                            {[1, 2, 3, 4, 5, 6].map((_, index) => (
+                                <div
+                                    key={index}
+                                    className="flex-shrink-0 h-12 w-[120px] rounded-lg bg-neutral-50/80 dark:bg-neutral-800/80 
+                                                     border border-neutral-200/50 dark:border-neutral-700/50"
+                                >
+                                    <div className="flex items-start gap-1.5 h-full p-2">
+                                        <div className="w-4 h-4 rounded-md bg-neutral-200/50 dark:bg-neutral-700/50 
+                                                              animate-pulse mt-0.5" />
+                                        <div className="space-y-1 flex-1">
+                                            <div className="h-2.5 bg-neutral-200/50 dark:bg-neutral-700/50 rounded animate-pulse" />
+                                            <div className="h-2 w-1/2 bg-neutral-200/50 dark:bg-neutral-700/50 rounded animate-pulse" />
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 </div>
             );
         }
 
-        const getIconForCategory = (category: string) => {
-            const iconMap = {
-                trending: <TrendingUp className="w-5 h-5" />,
-                community: <Users className="w-5 h-5" />,
-                science: <Brain className="w-5 h-5" />,
-                tech: <Code className="w-5 h-5" />,
-                travel: <Globe className="w-5 h-5" />,
-                politics: <Flag className="w-5 h-5" />,
-                health: <Heart className="w-5 h-5" />,
-                sports: <TennisBall className="w-5 h-5" />,
-                finance: <CurrencyDollar className="w-5 h-5" />,
-                football: <SoccerBall className="w-5 h-5" />,
-            };
-            return iconMap[category as keyof typeof iconMap] || <Sparkles className="w-5 h-5" />;
-        };
-
         return (
-            <div className="relative">
-                {/* Gradient Fades */}
-                <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-background to-transparent z-10" />
-                <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-background to-transparent z-10" />
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mt-4 relative"
+            >
+                <div className="relative">
+                    <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background to-transparent z-10" />
+                    <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent z-10" />
 
-                <div
-                    ref={scrollRef}
-                    className="flex gap-4 mt-4 overflow-x-auto pb-4 px-4 md:px-0 relative scroll-smooth no-scrollbar"
-                    onMouseEnter={() => !isTouchDevice && setIsPaused(true)}
-                    onMouseLeave={() => !isTouchDevice && setIsPaused(false)}
-                    onTouchStart={() => setIsPaused(true)}
-                    onTouchEnd={() => setIsPaused(false)}
-                >
-                    {Array(20).fill(trendingQueries).flat().map((query, index) => (
-                        <button
-                            key={`${index}-${query.text}`}
-                            onClick={() => handleExampleClick(query)}
-                            className="group flex-shrink-0 bg-neutral-50/50 dark:bg-neutral-800/50
-                                   backdrop-blur-sm rounded-xl p-3.5 text-left
-                                   hover:bg-neutral-100 dark:hover:bg-neutral-700/70
-                                   transition-all duration-200 ease-out
-                                   hover:scale-102 origin-center
-                                   h-[52px] min-w-fit
-                                   hover:shadow-lg
-                                   border border-neutral-200/50 dark:border-neutral-700/50
-                                   hover:border-neutral-300 dark:hover:border-neutral-600"
-                        >
-
-                            <div className="flex items-center gap-3 text-neutral-700 dark:text-neutral-300">
-                                <span
-                                    className="flex-shrink-0 transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3"
-                                >
-                                    {getIconForCategory(query.category)}
-                                </span>
-                                <span
-                                    className="text-sm font-medium truncate max-w-[180px] group-hover:text-neutral-900 dark:group-hover:text-neutral-100"
-                                >
-                                    {query.text}
-                                </span>
-                            </div>
-                        </button>
-                    ))}
+                    <div
+                        ref={scrollRef}
+                        className="flex gap-2 overflow-x-auto pb-2 px-2 scroll-smooth no-scrollbar"
+                        onTouchStart={() => setIsPaused(true)}
+                        onTouchEnd={() => setIsPaused(false)}
+                        onMouseEnter={() => setIsPaused(true)}
+                        onMouseLeave={() => setIsPaused(false)}
+                    >
+                        {Array(20).fill(trendingQueries).flat().map((query, index) => (
+                            <motion.button
+                                key={`${index}-${query.text}`}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: index * 0.03 }}
+                                onClick={() => handleExampleClick(query)}
+                                className="group flex-shrink-0 w-[120px] h-12 bg-neutral-50/80 dark:bg-neutral-800/80
+                                         backdrop-blur-sm rounded-lg
+                                         hover:bg-white dark:hover:bg-neutral-700/70
+                                         transition-colors duration-200
+                                         border border-neutral-200/50 dark:border-neutral-700/50"
+                            >
+                                <div className="flex items-start gap-1.5 h-full p-2">
+                                    <div className="w-5 h-5 rounded-md bg-primary/10 dark:bg-primary/20 flex items-center justify-center mt-0.5">
+                                        {getIconForCategory(query.category)}
+                                    </div>
+                                    <div className="flex-1 text-left overflow-hidden">
+                                        <p className="text-xs font-medium truncate leading-tight">{query.text}</p>
+                                        <p className="text-[10px] text-neutral-500 dark:text-neutral-400 capitalize">
+                                            {query.category}
+                                        </p>
+                                    </div>
+                                </div>
+                            </motion.button>
+                        ))}
+                    </div>
                 </div>
-            </div>
+            </motion.div>
         );
     };
 
@@ -2588,71 +2361,197 @@ Grok 2 models are now available for you to try out.
     const memoizedSuggestionCards = useMemo(() => (
         <SuggestionCards
             trendingQueries={trendingQueries}
+            handleExampleClick={handleExampleClick}
         />
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     ), [trendingQueries]);
 
     return (
-        <div className="flex flex-col !font-sans items-center justify-center p-2 sm:p-4 bg-background text-foreground transition-all duration-500">
+        <div className="flex flex-col !font-sans items-center min-h-screen bg-background text-foreground transition-all duration-500">
             <Navbar />
 
-            <div className={`w-full max-w-[90%] !font-sans sm:max-w-2xl space-y-6 p-0 ${hasSubmitted ? 'mt-16 sm:mt-20' : 'mt-[20vh] sm:mt-[25vh]'}`}>
-                {!hasSubmitted && (
-                    <div className="text-center !font-sans">
-                        <Badge
-                            onClick={() => setOpenChangelog(true)}
-                            className="cursor-pointer gap-1 mb-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
-                            variant="secondary"
-                        >
-                            <Flame size={14} /> What&apos;s new
-                        </Badge>
-                        <h1 className="text-4xl sm:text-6xl mb-3 text-neutral-800 dark:text-neutral-100 font-serif">MiniPerplx</h1>
-                        <div className="flex flex-row items-center gap-1 justify-center text-center mx-auto !p-0 !m-0">
-                            <span className="text-base text-neutral-500 dark:text-neutral-400">
-                                Powered by
-                            </span>
-                            <div className="flex flex-wrap gap-1 items-center justify-center">
-                                <a
-                                    href="https://vercel.com"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="no-underline"
-                                >
-                                    <Badge
-                                        variant="secondary"
-                                        className="bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full transition-colors shadow-none"
-                                    >
-                                        <VercelIcon size={10} />
-                                        <span className="ml-2 text-sm">Vercel</span>
-                                    </Badge>
-                                </a>
-                                {/* span with a + */}
-                                <span className="text-neutral-500 dark:text-neutral-400">+</span>
-                                <a
-                                    href="https://x.ai/api"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="no-underline"
-                                >
-                                    <Badge
-                                        variant="secondary"
-                                        className="bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors rounded-full shadow-none"
-                                    >
-                                        <XAIIcon size={12} />
-                                        <span className="ml-2 text-sm">xAI Grok</span>
-                                    </Badge>
-                                </a>
-                            </div>
+            <div className={`w-full p-2 sm:p-4 ${hasSubmitted
+                ? 'mt-16'
+                : 'flex-1 flex items-center justify-center'
+                }`}>
+                <div className={`w-full max-w-[90%] !font-sans sm:max-w-2xl space-y-6 p-0 mx-auto transition-all duration-300`}>
+                    {!hasSubmitted && (
+                        <div className="text-center !font-sans">
+                            <h1 className="text-2xl sm:text-4xl mb-6 text-neutral-800 dark:text-neutral-100 font-syne">
+                                What do you want to search?
+                            </h1>
                         </div>
+                    )}
+                    <AnimatePresence>
+                        {!hasSubmitted && (
+                            <motion.div
+                                initial={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 20 }}
+                                transition={{ duration: 0.5 }}
+                                className='!mt-4'
+                            >
+                                <FormComponent
+                                    input={input}
+                                    setInput={setInput}
+                                    attachments={attachments}
+                                    setAttachments={setAttachments}
+                                    hasSubmitted={hasSubmitted}
+                                    setHasSubmitted={setHasSubmitted}
+                                    isLoading={isLoading}
+                                    handleSubmit={handleSubmit}
+                                    fileInputRef={fileInputRef}
+                                    inputRef={inputRef}
+                                    stop={stop}
+                                    messages={memoizedMessages}
+                                    append={append}
+                                    selectedModel={selectedModel}
+                                    setSelectedModel={handleModelChange}
+                                    resetSuggestedQuestions={resetSuggestedQuestions}
+                                    lastSubmittedQueryRef={lastSubmittedQueryRef}
+                                    selectedGroup={selectedGroup}
+                                    setSelectedGroup={setSelectedGroup}
+                                />
+                                {memoizedSuggestionCards}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    <div className="space-y-4 sm:space-y-6 mb-32">
+                        {memoizedMessages.map((message, index) => (
+                            <div key={index}>
+                                {message.role === 'user' && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.5 }}
+                                        className="flex items-start space-x-2 mb-4"
+                                    >
+                                        <User2 className="size-5 text-primary flex-shrink-0 mt-1" />
+                                        <div className="flex-grow min-w-0">
+                                            {isEditingMessage && editingMessageIndex === index ? (
+                                                <form onSubmit={handleMessageUpdate} className="flex items-center space-x-2">
+                                                    <Input
+                                                        value={input}
+                                                        onChange={(e) => setInput(e.target.value)}
+                                                        className="flex-grow bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
+                                                    />
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setIsEditingMessage(false)
+                                                            setEditingMessageIndex(-1)
+                                                            setInput('')
+                                                        }}
+                                                        disabled={isLoading}
+                                                        className="bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200"
+                                                    >
+                                                        <X size={16} />
+                                                    </Button>
+                                                    <Button type="submit" size="sm" className="bg-primary text-white">
+                                                        <ArrowRight size={16} />
+                                                    </Button>
+                                                </form>
+                                            ) : (
+                                                <div>
+                                                    <p className="text-base sm:text-xl font-medium font-sans break-words text-neutral-800 dark:text-neutral-200">
+                                                        {message.content}
+                                                    </p>
+                                                    <div className='flex flex-row gap-2'>
+                                                        {message.experimental_attachments?.map((attachment, attachmentIndex) => (
+                                                            <div key={attachmentIndex} className="mt-2">
+                                                                {attachment.contentType!.startsWith('image/') && (
+                                                                    <img
+                                                                        src={attachment.url}
+                                                                        alt={attachment.name || `Attachment ${attachmentIndex + 1}`}
+                                                                        className="max-w-full h-32 object-fill rounded-lg"
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {!isEditingMessage && index === lastUserMessageIndex && (
+                                            <div className="flex items-center space-x-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleMessageEdit(index)}
+                                                    className="ml-2 text-neutral-500 dark:text-neutral-400"
+                                                    disabled={isLoading}
+                                                >
+                                                    <Edit2 size={16} />
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                )}
+                                {message.role === 'assistant' && message.content !== null && !message.toolInvocations && (
+                                    <div>
+                                        <div className='flex items-center justify-between mb-2'>
+                                            <div className='flex items-center gap-2'>
+                                                <Sparkles className="size-5 text-primary" />
+                                                <h2 className="text-base font-semibold text-neutral-800 dark:text-neutral-200">Answer</h2>
+                                            </div>
+                                            <div className='flex items-center gap-2'>
+                                                <CopyButton text={message.content} />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <MarkdownRenderer content={message.content} />
+                                        </div>
+                                    </div>
+                                )}
+                                {message.toolInvocations?.map((toolInvocation: ToolInvocation, toolIndex: number) => (
+                                    <div key={`tool-${toolIndex}`}>
+                                        {renderToolInvocation(toolInvocation, toolIndex)}
+                                    </div>
+                                ))}
+                            </div>
+                        ))}
+
+                        {suggestedQuestions.length > 0 && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 20 }}
+                                transition={{ duration: 0.5 }}
+                                className="w-full max-w-xl sm:max-w-2xl"
+                            >
+                                <div className="flex items-center gap-2 mb-4">
+                                    <AlignLeft className="w-5 h-5 text-primary" />
+                                    <h2 className="font-semibold text-base text-neutral-800 dark:text-neutral-200">Suggested questions</h2>
+                                </div>
+                                <div className="space-y-2 flex flex-col">
+                                    {suggestedQuestions.map((question, index) => (
+                                        <Button
+                                            key={index}
+                                            variant="ghost"
+                                            className="w-fit font-medium rounded-2xl p-1 justify-start text-left h-auto py-2 px-4 bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 hover:bg-neutral-200 dark:hover:bg-neutral-700 whitespace-normal"
+                                            onClick={() => handleSuggestedQuestionClick(question)}
+                                        >
+                                            {question}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        )}
                     </div>
-                )}
+                    <div ref={bottomRef} />
+                </div>
 
                 <AnimatePresence>
-                    {!hasSubmitted && (
+                    {hasSubmitted && (
                         <motion.div
-                            initial={{ opacity: 1, y: 0 }}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
                             transition={{ duration: 0.5 }}
+                            className="fixed bottom-4 left-0 right-0 w-full max-w-[90%] sm:max-w-2xl mx-auto"
                         >
                             <FormComponent
                                 input={input}
@@ -2666,7 +2565,7 @@ Grok 2 models are now available for you to try out.
                                 fileInputRef={fileInputRef}
                                 inputRef={inputRef}
                                 stop={stop}
-                                messages={memoizedMessages}
+                                messages={messages}
                                 append={append}
                                 selectedModel={selectedModel}
                                 setSelectedModel={handleModelChange}
@@ -2675,230 +2574,59 @@ Grok 2 models are now available for you to try out.
                                 selectedGroup={selectedGroup}
                                 setSelectedGroup={setSelectedGroup}
                             />
-                            {memoizedSuggestionCards}
                         </motion.div>
                     )}
                 </AnimatePresence>
-
-                <div className="space-y-4 sm:space-y-6 mb-32">
-                    {memoizedMessages.map((message, index) => (
-                        <div key={index}>
-                            {message.role === 'user' && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.5 }}
-                                    className="flex items-start space-x-2 mb-4"
-                                >
-                                    <User2 className="size-5 text-primary flex-shrink-0 mt-1" />
-                                    <div className="flex-grow min-w-0">
-                                        {isEditingMessage && editingMessageIndex === index ? (
-                                            <form onSubmit={handleMessageUpdate} className="flex items-center space-x-2">
-                                                <Input
-                                                    value={input}
-                                                    onChange={(e) => setInput(e.target.value)}
-                                                    className="flex-grow bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
-                                                />
-                                                <Button
-                                                    variant="secondary"
-                                                    size="sm"
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setIsEditingMessage(false)
-                                                        setEditingMessageIndex(-1)
-                                                        setInput('')
-                                                    }}
-                                                    disabled={isLoading}
-                                                    className="bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200"
-                                                >
-                                                    <X size={16} />
-                                                </Button>
-                                                <Button type="submit" size="sm" className="bg-primary text-white">
-                                                    <ArrowRight size={16} />
-                                                </Button>
-                                            </form>
-                                        ) : (
-                                            <div>
-                                                <p className="text-xl font-medium font-sans break-words text-neutral-800 dark:text-neutral-200">
-                                                    {message.content}
-                                                </p>
-                                                <div className='flex flex-row gap-2'>
-                                                    {message.experimental_attachments?.map((attachment, attachmentIndex) => (
-                                                        <div key={attachmentIndex} className="mt-2">
-                                                            {attachment.contentType!.startsWith('image/') && (
-                                                                <img
-                                                                    src={attachment.url}
-                                                                    alt={attachment.name || `Attachment ${attachmentIndex + 1}`}
-                                                                    className="max-w-full h-32 object-fill rounded-lg"
-                                                                />
-                                                            )}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {!isEditingMessage && index === lastUserMessageIndex && (
-                                        <div className="flex items-center space-x-2">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleMessageEdit(index)}
-                                                className="ml-2 text-neutral-500 dark:text-neutral-400"
-                                                disabled={isLoading}
-                                            >
-                                                <Edit2 size={16} />
-                                            </Button>
-                                        </div>
-                                    )}
-                                </motion.div>
-                            )}
-                            {message.role === 'assistant' && message.content !== null && !message.toolInvocations && (
-                                <div>
-                                    <div className='flex items-center justify-between mb-2'>
-                                        <div className='flex items-center gap-2'>
-                                            <Sparkles className="size-5 text-primary" />
-                                            <h2 className="text-base font-semibold text-neutral-800 dark:text-neutral-200">Answer</h2>
-                                        </div>
-                                        <div className='flex items-center gap-2'>
-                                            <CopyButton text={message.content} />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <MarkdownRenderer content={message.content} />
-                                    </div>
-                                </div>
-                            )}
-                            {message.toolInvocations?.map((toolInvocation: ToolInvocation, toolIndex: number) => (
-                                <div key={`tool-${toolIndex}`}>
-                                    {renderToolInvocation(toolInvocation, toolIndex)}
-                                </div>
-                            ))}
-                        </div>
-                    ))}
-
-                    {suggestedQuestions.length > 0 && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 20 }}
-                            transition={{ duration: 0.5 }}
-                            className="w-full max-w-xl sm:max-w-2xl"
+                {!hasSubmitted && (
+                    <TooltipProvider>
+                        <footer
+                            className="flex flex-row justify-between items-center bottom-3 w-full fixed p-4 sm:p-auto"
                         >
-                            <div className="flex items-center gap-2 mb-4">
-                                <AlignLeft className="w-5 h-5 text-primary" />
-                                <h2 className="font-semibold text-base text-neutral-800 dark:text-neutral-200">Suggested questions</h2>
+                            <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                                © {new Date().getFullYear()} All rights reserved.
                             </div>
-                            <div className="space-y-2 flex flex-col">
-                                {suggestedQuestions.map((question, index) => (
-                                    <Button
-                                        key={index}
-                                        variant="ghost"
-                                        className="w-fit font-medium rounded-2xl p-1 justify-start text-left h-auto py-2 px-4 bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 hover:bg-neutral-200 dark:hover:bg-neutral-700 whitespace-normal"
-                                        onClick={() => handleSuggestedQuestionClick(question)}
+                            <Tooltip delayDuration={100}>
+                                <TooltipTrigger>
+                                    <a
+                                        href="https://x.com/zaidmukaddam"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors text-neutral-600 dark:text-neutral-400"
                                     >
-                                        {question}
-                                    </Button>
-                                ))}
-                            </div>
-                        </motion.div>
-                    )}
-                </div>
-                <div ref={bottomRef} />
-            </div>
-
-            <AnimatePresence>
-                {hasSubmitted && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 20 }}
-                        transition={{ duration: 0.5 }}
-                        className="fixed bottom-4 w-full max-w-[90%] sm:max-w-2xl"
-                    >
-                        <FormComponent
-                            input={input}
-                            setInput={setInput}
-                            attachments={attachments}
-                            setAttachments={setAttachments}
-                            hasSubmitted={hasSubmitted}
-                            setHasSubmitted={setHasSubmitted}
-                            isLoading={isLoading}
-                            handleSubmit={handleSubmit}
-                            fileInputRef={fileInputRef}
-                            inputRef={inputRef}
-                            stop={stop}
-                            messages={messages}
-                            append={append}
-                            selectedModel={selectedModel}
-                            setSelectedModel={handleModelChange}
-                            resetSuggestedQuestions={resetSuggestedQuestions}
-                            lastSubmittedQueryRef={lastSubmittedQueryRef}
-                            selectedGroup={selectedGroup}
-                            setSelectedGroup={setSelectedGroup}
-                        />
-                    </motion.div>
-                )}
-            </AnimatePresence>
-            {!hasSubmitted && (
-                <TooltipProvider>
-                    <motion.footer
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 20 }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
-                        className="flex flex-row justify-between items-center w-full max-w-2xl bottom-3 fixed p-4 sm:p-auto"
-                    >
-                        <div className="text-sm text-neutral-500 dark:text-neutral-400">
-                            © {new Date().getFullYear()} MiniPerplx
-                        </div>
-                        <Tooltip delayDuration={100}>
-                            <TooltipTrigger>
-                                <a
-                                    href="https://x.com/zaidmukaddam"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-sm hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors text-neutral-600 dark:text-neutral-400"
+                                        @zaidmukaddam
+                                    </a>
+                                </TooltipTrigger>
+                                <TooltipContent
+                                    side="top"
+                                    sideOffset={5}
+                                    className="bg-neutral-800 dark:bg-neutral-900 text-neutral-100 px-3 py-2 text-xs font-medium rounded-xl shadow-lg border border-neutral-700/50"
                                 >
-                                    @zaidmukaddam
-                                </a>
-                            </TooltipTrigger>
-                            <TooltipContent
-                                side="top"
-                                sideOffset={5}
-                                className="bg-neutral-800 dark:bg-neutral-900 text-neutral-100 px-3 py-2 text-xs font-medium rounded-xl shadow-lg border border-neutral-700/50"
-                            >
-                                <p className="flex items-center gap-1.5">
-                                    <span className='flex gap-1'>Follow me on <XLogo className='size-4' /></span>
-                                </p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </motion.footer>
-                </TooltipProvider>
-            )}
-            <ChangeLogs open={openChangelog} setOpen={setOpenChangelog} />
+                                    <p className="flex items-center gap-1.5">
+                                        <span className='flex gap-1'>Follow me on <XLogo className='size-4' /></span>
+                                    </p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </footer>
+                    </TooltipProvider>
+                )}
+            </div>
         </div>
     );
 }
 
 const LoadingFallback = () => (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-white to-neutral-100 dark:from-neutral-900 dark:to-black">
-        <div className="backdrop-blur-xl bg-white/30 dark:bg-neutral-900/30 p-8 rounded-2xl border border-neutral-200/20 dark:border-neutral-700/20 shadow-xl">
-            <div className="text-center space-y-6">
-                <h1 className="text-4xl sm:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-neutral-900 to-neutral-600 dark:from-white dark:to-neutral-400">
-                    MiniPerplx
-                </h1>
-                <p className="text-base sm:text-lg text-neutral-600 dark:text-neutral-400">
-                    Loading your minimalist AI experience
-                    <span className="animate-pulse">...</span>
-                </p>
-                <div className="relative">
-                    <div className="h-1 w-32 mx-auto bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-primary w-1/2 animate-[loader_1s_ease-in-out_infinite] rounded-full" />
-                    </div>
-                </div>
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-neutral-50 to-neutral-100 dark:from-neutral-950 dark:to-neutral-900">
+        <div className="flex flex-col items-center gap-6 p-8">
+            {/* Clean loading spinner */}
+            <div className="relative w-12 h-12">
+                <div className="absolute inset-0 rounded-full border-4 border-neutral-200 dark:border-neutral-800" />
+                <div className="absolute inset-0 rounded-full border-4 border-t-primary animate-spin" />
             </div>
+
+            {/* Simple loading text */}
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 animate-pulse">
+                Loading...
+            </p>
         </div>
     </div>
 );
