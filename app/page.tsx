@@ -2024,6 +2024,13 @@ Grok 2 models are now available for you to try out.
                             <GithubLogo className="h-3.5 w-3.5" />
                             <span className="font-medium">View on GitHub</span>
                         </Link>
+                        <Link
+                            href="https://x.com/sciraai"
+                            className="inline-flex h-8 items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors no-underline"
+                        >
+                            <XLogo className="h-3.5 w-3.5" />
+                            <span className="font-medium">Follow on X</span>
+                        </Link>
                         <a
                             href="https://www.producthunt.com/posts/scira?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-scira"
                             target="_blank"
