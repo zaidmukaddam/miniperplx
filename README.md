@@ -4,6 +4,17 @@
 
 A minimalistic AI-powered search engine that helps you find information on the internet.
 
+## Special Thanks
+
+<div align="center" markdown="1">
+
+  [![Warp](https://github.com/user-attachments/assets/2bda420d-4211-4900-a37e-e3c7056d799c)](https://www.warp.dev/?utm_source=github&utm_medium=referral&utm_campaign=scira)<br>
+  ### **[Warp, the intelligent terminal](https://www.warp.dev/?utm_source=github&utm_medium=referral&utm_campaign=inquirer)**<br>
+  [Available for MacOS and Linux](https://www.warp.dev/?utm_source=github&utm_medium=referral&utm_campaign=scira)<br>
+  [Visit warp.dev to learn more](https://www.warp.dev/?utm_source=github&utm_medium=referral&utm_campaign=scira)
+
+</div>
+
 ## Features
 
 - **AI-powered search**: Get answers to your questions using Anthropic's Models.
