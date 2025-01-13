@@ -143,7 +143,7 @@ export async function POST(req: Request) {
       chunking: 'word',
       delayInMs: 15,
     }),
-    temperature: 1,
+    temperature: 0,
     experimental_activeTools: [...activeTools],
     system: systemPrompt,
     tools: {

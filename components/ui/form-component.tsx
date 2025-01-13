@@ -25,8 +25,8 @@ interface ModelSwitcherProps {
 }
 
 const models = [
-    { value: "grok-2-1212", label: "Grok 2.0", icon: Zap, description: "Most intelligent text model", color: "glossyblack", vision: false },
     { value: "grok-2-vision-1212", icon: ScanEye, label: "Grok 2.0 Vision", description: "Most intelligent vision model", color: "offgray", vision: true },
+    { value: "grok-2-1212", label: "Grok 2.0", icon: Zap, description: "Most intelligent text model", color: "glossyblack", vision: false },
 ];
 
 const getColorClasses = (color: string, isSelected: boolean = false) => {

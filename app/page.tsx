@@ -72,7 +72,7 @@ import WeatherChart from '@/components/weather-chart';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { cn, SearchGroupId } from '@/lib/utils';
 import { Wave } from "@foobar404/wave";
-import { CurrencyDollar, Flag, GithubLogo, Info, Newspaper, QuestionMark, RoadHorizon, SoccerBall, TennisBall, XCircle, XLogo } from '@phosphor-icons/react';
+import { CheckCircle, CurrencyDollar, Flag, GithubLogo, Info, Newspaper, QuestionMark, RoadHorizon, SoccerBall, TennisBall, XCircle, XLogo } from '@phosphor-icons/react';
 import { GitHubLogoIcon, TextIcon } from '@radix-ui/react-icons';
 import { ToolInvocation } from 'ai';
 import { useChat } from 'ai/react';
@@ -375,14 +375,17 @@ interface CollapsibleSectionProps {
     language?: string;
     title?: string;
     icon?: string;
+    status?: 'running' | 'completed'; // Add this
 }
 
+// Update CollapsibleSection component
 function CollapsibleSection({
     code,
     output,
     language = "plaintext",
     title,
     icon,
+    status, // Add this
 }: CollapsibleSectionProps) {
     const [copied, setCopied] = React.useState(false);
     const [isExpanded, setIsExpanded] = React.useState(true);
@@ -410,25 +413,29 @@ function CollapsibleSection({
                             <IconComponent className="h-4 w-4 text-primary" />
                         </div>
                     )}
-                    <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                            {title}
-                        </h3>
-                    </div>
+                    <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                        {title}
+                    </h3>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                        onClick={handleCopy}
-                    >
-                        {copied ? (
-                            <Check className="h-3.5 w-3.5 text-green-500" />
-                        ) : (
-                            <Copy className="h-3.5 w-3.5" />
+                    {status && (
+                        <Badge
+                        variant="secondary"
+                        className={cn(
+                            "w-fit flex items-center gap-1.5 px-1.5 py-0.5 text-xs",
+                            status === 'running'
+                                ? "bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                                : "bg-green-50/50 dark:bg-green-900/20 text-green-600 dark:text-green-400"
                         )}
-                    </Button>
+                    >
+                        {status === 'running' ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                            <CheckCircle className="h-3 w-3" />
+                        )}
+                        {status === 'running' ? "Running" : "Done"}
+                    </Badge>
+                    )}
                     <ChevronDown
                         className={cn(
                             "h-4 w-4 transition-transform duration-200",
@@ -465,6 +472,20 @@ function CollapsibleSection({
                                 Output
                             </button>
                         )}
+                        <div className="ml-auto pr-2 flex items-center">
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                onClick={handleCopy}
+                            >
+                                {copied ? (
+                                    <Check className="h-3.5 w-3.5 text-green-500" />
+                                ) : (
+                                    <Copy className="h-3.5 w-3.5" />
+                                )}
+                            </Button>
+                        </div>
                     </div>
                     <div className={cn(
                         "text-sm",
@@ -629,7 +650,7 @@ const YouTubeCard: React.FC<YouTubeCardProps> = ({ video, index }) => {
 const HomeContent = () => {
     const [query] = useQueryState('query', parseAsString.withDefault(''))
     const [q] = useQueryState('q', parseAsString.withDefault(''))
-    const [model] = useQueryState('model', parseAsString.withDefault('grok-2-1212'))
+    const [model] = useQueryState('model', parseAsString.withDefault('grok-2-vision-1212'))
 
     // Memoize initial values to prevent re-calculation
     const initialState = useMemo(() => ({
@@ -1543,28 +1564,14 @@ Grok 2 models are now available for you to try out.
             if (toolInvocation.toolName === "code_interpreter") {
                 return (
                     <div className="space-y-6">
-                        <Badge
-                            variant="secondary"
-                            className={cn(
-                                "w-fit flex items-center gap-2 px-3 py-1.5",
-                                !result
-                                    ? "bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
-                                    : "bg-green-50/50 dark:bg-green-900/20 text-green-600 dark:text-green-400"
-                            )}
-                        >
-                            <Terminal className="h-4 w-4" />
-                            {!result ? "Running..." : "Completed"}
-                        </Badge>
-
-                        <div className="space-y-4">
-                            <CollapsibleSection
-                                code={args.code}
-                                output={result?.message}
-                                language="python"
-                                title={args.title}
-                                icon={args.icon || 'default'}
-                            />
-                        </div>
+                        <CollapsibleSection
+                            code={args.code}
+                            output={result?.message}
+                            language="python"
+                            title={args.title}
+                            icon={args.icon || 'default'}
+                            status={result ? 'completed' : 'running'}
+                        />
 
                         {result?.chart && (
                             <div className="pt-1">
@@ -2371,7 +2378,7 @@ Grok 2 models are now available for you to try out.
             <Navbar />
 
             <div className={`w-full p-2 sm:p-4 ${hasSubmitted
-                ? 'mt-16'
+                ? 'mt-20 sm:mt-16'
                 : 'flex-1 flex items-center justify-center'
                 }`}>
                 <div className={`w-full max-w-[90%] !font-sans sm:max-w-2xl space-y-6 p-0 mx-auto transition-all duration-300`}>
