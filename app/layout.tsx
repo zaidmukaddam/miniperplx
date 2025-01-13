@@ -10,16 +10,25 @@ import "./globals.css";
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://mplx.run"),
+  metadataBase: new URL("https://scira.app"),
   title: "Scira",
   description: "Scira is a minimalistic AI-powered search engine that helps you find information on the internet.",
   openGraph: {
-    url: "https://mplx.run",
+    url: "https://scira.app",
     siteName: "Scira",
   },
   keywords: [
     "Scira",
+    "scira.app",
+    "scira ai app",
     "scira",
+    "MiniPerplx",
+    "Scira AI",
+    "Scira (Formerly MiniPerplx)",
+    "AI Search Engine",
+    "mplx.run",
+    "mplx ai",
+    "zaid mukaddam",
     "scira.how",
     "search engine",
     "AI",

@@ -4,7 +4,6 @@ import 'katex/dist/katex.min.css';
 
 import { BorderTrail } from '@/components/core/border-trail';
 import { TextShimmer } from '@/components/core/text-shimmer';
-import { TextLoop } from '@/components/core/text-loop';
 import { FlightTracker } from '@/components/flight-tracker';
 import { InstallPrompt } from '@/components/InstallPrompt';
 import InteractiveChart from '@/components/interactive-charts';
@@ -27,20 +26,15 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
 import {
     Drawer,
     DrawerClose,
     DrawerContent,
-    DrawerDescription,
     DrawerFooter,
     DrawerHeader,
     DrawerTitle,
@@ -56,13 +50,6 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableRow,
-} from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
@@ -72,15 +59,13 @@ import WeatherChart from '@/components/weather-chart';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { cn, SearchGroupId } from '@/lib/utils';
 import { Wave } from "@foobar404/wave";
-import { CheckCircle, CurrencyDollar, Flag, GithubLogo, Info, Newspaper, QuestionMark, RoadHorizon, SoccerBall, TennisBall, XCircle, XLogo } from '@phosphor-icons/react';
-import { GitHubLogoIcon, TextIcon } from '@radix-ui/react-icons';
+import { CheckCircle, CurrencyDollar, Flag, GithubLogo, Info, RoadHorizon, SoccerBall, TennisBall, XLogo } from '@phosphor-icons/react';
+import { TextIcon } from '@radix-ui/react-icons';
 import { ToolInvocation } from 'ai';
 import { useChat } from 'ai/react';
-import Autoplay from 'embla-carousel-autoplay';
 import { AnimatePresence, motion } from 'framer-motion';
 import { GeistMono } from 'geist/font/mono';
 import {
-    AlertTriangle,
     AlignLeft,
     ArrowRight,
     Book,
@@ -90,7 +75,6 @@ import {
     Calendar,
     Check,
     ChevronDown,
-    ChevronUp,
     Cloud,
     Code,
     Copy,
@@ -99,12 +83,9 @@ import {
     ExternalLink,
     FileText,
     Film,
-    Flame,
     Globe,
     GraduationCap,
     Heart,
-    HelpCircle,
-    ListTodo,
     Loader2,
     LucideIcon,
     MapPin,
@@ -117,7 +98,6 @@ import {
     Share2,
     Sparkles,
     Sun,
-    Terminal,
     TrendingUp,
     TrendingUpIcon,
     Tv,
@@ -184,7 +164,6 @@ interface AcademicResult {
     summary: string;
 }
 
-// Updated SearchLoadingState with new colors and states
 const SearchLoadingState = ({
     icon: Icon,
     text,
@@ -194,7 +173,6 @@ const SearchLoadingState = ({
     text: string,
     color: "red" | "green" | "orange" | "violet" | "gray" | "blue"
 }) => {
-    // Map of color variants
     const colorVariants = {
         red: {
             background: "bg-red-50 dark:bg-red-950",
@@ -288,7 +266,6 @@ const SearchLoadingState = ({
     );
 };
 
-// Base YouTube Types
 interface VideoDetails {
     title?: string;
     author_name?: string;
@@ -316,7 +293,6 @@ interface YouTubeSearchResponse {
     results: VideoResult[];
 }
 
-// UI Component Types
 interface YouTubeCardProps {
     video: VideoResult;
     index: number;
@@ -375,17 +351,16 @@ interface CollapsibleSectionProps {
     language?: string;
     title?: string;
     icon?: string;
-    status?: 'running' | 'completed'; // Add this
+    status?: 'running' | 'completed';
 }
 
-// Update CollapsibleSection component
 function CollapsibleSection({
     code,
     output,
     language = "plaintext",
     title,
     icon,
-    status, // Add this
+    status,
 }: CollapsibleSectionProps) {
     const [copied, setCopied] = React.useState(false);
     const [isExpanded, setIsExpanded] = React.useState(true);
@@ -524,7 +499,6 @@ const YouTubeCard: React.FC<YouTubeCardProps> = ({ video, index }) => {
             transition={{ duration: 0.3, delay: index * 0.1 }}
             className="w-[300px] flex-shrink-0 relative rounded-xl dark:bg-neutral-800/50 bg-gray-50 overflow-hidden"
         >
-            {/* Thumbnail */}
             <Link
                 href={video.url}
                 target="_blank"
@@ -549,7 +523,6 @@ const YouTubeCard: React.FC<YouTubeCardProps> = ({ video, index }) => {
             </Link>
 
             <div className="p-4 flex flex-col gap-3">
-                {/* Title and Channel */}
                 <div className="space-y-2">
                     <Link
                         href={video.url}
@@ -577,12 +550,10 @@ const YouTubeCard: React.FC<YouTubeCardProps> = ({ video, index }) => {
                     )}
                 </div>
 
-                {/* Interactive Sections */}
                 {(video.timestamps && video.timestamps?.length > 0 || video.captions) && (
                     <div className="space-y-3">
                         <Separator />
 
-                        {/* Timestamps */}
                         {video.timestamps && video.timestamps.length > 0 && (
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
@@ -614,7 +585,6 @@ const YouTubeCard: React.FC<YouTubeCardProps> = ({ video, index }) => {
                             </div>
                         )}
 
-                        {/* Transcript */}
                         {video.captions && (
                             <>
                                 {video.timestamps && video.timestamps!.length > 0 && <Separator />}
@@ -650,14 +620,14 @@ const YouTubeCard: React.FC<YouTubeCardProps> = ({ video, index }) => {
 const HomeContent = () => {
     const [query] = useQueryState('query', parseAsString.withDefault(''))
     const [q] = useQueryState('q', parseAsString.withDefault(''))
-    const [model] = useQueryState('model', parseAsString.withDefault('grok-2-vision-1212'))
+    const [model] = useQueryState('model', parseAsString.withDefault('grok-2-1212'))
 
-    // Memoize initial values to prevent re-calculation
+
     const initialState = useMemo(() => ({
         query: query || q,
         model: model
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }), []); // Empty dependency array as we only want this on mount
+    }), []); 
 
     const lastSubmittedQueryRef = useRef(initialState.query);
     const [hasSubmitted, setHasSubmitted] = useState(() => !!initialState.query);
@@ -675,7 +645,6 @@ const HomeContent = () => {
     const CACHE_KEY = 'trendingQueriesCache';
     const CACHE_DURATION = 5 * 60 * 60 * 1000; // 5 hours in milliseconds
 
-    // Add this type definition
     interface TrendingQueriesCache {
         data: TrendingQuery[];
         timestamp: number;
@@ -738,7 +707,6 @@ const HomeContent = () => {
 
     useEffect(() => {
         const fetchTrending = async () => {
-            // Check cache first
             const cached = getTrendingQueriesFromCache();
             if (cached) {
                 setTrendingQueries(cached.data);
@@ -750,7 +718,6 @@ const HomeContent = () => {
                 if (!res.ok) throw new Error('Failed to fetch trending queries');
                 const data = await res.json();
 
-                // Store in cache
                 const cacheData: TrendingQueriesCache = {
                     data,
                     timestamp: Date.now()
@@ -964,7 +931,6 @@ Grok 2 models are now available for you to try out.
             const args = JSON.parse(JSON.stringify(toolInvocation.args));
             const result = 'result' in toolInvocation ? JSON.parse(JSON.stringify(toolInvocation.result)) : null;
 
-            // Find place results
             if (toolInvocation.toolName === 'find_place') {
                 if (!result) {
                     return <SearchLoadingState
@@ -979,7 +945,6 @@ Grok 2 models are now available for you to try out.
 
                 return (
                     <Card className="w-full my-4 overflow-hidden bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800">
-                        {/* Map Container */}
                         <div className="relative w-full h-[60vh]">
                             <div className="absolute top-4 left-4 z-10 flex gap-2">
                                 <Badge
@@ -1007,7 +972,6 @@ Grok 2 models are now available for you to try out.
                             />
                         </div>
 
-                        {/* Place Details Footer */}
                         <div className="max-h-[300px] overflow-y-auto border-t border-neutral-200 dark:border-neutral-800">
                             {features.map((place: any, index: any) => {
                                 const isGoogleResult = place.source === 'google';
@@ -1142,7 +1106,6 @@ Grok 2 models are now available for you to try out.
 
                 const PREVIEW_COUNT = 3;
 
-                // Shared content component
                 const FullTweetList = () => (
                     <div className="grid gap-4 p-4 sm:max-w-[500px]">
                         {result.map((post: XResult, index: number) => (
@@ -1190,12 +1153,9 @@ Grok 2 models are now available for you to try out.
                                 </div>
                             </div>
 
-                            {/* Gradient overlay */}
                             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white dark:to-black pointer-events-none" />
 
-                            {/* Show More Buttons - Desktop Sheet */}
                             <div className="absolute bottom-0 inset-x-0 flex items-center justify-center pb-4 pt-20 bg-gradient-to-t from-white dark:from-black to-transparent">
-                                {/* Desktop Sheet */}
                                 <div className="hidden sm:block">
                                     <Sheet>
                                         <SheetTrigger asChild>
@@ -1216,7 +1176,6 @@ Grok 2 models are now available for you to try out.
                                     </Sheet>
                                 </div>
 
-                                {/* Mobile Drawer */}
                                 <div className="block sm:hidden">
                                     <Drawer>
                                         <DrawerTrigger asChild>
@@ -1331,24 +1290,20 @@ Grok 2 models are now available for you to try out.
                                         transition={{ duration: 0.3, delay: index * 0.1 }}
                                     >
                                         <div className="h-[300px] relative group">
-                                            {/* Background with gradient border */}
                                             <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-violet-500/20 via-violet-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-                                            {/* Main content container */}
                                             <div className="h-full relative backdrop-blur-sm bg-background/95 dark:bg-neutral-900/95 border border-neutral-200/50 dark:border-neutral-800/50 rounded-xl p-4 flex flex-col transition-all duration-500 group-hover:border-violet-500/20">
-                                                {/* Title */}
                                                 <h3 className="font-semibold text-xl tracking-tight mb-3 line-clamp-2 group-hover:text-violet-500 dark:group-hover:text-violet-400 transition-colors duration-300">
                                                     {paper.title}
                                                 </h3>
 
-                                                {/* Authors with better overflow handling */}
                                                 {paper.author && (
                                                     <div className="mb-3">
                                                         <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-muted-foreground bg-neutral-100 dark:bg-neutral-800 rounded-md">
                                                             <User2 className="h-3.5 w-3.5 text-violet-500" />
                                                             <span className="line-clamp-1">
                                                                 {paper.author.split(';')
-                                                                    .slice(0, 2) // Take first two authors
+                                                                    .slice(0, 2)
                                                                     .join(', ') +
                                                                     (paper.author.split(';').length > 2 ? ' et al.' : '')
                                                                 }
@@ -1357,7 +1312,6 @@ Grok 2 models are now available for you to try out.
                                                     </div>
                                                 )}
 
-                                                {/* Date if available */}
                                                 {paper.publishedDate && (
                                                     <div className="mb-4">
                                                         <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-muted-foreground bg-neutral-100 dark:bg-neutral-800 rounded-md">
@@ -1367,7 +1321,6 @@ Grok 2 models are now available for you to try out.
                                                     </div>
                                                 )}
 
-                                                {/* Summary with gradient border */}
                                                 <div className="flex-1 relative mb-4 pl-3">
                                                     <div className="absolute -left-0 top-1 bottom-1 w-[2px] rounded-full bg-gradient-to-b from-violet-500 via-violet-400 to-transparent opacity-50" />
                                                     <p className="text-sm text-muted-foreground line-clamp-4">
@@ -1375,7 +1328,6 @@ Grok 2 models are now available for you to try out.
                                                     </p>
                                                 </div>
 
-                                                {/* Actions */}
                                                 <div className="flex gap-2">
                                                     <Button
                                                         variant="ghost"
@@ -2017,7 +1969,6 @@ Grok 2 models are now available for you to try out.
 
     const handleExampleClick = async (card: TrendingQuery) => {
         const exampleText = card.text;
-        // track("search example", { query: exampleText });
         lastSubmittedQueryRef.current = exampleText;
         setHasSubmitted(true);
         setSuggestedQuestions([]);
@@ -2624,13 +2575,11 @@ Grok 2 models are now available for you to try out.
 const LoadingFallback = () => (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-neutral-50 to-neutral-100 dark:from-neutral-950 dark:to-neutral-900">
         <div className="flex flex-col items-center gap-6 p-8">
-            {/* Clean loading spinner */}
             <div className="relative w-12 h-12">
                 <div className="absolute inset-0 rounded-full border-4 border-neutral-200 dark:border-neutral-800" />
                 <div className="absolute inset-0 rounded-full border-4 border-t-primary animate-spin" />
             </div>
 
-            {/* Simple loading text */}
             <p className="text-sm text-neutral-600 dark:text-neutral-400 animate-pulse">
                 Loading...
             </p>
