@@ -2087,14 +2087,14 @@ Grok 2 models are now available for you to try out.
                             <span className="font-medium">Follow on X</span>
                         </Link>
                         <a
-                            href="https://www.producthunt.com/posts/scira?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-scira"
+                            href="https://www.producthunt.com/posts/scira?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-scira"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center hover:opacity-90 transition-opacity"
                         >
                             <img
-                                src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=426999&theme=light"
-                                alt="Product Hunt Badge"
+                                src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=776449&theme=light&t=1736847508935"
+                                alt="Scira - A minimalistic open-source AI-powered search engine | Product Hunt"
                                 className="h-8"
                             />
                         </a>
