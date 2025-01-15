@@ -54,7 +54,7 @@ const ModelSwitcher: React.FC<ModelSwitcherProps> = ({ selectedModel, setSelecte
     const [isOpen, setIsOpen] = useState(false);
 
     return (
-        <DropdownMenu onOpenChange={setIsOpen}>
+        <DropdownMenu onOpenChange={setIsOpen} modal={false}>
             <DropdownMenuTrigger
                 className={cn(
                     "flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300",
