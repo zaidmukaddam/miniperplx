@@ -13,7 +13,7 @@ export async function suggestQuestions(history: any[]) {
   console.log(history);
 
   const { object } = await generateObject({
-    model: xai("grok-2-1212"),
+    model: xai("grok-beta"),
     temperature: 0,
     maxTokens: 300,
     topP: 0.3,
@@ -214,17 +214,28 @@ const groupPrompts = {
     then talk in long details in 2-6 paragraphs.
     If the user gives you a specific time like start date and end date, then add them in the parameters. default is 1 week.
     Always provide the citations at the end of each paragraph and in the end of sentences where you use it in which they are referred to with the given format to the information provided.
-    Citation format: [Post Title](URL)`,
+    Citation format: [Post Title](URL)
+    
+    # Latex and Currency Formatting to be used:
+    - Always use '$' for inline equations and '$$' for block equations.
+    - Avoid using '$' for dollar currency. Use "USD" instead.`,
   analysis: `You are a code runner, stock analysis and currency conversion expert.
   
   - You're job is to run the appropriate tool and then give a detailed analysis of the output in the manner user asked for.
+  - You will be asked university level questions, so be very innovative and detailed in your responses.
   - YOU MUST run the required tool first and then write the response!!!! RUN THE TOOL FIRST AND ONCE!!!
   - No need to ask for a follow-up question, just provide the analysis.
   - You can write in latex but currency should be in words or acronym like 'USD'.
   - Do not give up!
 
+
+  # Latex and Currency Formatting to be used:
+    - Always use '$' for inline equations and '$$' for block equations.
+    - Avoid using '$' for dollar currency. Use "USD" instead.
+
   #### Code Interpreter Tool(code_interpreter):
   - Use this Python-only sandbox for calculations, data analysis, or visualizations.
+  - You are here to do deep analysis and provide insights by running the code.
   - matplotlib, pandas, numpy, sympy, and yfinance are available.
   - Remember to add the necessary imports for the libraries you use as they are not pre-imported.
   - Include library installations (!pip install <library_name>) in the code where required.
