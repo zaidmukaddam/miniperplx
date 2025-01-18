@@ -2387,7 +2387,7 @@ Grok 2 models are now available for you to try out.
     ), [trendingQueries]);
 
     return (
-        <div className="flex flex-col !font-sans items-center min-h-screen bg-background text-foreground transition-all duration-500">
+        <div className="flex flex-col !font-sans items-center absolute inset-0 bg-background text-foreground transition-all duration-500">
             <Navbar />
 
             <div className={`w-full p-2 sm:p-4 ${hasSubmitted
@@ -2628,7 +2628,7 @@ Grok 2 models are now available for you to try out.
 }
 
 const LoadingFallback = () => (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-neutral-50 to-neutral-100 dark:from-neutral-950 dark:to-neutral-900">
+    <div className="flex items-center justify-center absolute inset-0 bg-gradient-to-b from-neutral-50 to-neutral-100 dark:from-neutral-950 dark:to-neutral-900">
         <div className="flex flex-col items-center gap-6 p-8">
             <div className="relative w-12 h-12">
                 <div className="absolute inset-0 rounded-full border-4 border-neutral-200 dark:border-neutral-800" />
