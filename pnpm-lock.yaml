@@ -150,8 +150,8 @@ dependencies:
     specifier: ^2.4.2
     version: 2.4.2
   katex:
-    specifier: ^0.16.11
-    version: 0.16.11
+    specifier: '>=0.16.21'
+    version: 0.16.21
   lucide-react:
     specifier: ^0.424.0
     version: 0.424.0(react@18.3.1)
@@ -4440,8 +4440,8 @@ packages:
       safe-buffer: 5.2.1
     dev: false
 
-  /katex@0.16.11:
-    resolution: {integrity: sha512-RQrI8rlHY92OLf3rho/Ts8i/XvjgguEjOkO1BEXcU3N8BqPpSzBNwV/G0Ukr+P/l3ivvJUE/Fa/CwbS6HesGNQ==}
+  /katex@0.16.21:
+    resolution: {integrity: sha512-XvqR7FgOHtWupfMiigNzmh+MgUVmDGU2kXZm899ZkPfcuoPuFxyHmXsgATDpFZDAXCI8tvinaVcDo8PIIJSo4A==}
     hasBin: true
     dependencies:
       commander: 8.3.0
@@ -4892,7 +4892,7 @@ packages:
     dependencies:
       '@types/katex': 0.16.7
       devlop: 1.1.0
-      katex: 0.16.11
+      katex: 0.16.21
       micromark-factory-space: 2.0.0
       micromark-util-character: 2.1.0
       micromark-util-symbol: 2.0.0
@@ -5687,7 +5687,7 @@ packages:
       react: ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0
       react-dom: ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0
     dependencies:
-      katex: 0.16.11
+      katex: 0.16.21
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
     dev: false
@@ -5904,7 +5904,7 @@ packages:
       '@types/katex': 0.16.7
       hast-util-from-html-isomorphic: 2.0.0
       hast-util-to-text: 4.0.2
-      katex: 0.16.11
+      katex: 0.16.21
       unist-util-visit-parents: 6.0.1
       vfile: 6.0.3
     dev: false
