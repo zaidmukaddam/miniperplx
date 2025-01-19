@@ -2190,13 +2190,18 @@ Grok 2 models are now available for you to try out.
 
     const Navbar: React.FC<NavbarProps> = () => {
         return (
-            <div className="fixed top-0 left-0 right-0 z-[60] flex justify-between items-center p-4 bg-white/90 dark:bg-neutral-950/90 font-sans">
+            <div className="fixed top-0 left-0 right-0 z-[60] flex justify-between items-center p-4 
+                bg-white/30 dark:bg-neutral-950/30 
+                backdrop-blur-lg backdrop-saturate-150
+                border-b border-neutral-200/20 dark:border-neutral-800/20
+                supports-[backdrop-filter]:bg-white/30 supports-[backdrop-filter]:dark:bg-neutral-950/30
+                font-sans">
                 <div className="flex items-center gap-4">
                     <Link href="/new">
                         <Button
                             type="button"
                             variant={'secondary'}
-                            className="rounded-full bg-neutral-200 dark:bg-neutral-800 group transition-all hover:scale-105 pointer-events-auto"
+                            className="rounded-full bg-white/70 dark:bg-neutral-800/70 backdrop-blur-sm group transition-all hover:scale-105 pointer-events-auto"
                         >
                             <Plus size={18} className="group-hover:rotate-90 transition-all" />
                             <span className="text-sm ml-2 group-hover:block hidden animate-in fade-in duration-300">
@@ -2209,7 +2214,10 @@ Grok 2 models are now available for you to try out.
                     <Link
                         target="_blank"
                         href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fzaidmukaddam%2Fscira&env=XAI_API_KEY,UPSTASH_REDIS_REST_URL,UPSTASH_REDIS_REST_TOKEN,AVIATION_STACK_API_KEY,SANDBOX_TEMPLATE_ID,TMDB_API_KEY,NEXT_PUBLIC_POSTHOG_KEY,NEXT_PUBLIC_POSTHOG_HOST,YT_ENDPOINT,EXA_API_KEY,TRIPADVISOR_API_KEY,BLOB_READ_WRITE_TOKEN,ELEVENLABS_API_KEY,AZURE_TRANSLATOR_LOCATION,AZURE_TRANSLATOR_KEY,AZURE_RESOURCE_NAME,AZURE_API_KEY,MAPBOX_ACCESS_TOKEN,NEXT_PUBLIC_MAPBOX_TOKEN,FIRECRAWL_API_KEY,TAVILY_API_KEY,OPENWEATHER_API_KEY,E2B_API_KEY,GOOGLE_MAPS_API_KEY,NEXT_PUBLIC_GOOGLE_MAPS_API_KEY&envDescription=All%20environment%20variables%20needed%20for%20application"
-                        className="flex flex-row gap-2 items-center py-1.5 px-2 rounded-md text-neutral-950 bg-neutral-50 hover:bg-neutral-100 dark:bg-neutral-900 dark:text-zinc-50 dark:hover:bg-neutral-800 dark:shadow-sm shadow-none text-sm"
+                        className="flex flex-row gap-2 items-center py-1.5 px-2 rounded-md 
+                            bg-white/70 hover:bg-white/90 dark:bg-neutral-800/70 dark:hover:bg-neutral-800/90
+                            backdrop-blur-sm text-neutral-950 dark:text-zinc-50 shadow-sm text-sm
+                            transition-all duration-200"
                     >
                         <VercelIcon size={14} />
                         <span className='hidden sm:block'>Deploy with Vercel</span>
